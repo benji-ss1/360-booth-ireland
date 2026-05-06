@@ -1,5 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/", "destination": "/360booth-hub-v2(2).html" }
-  ]
-}
