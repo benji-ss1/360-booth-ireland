@@ -3199,8 +3199,7 @@ async function connectGoogleHub(){
       provider:'google',
       options:{
         redirectTo,
-        scopes:GOOGLE_SCOPES,
-        queryParams:{access_type:'offline',prompt:'consent'}
+        scopes:GOOGLE_SCOPES
       }
     });
     if(error)throw error;
