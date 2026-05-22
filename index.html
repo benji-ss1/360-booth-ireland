@@ -1838,7 +1838,10 @@ select.st-input option{background:#1a1a1a}
                   </div>
                   <div class="int-tags"><span class="int-tag">gmail</span><span class="int-tag">drive</span><span class="int-tag">calendar</span><span class="int-tag">sheets</span></div>
                   <div class="int-desc">Connect Gmail, Drive, Sheets & Calendar for live data inside your dashboard.</div>
-                  <button class="int-btn" onclick="showToast('Google','Requires OAuth setup — go to Hub page for guide','info')">Connect Google</button>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <button class="int-btn" id="google-connect-btn" onclick="connectGoogleHub()">Connect Google</button>
+                    <div id="google-connect-status" class="int-badge-nc" style="display:none">● Not connected</div>
+                  </div>
                 </div>
 
                 <!-- Notion -->
@@ -1951,8 +1954,8 @@ select.st-input option{background:#1a1a1a}
                     <div><div class="int-name">Google Meet</div><div style="font-size:10.5px;color:var(--text-muted)">Auto-join calls, capture notes</div></div>
                   </div>
                   <div class="int-tags"><span class="int-tag">calendar.events</span><span class="int-tag">meet.links</span></div>
-                  <div class="int-desc">Auto-join Google Meet calls and capture notes via Fathom integration.</div>
-                  <button class="int-btn" onclick="showToast('Google Meet','Connect Google Workspace first to enable Meet','info')">Connect Google</button>
+                  <div class="int-desc">Auto-join Google Meet calls and capture notes. Uses your connected Google account.</div>
+                  <button class="int-btn" onclick="connectGoogleHub()">Connect Google</button>
                 </div>
 
                 <!-- Rightmove Sourcing -->
@@ -2060,6 +2063,17 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_rUCvu27lMjfNz3zakrgB-Q_-I68xRO4';
 const BOOT360_CLIENT_ID='d6df774e-2034-4ee6-876a-9ccd07dd014e';
 const GOOGLE_AUTH_START_URL=`${SUPABASE_URL}/functions/v1/google-auth-start`;
 const GOOGLE_EMAIL_STORAGE='b360_google_email';
+const GTOK_KEY='b360_gtok';
+const GTOK_EXP_KEY='b360_gtok_exp';
+const GOOGLE_SCOPES=[
+  'email','profile',
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/gmail.compose',
+  'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/spreadsheets.readonly'
+].join(' ');
 let supabaseClient=null,authSession=null,authProfile=null,authBooted=false,settingsHydrated=false,authListenerBound=false;
 
 function ensureSupabaseClient(){
@@ -2080,18 +2094,22 @@ function setSigninError(msg=''){
 
 function updateGoogleIntegrationStatus(){
   const email=storage.getItem(GOOGLE_EMAIL_STORAGE)||'';
+  const tok=storage.getItem(GTOK_KEY)||'';
+  const exp=parseInt(storage.getItem(GTOK_EXP_KEY)||'0');
+  const connected=!!(tok&&Date.now()<exp);
   const statusEl=document.getElementById('google-connect-status');
   const btn=document.getElementById('google-connect-btn');
-  if(!statusEl||!btn)return;
-  if(email){
-    statusEl.textContent='● Connected as '+email;
-    statusEl.style.cssText='background:rgba(76,175,125,.1);border-color:rgba(76,175,125,.3);color:#4CAF7D';
-    btn.textContent='Reconnect Google';
-  }else{
-    statusEl.textContent='● Not connected';
-    statusEl.style.cssText='';
-    btn.textContent='Connect Google';
+  if(statusEl){
+    statusEl.style.display='block';
+    if(connected){
+      statusEl.textContent='● Connected'+(email?' as '+email:'');
+      statusEl.style.cssText='display:block;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);color:#4CAF7D;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600';
+    }else{
+      statusEl.textContent='● Not connected';
+      statusEl.style.cssText='display:block;background:rgba(224,82,82,.08);border:1px solid rgba(224,82,82,.2);color:var(--red);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600';
+    }
   }
+  if(btn)btn.textContent=connected?'Reconnect Google':'Connect Google';
 }
 
 function updateAuthMeta(){
@@ -2151,11 +2169,39 @@ async function initAuth(){
   if(!authListenerBound){
     client.auth.onAuthStateChange(async(_event,session)=>{
       authSession=session||null;
+      // Persist Google API token immediately whenever we get a fresh one
+      if(session?.provider_token){
+        storage.setItem(GTOK_KEY,session.provider_token);
+        storage.setItem(GTOK_EXP_KEY,String(Date.now()+3540000));
+        storage.setItem(GOOGLE_EMAIL_STORAGE,session.user?.email||'');
+        updateGoogleIntegrationStatus();
+        // Persist to google_tokens table for cross-session access
+        if(session.user?.email){
+          client.from('google_tokens').upsert({
+            email:session.user.email,
+            access_token:session.provider_token,
+            expires_at:new Date(Date.now()+3540000).toISOString()
+          },{onConflict:'email'}).then(()=>{}).catch(()=>{});
+        }
+      }
       try{if(authSession)await loadAuthProfile();else authProfile=null}catch(err){console.error(err)}
       updateAuthMeta();
       if(authSession&&isBoot360Profile()){
         await hydrateRemoteSettings(true);
-        if(!authBooted){authBooted=true;showApp();init()}else{showApp();loadSettings()}
+        if(!authBooted){
+          authBooted=true;showApp();init();
+          // If user just completed Hub Google OAuth, navigate straight to Hub
+          if(sessionStorage.getItem('hub_oauth_pending')){
+            sessionStorage.removeItem('hub_oauth_pending');
+            setTimeout(()=>{navTo('hub',document.querySelector('[data-page=hub]'));showToast('Connected','Google Workspace connected — loading your data…','success');},600);
+          }
+        }else{
+          showApp();loadSettings();
+          if(session?.provider_token){
+            updateHubConnectionStatus();
+            if(wsCurrentPanel==='gmail')loadGmailPanel();
+          }
+        }
       }else{
         if(authSession&&!isBoot360Profile())showToast('Access Pending','This account is not linked to the 360 Booth workspace yet.','error');
         showSignIn();
@@ -3087,15 +3133,32 @@ const GAPI='https://www.googleapis.com';
 const GMAIL='https://gmail.googleapis.com/gmail/v1/users/me';
 
 async function getHubToken(){
-  if(!supabaseClient||!authSession)return null;
-  const email=authSession.user?.email;
-  if(!email)return null;
-  // Prefer Supabase session provider_token (from Google sign-in)
-  const{data:{session}}=await supabaseClient.auth.getSession().catch(()=>({data:{session:null}}));
-  if(session?.provider_token)return session.provider_token;
-  // Fall back to stored token in google_tokens table
-  const{data}=await supabaseClient.from('google_tokens').select('access_token,expires_at').eq('email',email).maybeSingle().catch(()=>({data:null}));
-  if(data?.expires_at&&new Date(data.expires_at)>new Date())return data.access_token;
+  if(!authSession)return null;
+  // 1. Fast path: check localStorage cache (set after OAuth or on previous load)
+  const cached=storage.getItem(GTOK_KEY);
+  const cachedExp=parseInt(storage.getItem(GTOK_EXP_KEY)||'0');
+  if(cached&&Date.now()<cachedExp-120000)return cached; // 2-min buffer
+  // 2. Check live Supabase session (available right after OAuth redirect)
+  if(supabaseClient){
+    const{data:{session}}=await supabaseClient.auth.getSession().catch(()=>({data:{session:null}}));
+    if(session?.provider_token){
+      storage.setItem(GTOK_KEY,session.provider_token);
+      storage.setItem(GTOK_EXP_KEY,String(Date.now()+3540000));
+      return session.provider_token;
+    }
+    // 3. Fall back to google_tokens DB table
+    const email=authSession.user?.email;
+    if(email){
+      const{data}=await supabaseClient.from('google_tokens').select('access_token,expires_at').eq('email',email).maybeSingle().catch(()=>({data:null}));
+      if(data?.access_token&&new Date(data.expires_at)>new Date(Date.now()+120000)){
+        storage.setItem(GTOK_KEY,data.access_token);
+        storage.setItem(GTOK_EXP_KEY,String(new Date(data.expires_at).getTime()));
+        return data.access_token;
+      }
+    }
+  }
+  // 4. Last resort: return cached even if near expiry
+  if(cached&&Date.now()<cachedExp)return cached;
   return null;
 }
 
@@ -3104,7 +3167,13 @@ async function gapi(path,opts={}){
   if(!tok)throw Object.assign(new Error('NOT_CONNECTED'),{code:'NOT_CONNECTED'});
   const url=path.startsWith('http')?path:`${GAPI}/${path}`;
   const res=await fetch(url,{...opts,headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json',...(opts.headers||{})}});
-  if(res.status===401)throw Object.assign(new Error('TOKEN_EXPIRED'),{code:'TOKEN_EXPIRED'});
+  if(res.status===401){
+    // Token is invalid — clear it so next call goes through re-auth
+    storage.removeItem(GTOK_KEY);
+    storage.removeItem(GTOK_EXP_KEY);
+    updateGoogleIntegrationStatus();
+    throw Object.assign(new Error('TOKEN_EXPIRED'),{code:'TOKEN_EXPIRED'});
+  }
   if(!res.ok)throw new Error(`Google API ${res.status}`);
   return res.json();
 }
@@ -3118,16 +3187,28 @@ function hubNotConnected(service){
 }
 
 async function connectGoogleHub(){
-  const btns=document.querySelectorAll('[onclick="connectGoogleHub()"]');
-  btns.forEach(b=>b.textContent='Connecting…');
+  const client=ensureSupabaseClient();
+  if(!client){showToast('Error','Dashboard not ready','error');return}
+  // Button feedback — find all connect buttons
+  const btns=[...document.querySelectorAll('[onclick*="connectGoogleHub"],[onclick*="connectGoogle("]')];
+  btns.forEach(b=>{b._orig=b.textContent;b.textContent='Connecting…';b.disabled=true});
   try{
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/google-auth-start?return_to=${encodeURIComponent(window.location.href)}`,{headers:{apikey:SUPABASE_PUBLISHABLE_KEY}});
-    const d=await res.json();
-    if(d.url)window.location.href=d.url;
-    else throw new Error(d.error||'No URL');
+    sessionStorage.setItem('hub_oauth_pending','1');
+    const redirectTo=window.location.href.split('?')[0].split('#')[0];
+    const{error}=await client.auth.signInWithOAuth({
+      provider:'google',
+      options:{
+        redirectTo,
+        scopes:GOOGLE_SCOPES,
+        queryParams:{access_type:'offline',prompt:'consent'}
+      }
+    });
+    if(error)throw error;
+    // Redirect is in-flight — buttons reset naturally on page reload
   }catch(e){
+    sessionStorage.removeItem('hub_oauth_pending');
     showToast('Error','Could not start Google sign-in: '+e.message,'error');
-    btns.forEach(b=>b.textContent='Connect Google Account');
+    btns.forEach(b=>{b.textContent=b._orig||'Connect Google Account';b.disabled=false});
   }
 }
 
@@ -3908,6 +3989,7 @@ function init(){
   if(sbColl)document.getElementById('sidebar').classList.add('collapsed');
   const s=gs();
   if(s.bizname)document.getElementById('sb-biz-name').textContent=s.bizname;
+  updateGoogleIntegrationStatus();
   loadSettings();
   renderOverview();renderBookings();renderEnquiries();renderClients();renderInvoices();renderLeadGen();loadAdsStats();loadSiteStats();
   updateSbStats();
