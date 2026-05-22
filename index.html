@@ -6,6 +6,7 @@
 <title>360 Booth Ireland — Command Centre</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --background:#0F0F0F;--card:#161616;--card-hover:#1C1C1C;
@@ -529,6 +530,70 @@ select.st-input option{background:#1a1a1a}
 .notif-item:hover{background:rgba(255,255,255,.03)}
 .notif-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15);flex-shrink:0;margin-top:4px}
 .notif-item.unread .notif-dot{background:var(--accent)}
+
+/* ── THINKING ANIMATION ── */
+@keyframes thinking{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
+.thinking-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:thinking 1.1s ease infinite;display:inline-block;margin:0 2px;flex-shrink:0}
+.thinking-dot:nth-child(2){animation-delay:.2s}.thinking-dot:nth-child(3){animation-delay:.4s}
+.thinking-wrap{display:flex;align-items:center;gap:10px;color:var(--text-muted);font-size:12px;padding:4px 0}
+.thinking-steps{display:flex;flex-direction:column;gap:3px}
+@keyframes step-pulse{0%,100%{opacity:.3}50%{opacity:.9}}
+.thinking-step{font-size:11px;color:var(--text-muted);opacity:.3;animation:step-pulse 1.4s ease infinite}
+.thinking-step.active{opacity:1;color:var(--accent);animation:none}
+.thinking-step.done{opacity:1;color:var(--accent);animation:none}
+
+/* ── PAGE TRANSITION ── */
+@keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:pageIn 220ms cubic-bezier(.4,0,.2,1) both}
+
+/* ── MODAL ANIMATION ── */
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-overlay.open .modal{animation:modalIn 200ms cubic-bezier(.25,.46,.45,.94) both}
+
+/* ── BUTTON FEEDBACK ── */
+.btn-p:active,.btn-sm:active,.btn-ai:active,.btn-icon:active{transform:scale(.96);opacity:.85}
+
+/* ── CARD HOVER SHADOW ── */
+.card:hover{box-shadow:0 6px 28px rgba(0,0,0,.3);border-color:var(--border-hover)}
+.prop-card:hover,.booking-card:hover{box-shadow:0 6px 22px rgba(0,0,0,.28)}
+.kanban-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.22)}
+.kpi:hover{box-shadow:0 4px 20px rgba(0,0,0,.2)}
+
+/* ── SIDEBAR ACTIVE LINE ── */
+.sb-item.active{position:relative}
+.sb-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 2px 2px 0}
+
+/* ── KPI VALUE ENTRANCE ── */
+@keyframes kpiValueIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.kpi-value{animation:kpiValueIn 300ms ease both}
+
+/* ── SERVICE COLOR DOTS ── */
+.svc-strip{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0;opacity:.7}
+.svc-360{background:var(--accent)}.svc-mirror{background:var(--blue)}
+.svc-photo{background:var(--green)}.svc-mag{background:var(--purple)}.svc-vintage{background:#F0A847}
+
+/* ── SIGN IN CARD POLISH ── */
+.signin-card{box-shadow:0 40px 100px rgba(0,0,0,.9),0 0 0 1px rgba(201,168,76,.15),inset 0 1px 0 rgba(255,255,255,.06)}
+.signin-google-btn{width:100%;padding:12px;border-radius:var(--radius-sm);background:#fff;color:#1a1a1a;font-weight:600;font-size:13px;cursor:pointer;transition:opacity 150ms;display:flex;align-items:center;justify-content:center;gap:10px;border:none;margin-bottom:14px}
+.signin-google-btn:hover{opacity:.9}
+.signin-divider-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.signin-divider-row span{font-size:11px;color:var(--text-subtle);white-space:nowrap}
+.signin-divider-row::before,.signin-divider-row::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
+.signin-meta{font-size:10.5px;color:var(--text-subtle);text-align:center;margin-top:12px;line-height:1.5}
+.signin-spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,.15);border-top-color:#1a1a1a;border-radius:50%;animation:spin-slow .7s linear infinite;flex-shrink:0}
+
+/* ── AI INSIGHT BAR ── */
+#ai-insight-bar{align-items:flex-start;gap:12px}
+
+/* ── GROQ STATUS ── */
+.groq-ok{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--green)}
+.groq-ok::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+/* ── NOTIFICATION PANEL POSITION ── */
+.notif-panel{right:20px}
+
+/* ── IMPROVED EMPTY STATE ── */
+.empty-state{border:1px dashed var(--border);border-radius:var(--radius);background:rgba(255,255,255,.01)}
 </style>
 </head>
 <body>
@@ -576,8 +641,14 @@ select.st-input option{background:#1a1a1a}
     </div>
     <div class="signin-heading">
       <h2>Welcome back</h2>
-      <p>Sign in to your 360 Booth Ireland dashboard</p>
+      <p>Sign in to your 360 Booth Ireland Command Centre</p>
     </div>
+    <!-- Google OAuth (primary) -->
+    <button class="signin-google-btn" id="signin-google-btn" onclick="doGoogleSignIn()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      <span id="signin-google-label">Continue with Google</span>
+    </button>
+    <div class="signin-divider-row"><span>or use password</span></div>
     <div style="margin-bottom:14px">
       <div class="st-label" style="margin-bottom:6px;display:block">EMAIL</div>
       <input id="signin-email" class="st-input" type="email" placeholder="admin@360boothireland.ie" style="width:100%;height:42px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--text);padding:0 14px;font-size:13px">
@@ -588,6 +659,7 @@ select.st-input option{background:#1a1a1a}
     </div>
     <div id="signin-error" style="display:none;color:#E05252;font-size:12px;margin-bottom:12px;text-align:center"></div>
     <button class="signin-btn" onclick="doSignIn()">Sign in to Dashboard</button>
+    <div class="signin-meta" id="signin-meta">Use your authorised company Google account to continue.</div>
   </div>
 </div>
 
@@ -740,7 +812,7 @@ select.st-input option{background:#1a1a1a}
         </div>
 
         <!-- AI insight bar -->
-        <div id="ai-insight-bar" style="display:none;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.18);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px">
+        <div id="ai-insight-bar" style="display:none;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.18);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;flex-direction:row">
           <div style="color:var(--accent);flex-shrink:0;margin-top:1px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
           <div id="ai-insight-text" style="flex:1;font-size:12.5px;color:var(--text);line-height:1.6"><span style="color:var(--text-muted)">Add your Groq API key in Settings to enable AI briefings.</span></div>
           <button class="btn-sm" style="font-size:10px;flex-shrink:0" onclick="generateInsight('overview')">Refresh</button>
@@ -1754,6 +1826,7 @@ select.st-input option{background:#1a1a1a}
 // ══════════════════════════════════
 // DATA LAYER
 // ══════════════════════════════════
+const storage=localStorage;
 const DB={
   get:(k)=>{try{return JSON.parse(localStorage.getItem('b360_'+k)||(k==='settings'||k.endsWith('stats')?'{}':'[]'))}catch{return k==='settings'||k.endsWith('stats')?{}:[]}},
   set:(k,v)=>localStorage.setItem('b360_'+k,JSON.stringify(v)),
@@ -1769,6 +1842,192 @@ const tAgo=(t)=>{const d=Date.now()-t;if(d<60e3)return'just now';if(d<36e5)retur
 function nextInv(){const i=DB.get('invoices');if(!i.length)return'INV-001';const n=i.map(x=>parseInt((x.number||'INV-000').replace(/\D/g,''))||0);return'INV-'+String(Math.max(...n)+1).padStart(3,'0')}
 function logAct(text,type='info'){const a=DB.get('activity');a.unshift({text,type,time:Date.now()});if(a.length>80)a.pop();DB.set('activity',a)}
 const COLORS=['#C9A84C','#4CAF7D','#5B9BD5','#9B72CF','#E05252','#F0A847'];
+
+// ══════════════════════════════════
+// AUTH ENGINE — Supabase + Google OAuth
+// ══════════════════════════════════
+const SUPABASE_URL='https://kcjmmiifemdarknrvpas.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_rUCvu27lMjfNz3zakrgB-Q_-I68xRO4';
+const BOOT360_CLIENT_ID='d6df774e-2034-4ee6-876a-9ccd07dd014e';
+const GOOGLE_AUTH_START_URL=`${SUPABASE_URL}/functions/v1/google-auth-start`;
+const GOOGLE_EMAIL_STORAGE='b360_google_email';
+let supabaseClient=null,authSession=null,authProfile=null,authBooted=false,settingsHydrated=false,authListenerBound=false;
+
+function ensureSupabaseClient(){
+  if(supabaseClient)return supabaseClient;
+  if(!window.supabase?.createClient)return null;
+  supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  return supabaseClient;
+}
+function isBoot360Profile(){return authProfile?.client_id===BOOT360_CLIENT_ID}
+function authEmail(){return authSession?.user?.email||storage.getItem(GOOGLE_EMAIL_STORAGE)||''}
+function authProvider(){return authSession?.user?.app_metadata?.provider||''}
+
+function setSigninError(msg=''){
+  const errEl=document.getElementById('signin-error');
+  if(!errEl)return;
+  if(msg){errEl.textContent=msg;errEl.style.display='block'}else{errEl.textContent='';errEl.style.display='none'}
+}
+
+function updateGoogleIntegrationStatus(){
+  const email=storage.getItem(GOOGLE_EMAIL_STORAGE)||'';
+  const statusEl=document.getElementById('google-connect-status');
+  const btn=document.getElementById('google-connect-btn');
+  if(!statusEl||!btn)return;
+  if(email){
+    statusEl.textContent='● Connected as '+email;
+    statusEl.style.cssText='background:rgba(76,175,125,.1);border-color:rgba(76,175,125,.3);color:#4CAF7D';
+    btn.textContent='Reconnect Google';
+  }else{
+    statusEl.textContent='● Not connected';
+    statusEl.style.cssText='';
+    btn.textContent='Connect Google';
+  }
+}
+
+function updateAuthMeta(){
+  const meta=document.getElementById('signin-meta');
+  if(!meta)return;
+  if(authSession&&isBoot360Profile()){
+    meta.textContent='Authenticated as '+authEmail()+' via '+(authProvider()||'your account')+'.';
+  }else{
+    meta.textContent='Use your authorised company Google account to continue.';
+  }
+}
+
+function showSignIn(){
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('signin').classList.add('visible');
+  updateAuthMeta();
+}
+function showApp(){
+  document.getElementById('signin').classList.remove('visible');
+  document.getElementById('app').classList.add('visible');
+}
+
+async function loadAuthProfile(){
+  const client=ensureSupabaseClient();
+  authProfile=null;
+  if(!client||!authSession?.user?.id)return null;
+  const{data,error}=await client.from('profiles').select('id,client_id,first_name,last_name,role').eq('id',authSession.user.id).maybeSingle();
+  if(error)throw error;
+  authProfile=data||null;
+  return authProfile;
+}
+
+async function initAuth(){
+  const client=ensureSupabaseClient();
+  updateGoogleIntegrationStatus();
+  updateAuthMeta();
+  if(!client){
+    // Supabase unavailable — fall back to localStorage password auth
+    if(storage.getItem('b360_authed')==='1'){showApp();init()}else{showSignIn()}
+    return null;
+  }
+  if(!authListenerBound){
+    client.auth.onAuthStateChange(async(_event,session)=>{
+      authSession=session||null;
+      try{if(authSession)await loadAuthProfile();else authProfile=null}catch(err){console.error(err)}
+      updateAuthMeta();
+      if(authSession&&isBoot360Profile()){
+        await hydrateRemoteSettings(true);
+        if(!authBooted){authBooted=true;showApp();init()}else{showApp();loadSettings()}
+      }else{
+        if(authSession&&!isBoot360Profile())showToast('Access Pending','This account is not linked to the 360 Booth workspace yet.','error');
+        showSignIn();
+      }
+    });
+    authListenerBound=true;
+  }
+  const{data,error}=await client.auth.getSession();
+  if(error)throw error;
+  authSession=data.session||null;
+  if(authSession)await loadAuthProfile();
+  // If no Supabase session, check localStorage fallback
+  if(!authSession&&storage.getItem('b360_authed')==='1'){showApp();init();return null}
+  return authSession;
+}
+
+async function doGoogleSignIn(){
+  const client=ensureSupabaseClient();
+  const btn=document.getElementById('signin-google-btn');
+  const label=document.getElementById('signin-google-label');
+  if(!client){showToast('Unavailable','Google sign-in unavailable — use password below','error');return}
+  if(btn)btn.disabled=true;
+  if(label)label.innerHTML='<span class="signin-spinner"></span> Connecting…';
+  try{
+    // Try custom Google auth edge function first
+    let redirectUrl=window.location.href.split('?')[0];
+    try{
+      const r=await fetch(GOOGLE_AUTH_START_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({redirect_url:redirectUrl})});
+      if(r.ok){const d=await r.json();if(d.url){window.location.href=d.url;return}}
+    }catch{}
+    // Fallback: Supabase built-in OAuth
+    const{data,error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:redirectUrl}});
+    if(error)throw error;
+  }catch(e){
+    showToast('Error',e.message||'Google sign-in failed','error');
+    if(btn)btn.disabled=false;
+    if(label)label.textContent='Continue with Google';
+  }
+}
+
+async function requireAuthedClient(actionLabel='continue'){
+  const client=ensureSupabaseClient();
+  if(!client){
+    // Fallback: use localStorage auth
+    if(storage.getItem('b360_authed')==='1')return null;
+    showToast('Sign In Required','Sign in before you '+actionLabel+'.','error');showSignIn();return null;
+  }
+  if(!authSession||!isBoot360Profile()){showToast('Sign In Required','Sign in before you '+actionLabel+'.','error');showSignIn();return null}
+  return client;
+}
+
+async function upsertCredential(service,label,credentials){
+  const client=await requireAuthedClient('save settings');
+  if(!client)return false;
+  const{data:existing,error:lookupError}=await client.from('integration_credentials').select('id').eq('client_id',BOOT360_CLIENT_ID).eq('service',service).limit(1);
+  if(lookupError)throw lookupError;
+  const row={client_id:BOOT360_CLIENT_ID,service,label,credentials,is_active:true,updated_at:new Date().toISOString()};
+  const res=existing?.length?await client.from('integration_credentials').update(row).eq('id',existing[0].id):await client.from('integration_credentials').insert(row);
+  if(res.error)throw res.error;
+  return true;
+}
+
+async function hydrateRemoteSettings(force=false){
+  const client=ensureSupabaseClient();
+  if(!client||!authSession||!isBoot360Profile()||(settingsHydrated&&!force))return;
+  const{data,error}=await client.from('integration_credentials').select('service,credentials').eq('client_id',BOOT360_CLIENT_ID).in('service',['dashboard_settings','groq','google_workspace']);
+  if(error){console.error(error);return}
+  const s=gs();
+  (data||[]).forEach(row=>{
+    const c=row.credentials||{};
+    if(row.service==='dashboard_settings'){
+      Object.assign(s,c.settings||{});
+      if(c.social){s.igFollowers=c.social.igFollowers||'';s.igVisits=c.social.igVisits||'';s.igDms=c.social.igDms||''}
+      if(c.pricing)Object.assign(s,c.pricing);
+    }
+    if(row.service==='groq'){
+      if(c.apiKey)storage.setItem('b360_groq_key',c.apiKey);
+      if(c.model)storage.setItem('b360_groq_model',c.model);
+    }
+    if(row.service==='google_workspace'&&c.email)storage.setItem(GOOGLE_EMAIL_STORAGE,c.email);
+  });
+  ss(s);
+  settingsHydrated=true;
+  updateGoogleIntegrationStatus();
+  loadSettings();
+}
+
+function buildDashboardSettingsPayload(){
+  const s=gs();
+  return{
+    settings:{bizname:s.bizname||'',owner:s.owner||'',email:s.email||'',phone:s.phone||'',website:s.website||'',location:s.location||'',bio:s.bio||'',instagram:s.instagram||''},
+    social:{igFollowers:s.igFollowers||'',igVisits:s.igVisits||'',igDms:s.igDms||''},
+    pricing:{price360:s.price360||'',priceMirror:s.priceMirror||'',pricePhoto:s.pricePhoto||'',priceMag:s.priceMag||'',priceVintage:s.priceVintage||'',priceExtra:s.priceExtra||''},
+    syncedAt:new Date().toISOString(),syncedBy:authEmail()
+  };
+}
 
 // ══════════════════════════════════
 // METRICS
@@ -1859,6 +2118,8 @@ function sBdg(s){
   return m[s]||'pill pill-neu';
 }
 function sBadge(s,size=''){return`<span class="${sBdg(s)} ${size}">${esc(s||'—')}</span>`}
+const SVC_COLORS={'360 Booth':'#C9A84C','Selfie Mirror':'#5B9BD5','Photo Booth':'#9B72CF','Magazine Booth':'#4CAF7D','Vintage Booth':'#E05252'};
+function svcColor(svc){return SVC_COLORS[svc]||'#6B6560'}
 
 // ══════════════════════════════════
 // OVERVIEW
@@ -1932,19 +2193,19 @@ function renderBookings(){
   if(!DB.get('bookings').length){grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-state-text">No bookings yet</div><div class="empty-state-sub">Add your first booking to start tracking your events and revenue.</div><button class="btn-p" onclick="openModal('booking')">+ Add First Booking</button></div>`;return}
   if(!bks.length){grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-state-text">No results</div><div class="empty-state-sub">Try clearing the filter.</div></div>`;return}
   grid.innerHTML=bks.map(b=>`
-    <div class="prop-card">
-      <div class="shimmer-line"></div>
-      <div class="prop-card-header"><div class="prop-card-address">${esc(b.client)}</div>${sBadge(b.status,'pill-sm')}</div>
-      <div class="prop-card-body">
-        <div class="prop-card-row"><span class="prop-card-label">Service</span><span class="prop-card-val gold">${esc(b.service||'—')}</span></div>
-        <div class="prop-card-row"><span class="prop-card-label">Event Date</span><span class="prop-card-val">${fmtSD(b.eventDate)}</span></div>
-        ${b.venue?`<div class="prop-card-row"><span class="prop-card-label">Venue</span><span class="prop-card-val">${esc(b.venue)}</span></div>`:''}
-        <div class="prop-card-row"><span class="prop-card-label">Duration</span><span class="prop-card-val">${b.hours||4} hours</span></div>
-        <div class="prop-card-row"><span class="prop-card-label">Value</span><span class="prop-card-val green">${fmtC(b.value)}</span></div>
-        ${b.eventType?`<div class="prop-card-row"><span class="prop-card-label">Type</span><span class="prop-card-val">${sBadge(b.eventType,'pill-sm')}</span></div>`:''}
+    <div class="booking-card">
+      <div class="svc-strip" style="background:${svcColor(b.service)}"></div>
+      <div class="booking-card-header"><div class="booking-card-name">${esc(b.client)}</div>${sBadge(b.status,'pill-sm')}</div>
+      <div class="booking-card-body">
+        <div class="booking-card-row"><span class="booking-card-label">Service</span><span class="booking-card-val gold">${esc(b.service||'—')}</span></div>
+        <div class="booking-card-row"><span class="booking-card-label">Event Date</span><span class="booking-card-val">${fmtSD(b.eventDate)}</span></div>
+        ${b.venue?`<div class="booking-card-row"><span class="booking-card-label">Venue</span><span class="booking-card-val">${esc(b.venue)}</span></div>`:''}
+        <div class="booking-card-row"><span class="booking-card-label">Duration</span><span class="booking-card-val">${b.hours||4} hrs</span></div>
+        <div class="booking-card-row"><span class="booking-card-label">Value</span><span class="booking-card-val green">${fmtC(b.value)}</span></div>
+        ${b.eventType?`<div class="booking-card-row"><span class="booking-card-label">Type</span><span class="booking-card-val">${sBadge(b.eventType,'pill-sm')}</span></div>`:''}
       </div>
-      <div class="prop-card-footer">
-        <div class="prop-card-client">Client: <span>${esc(b.client)}</span></div>
+      <div class="booking-card-footer">
+        <div class="booking-card-client">Client: <span>${esc(b.client)}</span></div>
         <div style="display:flex;gap:5px">
           <button class="btn-sm" style="font-size:11px;padding:4px 9px" onclick="openModal('booking','${b.id}')">View</button>
           <button class="btn-sm" style="font-size:11px;padding:4px 9px" onclick="createInvFromBk('${b.id}')">Invoice</button>
@@ -2406,15 +2667,16 @@ function saveGroqKey(){
   const k=document.getElementById('groq-key-inp')?.value?.trim();
   const m=document.getElementById('groq-model-sel')?.value||'llama-3.3-70b-versatile';
   if(!k){showToast('Required','Enter your Groq API key','error');return}
-  localStorage.setItem('b360_groq_key',k);
-  localStorage.setItem('b360_groq_model',m);
+  storage.setItem('b360_groq_key',k);
+  storage.setItem('b360_groq_model',m);
   // Update integration card status
   const intStatus=document.getElementById('int-groq-status');
   if(intStatus){intStatus.textContent='● Connected';intStatus.style.background='rgba(76,175,125,.1)';intStatus.style.borderColor='rgba(76,175,125,.3)';intStatus.style.color='#4CAF7D'}
-  // Show AI notice is now active
   const notice=document.getElementById('ai-groq-notice');if(notice)notice.style.display='none';
   const btn=document.querySelector('#st-ai .st-save .btn-p');
   if(btn){const orig=btn.textContent;btn.textContent='✓ Activated';btn.style.background='var(--green)';setTimeout(()=>{btn.textContent=orig;btn.style.background=''},2000)}
+  // Sync to Supabase if authed
+  upsertCredential('groq','Groq AI',{apiKey:k,model:m}).catch(()=>{});
   showToast('AI Activated','Groq AI is now live — insights enabled on every page','success');
 }
 async function testGroqKey(){
@@ -2429,11 +2691,11 @@ function changePassword(){
   const cur=document.getElementById('pw-current')?.value;
   const nw=document.getElementById('pw-new')?.value;
   const conf=document.getElementById('pw-confirm')?.value;
-  const stored=localStorage.getItem('b360_pw')||'booth360';
+  const stored=storage.getItem('b360_pw')||'booth360';
   if(cur!==stored){showToast('Wrong Password','Current password is incorrect','error');return}
   if(!nw||nw.length<6){showToast('Too Short','Minimum 6 characters','error');return}
   if(nw!==conf){showToast('Mismatch','Passwords do not match','error');return}
-  localStorage.setItem('b360_pw',nw);
+  storage.setItem('b360_pw',nw);
   ['pw-current','pw-new','pw-confirm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
   showToast('Password Updated','Your new password is saved — use it on next sign-in','success');
 }
@@ -2449,8 +2711,8 @@ function signOut(){
 // AI ENGINE
 // ══════════════════════════════════
 const GROQ_URL='https://api.groq.com/openai/v1/chat/completions';
-function groqKey(){return localStorage.getItem('b360_groq_key')||''}
-function groqModel(){return localStorage.getItem('b360_groq_model')||'llama-3.3-70b-versatile'}
+function groqKey(){return storage.getItem('b360_groq_key')||''}
+function groqModel(){return storage.getItem('b360_groq_model')||'llama-3.3-70b-versatile'}
 
 function buildCtx(){
   const s=gs(),m=getMetrics(),bk=DB.get('bookings'),inv=DB.get('invoices'),enq=DB.get('enquiries'),now=new Date();
@@ -2493,7 +2755,7 @@ async function generateInsight(page){
   const barEl=barWraps[page]?document.getElementById(barWraps[page]):null;
   if(!k){if(bodyEl)bodyEl.innerHTML='<span style="color:var(--text-muted)">Add your Groq key in <strong style="cursor:pointer;color:var(--accent)" onclick="navTo(\'settings\',null);setTimeout(()=>switchSettingsTab(\'ai\',null),200)">Settings \u2192 AI Config</strong> to enable insights.</span>';return}
   if(barEl)barEl.style.display='flex';
-  if(bodyEl)bodyEl.innerHTML='<div style="display:flex;align-items:center;gap:8px;color:var(--text-muted)"><div style="width:12px;height:12px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin-slow .7s linear infinite"></div>Generating from live data\u2026</div>';
+  if(bodyEl)bodyEl.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;align-items:center;gap:6px"><span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span><span style="color:var(--text-muted);font-size:11.5px;margin-left:4px">Analysing live data\u2026</span></div><div class="thinking-steps" style="display:flex;gap:12px;font-size:11px;color:var(--text-muted)"><span class="thinking-step active">Research</span><span style="opacity:.35">\u2192</span><span class="thinking-step" style="animation-delay:.6s">Analysis</span><span style="opacity:.35">\u2192</span><span class="thinking-step" style="animation-delay:1.2s">Synthesis</span></div></div>`;
   const ctx2=buildCtx();
   let prompt=pagePrompts[page];
   if(typeof prompt==='function'){const ss_=DB.get('site_stats'),as_=DB.get('ads_stats');if(page==='ads')prompt=prompt(as_);if(page==='website')prompt=prompt(ss_,document.getElementById('meta-title')?.value,document.getElementById('meta-desc')?.value)}
@@ -2538,7 +2800,7 @@ async function sendAIMessage(text){
   aiChatHistory.push({role:'user',content:text});
   const k=groqKey();
   if(!k){addAIBubble('bot','Please add your Groq API key in <strong>Settings \u2192 AI Config</strong> to use the assistant.');return}
-  const bubble=addAIBubble('bot','<div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:12px"><div style="width:12px;height:12px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin-slow .7s linear infinite;flex-shrink:0"></div>Thinking\u2026</div>');
+  const bubble=addAIBubble('bot',`<div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:6px"><span class="thinking-dot"></span><span class="thinking-dot"></span><span class="thinking-dot"></span><span style="color:var(--text-muted);font-size:11.5px;margin-left:4px">Thinking\u2026</span></div><div style="display:flex;gap:10px;font-size:11px;color:var(--text-muted)"><span class="thinking-step active">Research</span><span style="opacity:.35">\u2192</span><span class="thinking-step" style="animation-delay:.6s">Analysis</span><span style="opacity:.35">\u2192</span><span class="thinking-step" style="animation-delay:1.2s">Synthesis</span></div></div>`);
   try{
     const msgs=[{role:'system',content:buildCtx()},...aiChatHistory.slice(-16)];
     const r=await fetch(GROQ_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},body:JSON.stringify({model:groqModel(),max_tokens:1200,messages:msgs})});
@@ -3021,26 +3283,31 @@ function showToast(title,msg,type='info'){
 // ══════════════════════════════════
 function doSignIn(){
   const pass=document.getElementById('signin-pass')?.value||'';
-  const storedPass=localStorage.getItem('b360_pw')||'booth360';
+  const storedPass=storage.getItem('b360_pw')||'booth360';
   const errEl=document.getElementById('signin-error');
-  if(pass&&pass!==storedPass){
+  if(!pass){
+    if(errEl){errEl.textContent='Please enter your password.';errEl.style.display='block'}
+    return;
+  }
+  if(pass!==storedPass){
     if(errEl){errEl.textContent='Incorrect password. Default is: booth360';errEl.style.display='block'}
     return;
   }
   if(errEl)errEl.style.display='none';
-  localStorage.setItem('b360_authed','1');
-  document.getElementById('signin').classList.remove('visible');
-  document.getElementById('app').classList.add('visible');
+  storage.setItem('b360_authed','1');
+  showApp();
   init();
 }
 
 function saveGroqFromInt(){
   const key=document.getElementById('int-groq-key')?.value?.trim();
   if(!key){showToast('Error','Please enter a Groq API key','error');return}
-  const s=gs();s.groqKey=key;ss(s);
+  storage.setItem('b360_groq_key',key);
   const statusEl=document.getElementById('int-groq-status');
   if(statusEl){statusEl.textContent='● Connected';statusEl.className='int-badge-nc';statusEl.style.background='rgba(76,175,125,.1)';statusEl.style.borderColor='rgba(76,175,125,.3)';statusEl.style.color='#4CAF7D'}
-  showToast('Groq','API key saved — AI is now active','success');
+  // Sync to Supabase if authed
+  upsertCredential('groq','Groq AI',{apiKey:key,model:storage.getItem('b360_groq_model')||'llama-3.3-70b-versatile'}).catch(()=>{});
+  showToast('Groq','API key saved — AI is now active on every page','success');
 }
 
 
@@ -3073,13 +3340,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   setTimeout(()=>{
     document.getElementById('preloader').classList.add('fade-out');
     setTimeout(()=>{document.getElementById('preloader').style.display='none'},300);
-    // Use localStorage so refresh doesn't log out
-    if(localStorage.getItem('b360_authed')==='1'){
-      document.getElementById('app').classList.add('visible');
-      init();
-    }else{
-      document.getElementById('signin').classList.add('visible');
-    }
+    initAuth();
   },1400);
 });
 </script>
