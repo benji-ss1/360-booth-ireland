@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Book 360 Booth Ireland</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#C9A84C;--bg:#0F0F0F;--card:#161616;--border:rgba(255,255,255,.08);--text:#F0EDE8;--muted:#6B6560;--green:#4CAF7D;--red:#E05252}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 16px}
+.logo{font-size:28px;font-weight:900;letter-spacing:4px;background:linear-gradient(135deg,#F5D98A,#C9A84C,#8B6520,#C9A84C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.tagline{font-size:13px;color:var(--muted);margin-bottom:32px;text-align:center}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:520px}
+.card-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5}
+.field{margin-bottom:16px}
+.label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px;display:block}
+.input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:0 14px;height:44px;font-size:13.5px;font-family:'DM Sans',sans-serif;transition:border-color 150ms;outline:none}
+.input:focus{border-color:rgba(201,168,76,.5)}
+select.input{cursor:pointer}
+textarea.input{height:auto;padding:12px 14px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.btn{width:100%;height:50px;background:var(--gold);color:#0F0F0F;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;transition:filter 150ms;margin-top:8px}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.error{color:var(--red);font-size:12.5px;margin-top:6px;display:none}
+.success-screen{display:none;flex-direction:column;align-items:center;gap:16px;padding:20px;text-align:center}
+.success-icon{width:64px;height:64px;background:rgba(76,175,125,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px}
+.services{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.svc-btn{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:10px 12px;font-size:12.5px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 150ms;text-align:left}
+.svc-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+.prices{font-size:11px;color:var(--muted);margin-top:4px}
+@media(max-width:480px){.row{grid-template-columns:1fr}.services{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="logo">360BOOTH</div>
+<div class="tagline">Premium Photo Booth Hire · Ireland · ⭐⭐⭐⭐⭐</div>
+
+<div class="card">
+  <div id="form-screen">
+    <div class="card-title">Book Your Event</div>
+    <div class="card-sub">Fill in your details and we'll confirm your booking within 24 hours. No payment required now.</div>
+
+    <div class="field">
+      <span class="label">Choose Your Package</span>
+      <div class="services">
+        <button class="svc-btn active" data-svc="360 Booth" onclick="selectSvc(this)">
+          <div style="font-weight:600;margin-bottom:2px">360 Booth</div>
+          <div class="prices">360° video booth</div>
+        </button>
+        <button class="svc-btn" data-svc="Selfie Mirror" onclick="selectSvc(this)">
+          <div style="font-weight:600;margin-bottom:2px">Selfie Mirror</div>
+          <div class="prices">Magic mirror booth</div>
+        </button>
+        <button class="svc-btn" data-svc="Photo Booth" onclick="selectSvc(this)">
+          <div style="font-weight:600;margin-bottom:2px">Photo Booth</div>
+          <div class="prices">Classic booth + prints</div>
+        </button>
+        <button class="svc-btn" data-svc="Magazine Booth" onclick="selectSvc(this)">
+          <div style="font-weight:600;margin-bottom:2px">Magazine Booth</div>
+          <div class="prices">Custom mag covers</div>
+        </button>
+        <button class="svc-btn" data-svc="Vintage Booth" onclick="selectSvc(this)">
+          <div style="font-weight:600;margin-bottom:2px">Vintage Booth</div>
+          <div class="prices">Retro style booth</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <span class="label">Event Date *</span>
+        <input class="input" type="date" id="f-date" required>
+      </div>
+      <div class="field">
+        <span class="label">Event Type *</span>
+        <select class="input" id="f-type">
+          <option value="">Select…</option>
+          <option>Wedding</option>
+          <option>Birthday</option>
+          <option>Corporate</option>
+          <option>Christmas Party</option>
+          <option>Debs / Prom</option>
+          <option>Anniversary</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="label">Venue / Location *</span>
+      <input class="input" type="text" id="f-venue" placeholder="e.g. The Shelbourne Hotel, Dublin">
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <span class="label">Hours Needed</span>
+        <select class="input" id="f-hours">
+          <option value="2">2 hours</option>
+          <option value="3">3 hours</option>
+          <option value="4" selected>4 hours</option>
+          <option value="5">5 hours</option>
+          <option value="6">6+ hours</option>
+        </select>
+      </div>
+      <div class="field">
+        <span class="label">Guest Count (approx)</span>
+        <input class="input" type="number" id="f-guests" placeholder="100">
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:4px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">Your Details</div>
+      <div class="row">
+        <div class="field">
+          <span class="label">Your Name *</span>
+          <input class="input" type="text" id="f-name" placeholder="Sarah Murphy">
+        </div>
+        <div class="field">
+          <span class="label">Phone *</span>
+          <input class="input" type="tel" id="f-phone" placeholder="+353 87 000 0000">
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">Email</span>
+        <input class="input" type="email" id="f-email" placeholder="sarah@example.com">
+      </div>
+      <div class="field">
+        <span class="label">Anything else we should know?</span>
+        <textarea class="input" id="f-notes" rows="3" placeholder="Theme, special requests, access needs…"></textarea>
+      </div>
+    </div>
+
+    <div id="form-error" class="error"></div>
+    <button class="btn" id="submit-btn" onclick="submitBooking()">Request Booking →</button>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">We'll confirm within 24 hours · No payment taken online</div>
+  </div>
+
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon">✓</div>
+    <div style="font-size:20px;font-weight:700">Booking Request Sent!</div>
+    <div style="font-size:13.5px;color:var(--muted);max-width:340px;line-height:1.6">Thanks <span id="success-name"></span>! We've received your request for <strong id="success-svc"></strong> on <strong id="success-date"></strong>. We'll be in touch within 24 hours to confirm.</div>
+    <div style="font-size:12px;color:var(--muted)">Questions? Call or WhatsApp us directly.</div>
+    <button class="btn" style="max-width:200px" onclick="location.reload()">Make Another Booking</button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://kcjmmiifemdarknrvpas.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_rUCvu27lMjfNz3zakrgB-Q_-I68xRO4';
+const BOOT360_CLIENT_ID='d6df774e-2034-4ee6-876a-9ccd07dd014e';
+
+let selectedSvc='360 Booth';
+function selectSvc(btn){
+  document.querySelectorAll('.svc-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedSvc=btn.dataset.svc;
+}
+
+async function submitBooking(){
+  const btn=document.getElementById('submit-btn');
+  const errEl=document.getElementById('form-error');
+  errEl.style.display='none';
+
+  const name=document.getElementById('f-name').value.trim();
+  const phone=document.getElementById('f-phone').value.trim();
+  const date=document.getElementById('f-date').value;
+  const type=document.getElementById('f-type').value;
+  const venue=document.getElementById('f-venue').value.trim();
+
+  if(!name||!phone||!date||!type||!venue){
+    errEl.textContent='Please fill in all required fields (*)';
+    errEl.style.display='block';
+    return;
+  }
+
+  btn.disabled=true;btn.textContent='Sending…';
+
+  const payload={
+    client_id:BOOT360_CLIENT_ID,
+    client_name:name,
+    client_email:document.getElementById('f-email').value.trim()||null,
+    client_phone:phone,
+    service:selectedSvc,
+    event_date:date,
+    event_type:type,
+    venue:venue,
+    hours:parseInt(document.getElementById('f-hours').value)||4,
+    notes:(document.getElementById('f-notes').value.trim()||null),
+    status:'enquiry',
+    source:'online'
+  };
+
+  try{
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/bookings`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':'Bearer '+SUPABASE_ANON_KEY,
+        'Prefer':'return=minimal'
+      },
+      body:JSON.stringify(payload)
+    });
+    if(!res.ok){
+      const err=await res.text();
+      throw new Error(err||'Submission failed');
+    }
+    document.getElementById('success-name').textContent=name.split(' ')[0];
+    document.getElementById('success-svc').textContent=selectedSvc;
+    document.getElementById('success-date').textContent=new Date(date).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('form-screen').style.display='none';
+    document.getElementById('success-screen').style.display='flex';
+  }catch(e){
+    errEl.textContent='Something went wrong: '+e.message+'. Please try again or call us directly.';
+    errEl.style.display='block';
+    btn.disabled=false;btn.textContent='Request Booking →';
+  }
+}
+
+// Set min date to tomorrow
+const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
+document.getElementById('f-date').min=tomorrow.toISOString().split('T')[0];
+</script>
+</body>
+</html>
