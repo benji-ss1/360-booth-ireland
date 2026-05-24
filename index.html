@@ -72,6 +72,16 @@ canvas{display:block}
 .signin-heading p{font-size:12px;color:var(--text-muted)}
 .signin-btn{width:100%;padding:13px;border-radius:var(--radius-sm);background:var(--accent);color:#000;font-weight:700;font-size:13px;cursor:pointer;transition:opacity 150ms}
 .signin-btn:hover{opacity:.88}
+.signin-form{display:flex;flex-direction:column;gap:12px}
+.signin-field{display:flex;flex-direction:column;gap:6px;text-align:left}
+.signin-field label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.signin-input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius-sm);padding:13px 14px;color:var(--text);font-size:13px;transition:border-color 150ms,background 150ms}
+.signin-input:focus{border-color:rgba(201,168,76,.45);background:rgba(255,255,255,.055)}
+.signin-input::placeholder{color:var(--text-subtle)}
+.signin-demo-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}
+.signin-demo-copy{font-size:11px;color:var(--text-muted);line-height:1.5}
+.signin-demo-btn{background:none;color:var(--accent);font-size:11px;font-weight:700;padding:0}
+.signin-demo-btn:hover{opacity:.82}
 
 /* LAYOUT */
 #app{display:none;height:100vh;overflow:hidden;background:var(--background)}
@@ -585,11 +595,6 @@ select.st-input option{background:#1a1a1a}
 
 /* ── SIGN IN CARD POLISH ── */
 .signin-card{box-shadow:0 40px 100px rgba(0,0,0,.9),0 0 0 1px rgba(201,168,76,.15),inset 0 1px 0 rgba(255,255,255,.06)}
-.signin-google-btn{width:100%;padding:12px;border-radius:var(--radius-sm);background:#fff;color:#1a1a1a;font-weight:600;font-size:13px;cursor:pointer;transition:opacity 150ms;display:flex;align-items:center;justify-content:center;gap:10px;border:none;margin-bottom:14px}
-.signin-google-btn:hover{opacity:.9}
-.signin-divider-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.signin-divider-row span{font-size:11px;color:var(--text-subtle);white-space:nowrap}
-.signin-divider-row::before,.signin-divider-row::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
 .signin-meta{font-size:10.5px;color:var(--text-subtle);text-align:center;margin-top:12px;line-height:1.5}
 .signin-spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,.15);border-top-color:#1a1a1a;border-radius:50%;animation:spin-slow .7s linear infinite;flex-shrink:0}
 
@@ -720,13 +725,23 @@ select.st-input option{background:#1a1a1a}
       <h2>Welcome back</h2>
       <p>Sign in to your 360 Booth Ireland Command Centre</p>
     </div>
-    <!-- Google OAuth (primary) -->
-    <button class="signin-google-btn" id="signin-google-btn" onclick="doGoogleSignIn()">
-      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-      <span id="signin-google-label">Continue with Google</span>
-    </button>
+    <form class="signin-form" onsubmit="doSignIn(event)">
+      <div class="signin-field">
+        <label for="signin-email">Email</label>
+        <input class="signin-input" id="signin-email" type="email" autocomplete="username" value="owner@360booth.ie" placeholder="owner@360booth.ie">
+      </div>
+      <div class="signin-field">
+        <label for="signin-password">Password</label>
+        <input class="signin-input" id="signin-password" type="password" autocomplete="current-password" value="booth360demo" placeholder="booth360demo">
+      </div>
+      <button class="signin-btn" id="signin-submit-btn" type="submit">Sign In</button>
+    </form>
     <div id="signin-error" style="display:none;color:#E05252;font-size:12px;margin:8px 0;text-align:center;padding:10px;background:rgba(224,82,82,.08);border-radius:6px;border:1px solid rgba(224,82,82,.2)"></div>
-    <div class="signin-meta" id="signin-meta">Use your authorised 360 Booth Ireland Google account.</div>
+    <div class="signin-demo-row">
+      <div class="signin-demo-copy">Demo access is prefilled so you can get straight into the dashboard.</div>
+      <button class="signin-demo-btn" type="button" onclick="fillDemoCredentials()">Reset</button>
+    </div>
+    <div class="signin-meta" id="signin-meta">Use the placeholder email and password above to enter the dashboard.</div>
   </div>
 </div>
 
@@ -1786,15 +1801,15 @@ select.st-input option{background:#1a1a1a}
             <!-- Security -->
             <div class="st-tab" id="st-security">
               <div class="st-section-title">Security</div>
-              <div class="st-section-sub">Your account is secured via Google OAuth — no password required.</div>
+              <div class="st-section-sub">This dashboard currently uses a simple local email/password gate so you can get straight in.</div>
               <div class="st-card">
-                <div class="st-card-title">Google Account</div>
-                <div class="st-card-sub">Signed in via Google. Your session is managed by Supabase Auth.</div>
+                <div class="st-card-title">Dashboard Access</div>
+                <div class="st-card-sub">Using the placeholder email/password flow for now. Google is optional and only used for workspace integrations.</div>
                 <div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.15);border-radius:var(--radius-sm);margin-top:8px">
                   <div style="width:36px;height:36px;border-radius:50%;background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:16px">🔐</div>
                   <div>
                     <div id="sec-user-email" style="font-size:13px;font-weight:600;color:var(--text)">Loading…</div>
-                    <div style="font-size:11px;color:var(--green)">✓ Authenticated via Google OAuth</div>
+                    <div id="sec-auth-status" style="font-size:11px;color:var(--green)">✓ Authenticated via email/password</div>
                   </div>
                 </div>
                 <div class="st-save"><button class="btn-sm" style="color:var(--red)" onclick="signOut()">Sign Out</button></div>
@@ -2056,12 +2071,16 @@ function logAct(text,type='info'){const a=DB.get('activity');a.unshift({text,typ
 const COLORS=['#C9A84C','#4CAF7D','#5B9BD5','#9B72CF','#E05252','#F0A847'];
 
 // ══════════════════════════════════
-// AUTH ENGINE — Supabase + Google OAuth
+// AUTH ENGINE — local email/password + optional Google Workspace
 // ══════════════════════════════════
 const SUPABASE_URL='https://kcjmmiifemdarknrvpas.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_rUCvu27lMjfNz3zakrgB-Q_-I68xRO4';
 const BOOT360_CLIENT_ID='d6df774e-2034-4ee6-876a-9ccd07dd014e';
 const GOOGLE_AUTH_START_URL=`${SUPABASE_URL}/functions/v1/google-auth-start`;
+const LOCAL_AUTH_STORAGE='b360_authed';
+const LOCAL_AUTH_EMAIL_STORAGE='b360_auth_email';
+const DEMO_AUTH_EMAIL='owner@360booth.ie';
+const DEMO_AUTH_PASSWORD='booth360demo';
 const GOOGLE_EMAIL_STORAGE='b360_google_email';
 const GTOK_KEY='b360_gtok';
 const GTOK_EXP_KEY='b360_gtok_exp';
@@ -2083,8 +2102,30 @@ function ensureSupabaseClient(){
   return supabaseClient;
 }
 function isBoot360Profile(){return authProfile?.client_id===BOOT360_CLIENT_ID}
-function authEmail(){return authSession?.user?.email||storage.getItem(GOOGLE_EMAIL_STORAGE)||''}
-function authProvider(){return authSession?.user?.app_metadata?.provider||''}
+function isLocalAuthed(){return storage.getItem(LOCAL_AUTH_STORAGE)==='1'}
+function authEmail(){return authSession?.user?.email||storage.getItem(LOCAL_AUTH_EMAIL_STORAGE)||storage.getItem(GOOGLE_EMAIL_STORAGE)||''}
+function authProvider(){return authSession?.user?.app_metadata?.provider||(isLocalAuthed()?'email/password':'')}
+
+function fillDemoCredentials(){
+  const emailInput=document.getElementById('signin-email');
+  const passwordInput=document.getElementById('signin-password');
+  if(emailInput)emailInput.value=DEMO_AUTH_EMAIL;
+  if(passwordInput)passwordInput.value=DEMO_AUTH_PASSWORD;
+  setSigninError('');
+}
+
+function bootDashboard(){
+  showApp();
+  if(!authBooted){
+    authBooted=true;
+    init();
+  }else{
+    loadSettings();
+    updateGoogleIntegrationStatus();
+    const emailEl=document.getElementById('sec-user-email');
+    if(emailEl)emailEl.textContent=authEmail()||DEMO_AUTH_EMAIL;
+  }
+}
 
 function setSigninError(msg=''){
   const errEl=document.getElementById('signin-error');
@@ -2117,14 +2158,17 @@ function updateAuthMeta(){
   if(!meta)return;
   if(authSession&&isBoot360Profile()){
     meta.textContent='Authenticated as '+authEmail()+' via '+(authProvider()||'your account')+'.';
+  }else if(isLocalAuthed()){
+    meta.textContent='Signed in as '+(authEmail()||DEMO_AUTH_EMAIL)+' via email and password.';
   }else{
-    meta.textContent='Use your authorised company Google account to continue.';
+    meta.textContent='Use the placeholder email and password above to enter the dashboard.';
   }
 }
 
 function showSignIn(){
   document.getElementById('app').classList.remove('visible');
   document.getElementById('signin').classList.add('visible');
+  fillDemoCredentials();
   updateAuthMeta();
 }
 function showApp(){
@@ -2157,16 +2201,34 @@ async function loadAuthProfile(){
   return authProfile;
 }
 
+async function handleGoogleOAuthCallback(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.has('google_connected')){
+    const email=params.get('google_email')||'';
+    history.replaceState(null,'',window.location.pathname);
+    // Reload token from DB then navigate to Hub
+    setTimeout(async()=>{
+      await updateHubConnectionStatus();
+      navTo('hub',document.querySelector('[data-page=hub]'));
+      showToast('Connected','Google Workspace connected'+(email?' as '+email:'')+'!','success');
+      setTimeout(()=>loadGmailPanel(),400);
+    },300);
+    return true;
+  }
+  if(params.has('google_error')){
+    const msg=params.get('google_error')||'Unknown error';
+    history.replaceState(null,'',window.location.pathname);
+    showToast('Google Error',decodeURIComponent(msg),'error');
+    return false;
+  }
+  return false;
+}
+
 async function initAuth(){
   const client=ensureSupabaseClient();
   updateGoogleIntegrationStatus();
   updateAuthMeta();
-  if(!client){
-    // Supabase unavailable — fall back to localStorage password auth
-    if(storage.getItem('b360_authed')==='1'){showApp();init()}else{showSignIn()}
-    return null;
-  }
-  if(!authListenerBound){
+  if(client&&!authListenerBound){
     client.auth.onAuthStateChange(async(_event,session)=>{
       authSession=session||null;
       // Persist Google API token immediately whenever we get a fresh one
@@ -2189,14 +2251,10 @@ async function initAuth(){
       if(authSession&&isBoot360Profile()){
         await hydrateRemoteSettings(true);
         if(!authBooted){
-          authBooted=true;showApp();init();
-          // If user just completed Hub Google OAuth, navigate straight to Hub
-          if(sessionStorage.getItem('hub_oauth_pending')){
-            sessionStorage.removeItem('hub_oauth_pending');
-            setTimeout(()=>{navTo('hub',document.querySelector('[data-page=hub]'));showToast('Connected','Google Workspace connected — loading your data…','success');},600);
-          }
+          bootDashboard();
+          handleGoogleOAuthCallback();
         }else{
-          showApp();loadSettings();
+          bootDashboard();
           if(session?.provider_token){
             updateHubConnectionStatus();
             if(wsCurrentPanel==='gmail')loadGmailPanel();
@@ -2204,49 +2262,65 @@ async function initAuth(){
         }
       }else{
         if(authSession&&!isBoot360Profile())showToast('Access Pending','This account is not linked to the 360 Booth workspace yet.','error');
-        showSignIn();
+        if(isLocalAuthed()){
+          bootDashboard();
+          handleGoogleOAuthCallback();
+        }
+        else showSignIn();
       }
     });
     authListenerBound=true;
   }
-  const{data,error}=await client.auth.getSession();
-  if(error)throw error;
-  authSession=data.session||null;
-  if(authSession)await loadAuthProfile();
-  // If no Supabase session, check localStorage fallback
-  if(!authSession&&storage.getItem('b360_authed')==='1'){showApp();init();return null}
-  return authSession;
+  if(client){
+    try{
+      const{data,error}=await client.auth.getSession();
+      if(error)throw error;
+      authSession=data.session||null;
+      if(authSession)await loadAuthProfile();
+      if(authSession&&isBoot360Profile()){
+        await hydrateRemoteSettings(true);
+        bootDashboard();
+        handleGoogleOAuthCallback();
+        return authSession;
+      }
+    }catch(err){
+      console.error(err);
+    }
+  }
+  if(isLocalAuthed()){
+    bootDashboard();
+    handleGoogleOAuthCallback();
+    return null;
+  }
+  showSignIn();
+  return null;
 }
 
-async function doGoogleSignIn(){
-  const client=ensureSupabaseClient();
-  const btn=document.getElementById('signin-google-btn');
-  const label=document.getElementById('signin-google-label');
-  if(!client){showToast('Unavailable','Google sign-in unavailable — use password below','error');return}
+function doSignIn(event){
+  if(event)event.preventDefault();
+  const btn=document.getElementById('signin-submit-btn');
+  const email=document.getElementById('signin-email')?.value?.trim().toLowerCase()||'';
+  const password=document.getElementById('signin-password')?.value||'';
   if(btn)btn.disabled=true;
-  if(label)label.innerHTML='<span class="signin-spinner"></span> Connecting…';
-  try{
-    // Try custom Google auth edge function first
-    let redirectUrl=window.location.href.split('?')[0];
-    try{
-      const r=await fetch(GOOGLE_AUTH_START_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({redirect_url:redirectUrl})});
-      if(r.ok){const d=await r.json();if(d.url){window.location.href=d.url;return}}
-    }catch{}
-    // Fallback: Supabase built-in OAuth
-    const{data,error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:redirectUrl}});
-    if(error)throw error;
-  }catch(e){
-    showToast('Error',e.message||'Google sign-in failed','error');
+  setSigninError('');
+  if(email!==DEMO_AUTH_EMAIL||password!==DEMO_AUTH_PASSWORD){
+    setSigninError('Use the prefilled demo email and password to sign in for now.');
     if(btn)btn.disabled=false;
-    if(label)label.textContent='Continue with Google';
+    return;
   }
+  storage.setItem(LOCAL_AUTH_STORAGE,'1');
+  storage.setItem(LOCAL_AUTH_EMAIL_STORAGE,email);
+  updateAuthMeta();
+  bootDashboard();
+  showToast('Signed In','Dashboard access granted.','success');
+  if(btn)btn.disabled=false;
 }
 
 async function requireAuthedClient(actionLabel='continue'){
   const client=ensureSupabaseClient();
   if(!client){
     // Fallback: use localStorage auth
-    if(storage.getItem('b360_authed')==='1')return null;
+    if(isLocalAuthed())return null;
     showToast('Sign In Required','Sign in before you '+actionLabel+'.','error');showSignIn();return null;
   }
   if(!authSession||!isBoot360Profile()){showToast('Sign In Required','Sign in before you '+actionLabel+'.','error');showSignIn();return null}
@@ -2992,7 +3066,8 @@ async function testGroqKey(){
 async function signOut(){
   if(!confirm('Sign out of 360 Booth Ireland dashboard?'))return;
   if(supabaseClient)try{await supabaseClient.auth.signOut()}catch(_){}
-  storage.removeItem('b360_authed');
+  storage.removeItem(LOCAL_AUTH_STORAGE);
+  storage.removeItem(LOCAL_AUTH_EMAIL_STORAGE);
   storage.removeItem('b360_last_page');
   location.reload();
 }
@@ -3187,25 +3262,17 @@ function hubNotConnected(service){
 }
 
 async function connectGoogleHub(){
-  const client=ensureSupabaseClient();
-  if(!client){showToast('Error','Dashboard not ready','error');return}
-  // Button feedback — find all connect buttons
   const btns=[...document.querySelectorAll('[onclick*="connectGoogleHub"],[onclick*="connectGoogle("]')];
   btns.forEach(b=>{b._orig=b.textContent;b.textContent='Connecting…';b.disabled=true});
   try{
-    sessionStorage.setItem('hub_oauth_pending','1');
-    const redirectTo=window.location.href.split('?')[0].split('#')[0];
-    const{error}=await client.auth.signInWithOAuth({
-      provider:'google',
-      options:{
-        redirectTo,
-        scopes:GOOGLE_SCOPES
-      }
-    });
-    if(error)throw error;
-    // Redirect is in-flight — buttons reset naturally on page reload
+    const returnTo=window.location.href.split('?')[0].split('#')[0];
+    const r=await fetch(`${GOOGLE_AUTH_START_URL}?return_to=${encodeURIComponent(returnTo)}`,{method:'GET'});
+    if(!r.ok){const t=await r.text();throw new Error(t||'Edge function error')}
+    const d=await r.json();
+    if(d.error)throw new Error(d.error);
+    if(!d.url)throw new Error('No OAuth URL returned');
+    window.location.href=d.url;
   }catch(e){
-    sessionStorage.removeItem('hub_oauth_pending');
     showToast('Error','Could not start Google sign-in: '+e.message,'error');
     btns.forEach(b=>{b.textContent=b._orig||'Connect Google Account';b.disabled=false});
   }
@@ -3224,7 +3291,7 @@ async function updateHubConnectionStatus(){
   const connectBtn=document.getElementById('ws-connect-btn');
   if(tok){
     if(dot){dot.classList.remove('disconnected');dot.classList.add('connected')}
-    const email=authSession?.user?.email||'';
+    const email=storage.getItem(GOOGLE_EMAIL_STORAGE)||authEmail()||'';
     if(accountLabel)accountLabel.textContent=email||'Connected';
     if(tooltip)tooltip.textContent=email?'Connected: '+email:'Connected';
     if(connectBtn){const s=connectBtn.querySelector('svg');if(s)s.setAttribute('stroke','rgba(76,175,125,.7)')}
@@ -3967,7 +4034,7 @@ function showToast(title,msg,type='info'){
 // ══════════════════════════════════
 // SIGN IN
 // ══════════════════════════════════
-// doSignIn removed — auth is Google OAuth only via initAuth()
+// Local gate uses demo credentials so the dashboard is immediately accessible.
 
 function saveGroqFromInt(){
   const key=document.getElementById('int-groq-key')?.value?.trim();
@@ -3993,7 +4060,10 @@ function init(){
   renderOverview();renderBookings();renderEnquiries();renderClients();renderInvoices();renderLeadGen();loadAdsStats();loadSiteStats();
   updateSbStats();
   // Populate Security tab with logged-in user email
-  if(authSession?.user?.email){const el=document.getElementById('sec-user-email');if(el)el.textContent=authSession.user.email}
+  const secEmail=document.getElementById('sec-user-email');
+  if(secEmail)secEmail.textContent=authEmail()||DEMO_AUTH_EMAIL;
+  const secStatus=document.getElementById('sec-auth-status');
+  if(secStatus)secStatus.textContent=authSession?.user?.email?'✓ Authenticated via Google Workspace':'✓ Authenticated via email/password';
   // Restore last active page
   const lastPage=localStorage.getItem('b360_last_page')||'overview';
   if(lastPage!=='overview')navTo(lastPage,null);
