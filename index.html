@@ -682,6 +682,72 @@ select.st-input option{background:#1a1a1a}
 .ws-panel-inner{display:flex;flex-direction:column;height:100%;overflow:hidden}
 .ws-panel-bar{height:50px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(255,255,255,.01)}
 .ws-panel-body{flex:1;overflow-y:auto}
+
+/* ── MOBILE RESPONSIVE ── */
+@media(max-width:768px){
+  :root{--sbw:0px;--sbw-coll:0px}
+  #app{flex-direction:column}
+  #sidebar{display:none}
+  #main{height:calc(100vh - 56px);overflow-y:auto;padding-bottom:56px}
+  /* Bottom navigation bar */
+  #mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--sidebar-bg);border-top:1px solid var(--border);z-index:9000;align-items:stretch}
+  .mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text-subtle);font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;border:none;background:none;padding:6px 0;position:relative;transition:color 150ms}
+  .mob-nav-btn.active{color:var(--accent)}
+  .mob-nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .mob-nav-badge{position:absolute;top:6px;right:calc(50% - 16px);background:var(--accent);color:#000;font-size:8px;font-weight:800;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+  /* Pages */
+  .page{padding:12px}
+  .page-header{flex-direction:column;align-items:flex-start;gap:10px;padding-bottom:12px}
+  .page-header>div:last-child{width:100%;justify-content:flex-start}
+  /* KPI row wraps to 2 cols */
+  .kpi-row{grid-template-columns:repeat(2,1fr)!important}
+  /* Cards full width */
+  .card{padding:14px}
+  /* Tables scroll horizontally */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:500px}
+  /* Hub full-screen on mobile */
+  .page[data-page="hub"]{padding:0;height:100%}
+  .hub-shell{flex-direction:column;height:100%}
+  .ws-sidebar{display:none}
+  .hub-main{flex-direction:column}
+  /* Gmail mobile: list full width, reading pane slides over */
+  .hub-email-list-pane{width:100%!important;border-right:none!important}
+  .hub-email-right{position:fixed;inset:0;z-index:8000;background:var(--background);transform:translateX(100%);transition:transform 280ms cubic-bezier(.4,0,.2,1);display:flex!important;flex-direction:column}
+  .hub-email-right.mob-open{transform:translateX(0)}
+  #email-detail-panel,#compose-panel{height:100%;overflow-y:auto}
+  /* Hub app icons as horizontal scroll row */
+  .hub-shell>.hub-sidebar{width:100%!important;min-width:unset!important;border-right:none!important;border-bottom:1px solid var(--border);flex-direction:row!important;overflow-x:auto;padding:8px!important;gap:4px!important;flex-shrink:0}
+  .hub-nav-item{flex-direction:row!important;min-width:unset!important;padding:6px 12px!important;white-space:nowrap;border-radius:20px!important}
+  .hub-sidebar-header{display:none}
+  .hub-sidebar-label{display:none}
+  /* Settings mobile */
+  .page[data-page="settings"]{padding:0;height:100%;overflow-y:auto}
+  .settings-layout{flex-direction:column!important}
+  .settings-sidebar{width:100%!important;border-right:none!important;border-bottom:1px solid var(--border);flex-direction:row!important;overflow-x:auto;white-space:nowrap;padding:8px 12px!important;display:flex;gap:4px}
+  .settings-nav-label{display:none}
+  .settings-nav-item{display:inline-flex;padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-size:12px;min-width:unset;margin:0}
+  .settings-nav-item.active{background:rgba(201,168,76,.12);border-color:rgba(201,168,76,.35);color:var(--accent)}
+  .settings-content{padding:14px}
+  .st-row{flex-direction:column!important;gap:10px!important}
+  .st-field{width:100%!important}
+  /* Integrations grid */
+  .int-grid{grid-template-columns:1fr!important}
+  /* Hub toolbar */
+  .hub-toolbar{flex-wrap:wrap;gap:6px}
+  /* Sign-in card */
+  .signin-card{padding:28px 20px;width:calc(100% - 32px)}
+  /* Compose panel */
+  #compose-panel{padding:12px}
+  /* Modal full screen on mobile */
+  .modal-card{width:calc(100vw - 24px)!important;max-height:85vh;overflow-y:auto}
+  /* Credential modal */
+  .creds-modal-card{width:calc(100vw - 32px);padding:24px 20px}
+  /* Bookings/enquiries grids */
+  [style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+}
+@media(min-width:769px){#mobile-nav{display:none}}
 </style>
 </head>
 <body>
@@ -784,6 +850,26 @@ select.st-input option{background:#1a1a1a}
 </div>
 
 <!-- APP -->
+<!-- Mobile bottom nav -->
+<nav id="mobile-nav">
+  <button class="mob-nav-btn active" data-page="overview" onclick="navTo('overview',this);mobNavActive(this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview
+  </button>
+  <button class="mob-nav-btn" data-page="bookings" onclick="navTo('bookings',this);mobNavActive(this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Bookings
+    <span class="mob-nav-badge" id="mob-bdg-bookings" style="display:none">0</span>
+  </button>
+  <button class="mob-nav-btn" data-page="enquiries" onclick="navTo('enquiries',this);mobNavActive(this)">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Pipeline
+  </button>
+  <button class="mob-nav-btn" data-page="hub" onclick="navTo('hub',this);mobNavActive(this)">
+    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Hub
+  </button>
+  <button class="mob-nav-btn" data-page="settings" onclick="navTo('settings',this);mobNavActive(this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings
+  </button>
+</nav>
+
 <div id="app">
 
   <!-- SIDEBAR -->
@@ -808,10 +894,6 @@ select.st-input option{background:#1a1a1a}
         <span class="sb-label">Pipeline</span>
         <span class="sb-badge" id="bdg-enquiries" style="display:none">0</span>
       </div>
-      <div class="sb-item" data-page="clients" onclick="navTo('clients',this)">
-        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
-        <span class="sb-label">Clients</span>
-      </div>
       <div class="sb-section">Finance</div>
       <div class="sb-item" data-page="invoices" onclick="navTo('invoices',this)" id="sb-invoices">
         <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
@@ -822,10 +904,6 @@ select.st-input option{background:#1a1a1a}
       <div class="sb-item" data-page="leadgen" onclick="navTo('leadgen',this)">
         <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 12a19.79 19.79 0 01-3.07-8.67A2 2 0 013.6 1.19h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.91 8.77a16 16 0 006.29 6.29l.95-.95a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></div>
         <span class="sb-label">Lead Gen</span>
-      </div>
-      <div class="sb-item" data-page="ads" onclick="navTo('ads',this)">
-        <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-        <span class="sb-label">Ads Manager</span>
       </div>
       <div class="sb-item" data-page="website" onclick="navTo('website',this)">
         <div class="sb-nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg></div>
@@ -1048,37 +1126,6 @@ select.st-input option{background:#1a1a1a}
       </div>
 
       <!-- ═══ CLIENTS ═══ -->
-      <div class="page" data-page="clients">
-        <div class="page-header">
-          <div>
-            <div class="page-header-title">Clients</div>
-            <div class="page-header-sub" id="clients-sub">Your customer relationships</div>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn-ai" onclick="generateInsight('clients')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              AI Insight
-            </button>
-            <button class="btn-p" onclick="openModal('client')">+ New Client</button>
-          </div>
-        </div>
-        <div id="cl-ai-bar" style="display:none;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.18);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;font-size:12.5px;line-height:1.6;color:var(--text)"></div>
-        <div class="client-pipeline" id="client-pipeline"></div>
-        <div class="card">
-          <div class="shimmer-line"></div>
-          <div class="card-header">
-            <div class="card-title">All Clients</div>
-            <span id="all-clients-count" style="font-size:12px;color:var(--text-muted)">0 clients</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Name</th><th>Type</th><th>Bookings</th><th>Total Spent</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead>
-              <tbody id="clients-table-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
       <!-- ═══ INVOICES / FINANCIALS ═══ -->
       <div class="page" data-page="invoices">
         <div class="page-header">
@@ -1197,96 +1244,6 @@ select.st-input option{background:#1a1a1a}
       </div>
 
       <!-- ═══ ADS MANAGER ═══ -->
-      <div class="page" data-page="ads">
-        <div class="page-header">
-          <div>
-            <div class="page-header-title">Ads Manager</div>
-            <div class="page-header-sub">Meta Ads and Google Ads — log your stats for AI analysis</div>
-          </div>
-          <button class="btn-ai" onclick="generateInsight('ads')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            AI Analyse
-          </button>
-        </div>
-        <div id="ads-ai-bar" style="display:none;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.18);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;font-size:12.5px;line-height:1.6;color:var(--text)"></div>
-
-        <!-- Ads Summary KPIs -->
-        <div class="kpi-row" id="ads-kpis" style="margin-bottom:16px">
-          <div class="kpi"><div class="shimmer-line"></div><div class="kpi-label">Total Spend</div><div class="kpi-value mono" id="ads-total-spend">€0</div><div class="kpi-change note">Meta + Google</div></div>
-          <div class="kpi"><div class="shimmer-line"></div><div class="kpi-label">Total Impressions</div><div class="kpi-value mono" id="ads-total-impr">0</div><div class="kpi-change note">Combined reach</div></div>
-          <div class="kpi"><div class="shimmer-line"></div><div class="kpi-label">Avg. CTR</div><div class="kpi-value mono" id="ads-avg-ctr">0%</div><div class="kpi-change up">Click-through rate</div></div>
-          <div class="kpi"><div class="shimmer-line"></div><div class="kpi-label">CPM</div><div class="kpi-value mono" id="ads-cpm">€0</div><div class="kpi-change note">Cost per 1k impressions</div></div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-          <!-- META ADS -->
-          <div class="card">
-            <div class="shimmer-line"></div>
-            <div class="card-header">
-              <div style="display:flex;align-items:center;gap:8px">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.994 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                <div class="card-title" style="margin-bottom:0">Meta Ads (Facebook & Instagram)</div>
-              </div>
-              <button class="btn-p" style="font-size:11px;padding:5px 12px" onclick="saveAdsStats()">Save</button>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-              <div class="st-field"><div class="st-label">Reach</div><input class="st-input" id="meta-reach" placeholder="0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">Impressions</div><input class="st-input" id="meta-impr" placeholder="0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">Link Clicks</div><input class="st-input" id="meta-clicks" placeholder="0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">CTR (%)</div><input class="st-input" id="meta-ctr" placeholder="0.0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">Spend (€)</div><input class="st-input" id="meta-spend" placeholder="0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">Daily Budget (€)</div><input class="st-input" id="meta-budget" placeholder="0"></div>
-            </div>
-            <!-- Auto-calculated -->
-            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-              <div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">CPC</div><div class="mono" style="font-size:13px;font-weight:600;color:var(--accent)" id="meta-cpc">—</div></div>
-              <div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">CPM</div><div class="mono" style="font-size:13px;font-weight:600;color:var(--blue)" id="meta-cpm-calc">—</div></div>
-              <div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Freq.</div><div class="mono" style="font-size:13px;font-weight:600;color:var(--text)" id="meta-freq">—</div></div>
-            </div>
-          </div>
-
-          <!-- GOOGLE ADS -->
-          <div class="card">
-            <div class="shimmer-line"></div>
-            <div class="card-header">
-              <div style="display:flex;align-items:center;gap:8px">
-                <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/><path d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.66 2.84c2.13-1.97 3.76-4.9 3.76-8.66z" fill="#4285F4"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/></svg>
-                <div class="card-title" style="margin-bottom:0">Google Ads</div>
-              </div>
-              <button class="btn-p" style="font-size:11px;padding:5px 12px" onclick="saveAdsStats()">Save</button>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-              <div class="st-field"><div class="st-label">Impressions</div><input class="st-input" id="gads-impr" placeholder="0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">Clicks</div><input class="st-input" id="gads-clicks" placeholder="0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">Avg. Position</div><input class="st-input" id="gads-pos" placeholder="#1"></div>
-              <div class="st-field"><div class="st-label">CTR (%)</div><input class="st-input" id="gads-ctr" placeholder="0.0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">Spend (€)</div><input class="st-input" id="gads-spend" placeholder="0" oninput="calcAdsMetrics()"></div>
-              <div class="st-field"><div class="st-label">Daily Budget (€)</div><input class="st-input" id="gads-budget" placeholder="0"></div>
-            </div>
-            <!-- Auto-calculated -->
-            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-              <div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">CPC</div><div class="mono" style="font-size:13px;font-weight:600;color:var(--accent)" id="gads-cpc">—</div></div>
-              <div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">CPM</div><div class="mono" style="font-size:13px;font-weight:600;color:var(--blue)" id="gads-cpm-calc">—</div></div>
-              <div><div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Conv. Est.</div><div class="mono" style="font-size:13px;font-weight:600;color:var(--green)" id="gads-conv">—</div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Combined totals + connect -->
-        <div class="card">
-          <div class="shimmer-line"></div>
-          <div class="card-header"><div class="card-title">Combined Ad Performance</div><div style="display:flex;gap:8px"><button class="btn-sm" onclick="window.open('https://adsmanager.facebook.com','_blank')">Open Meta Ads</button><button class="btn-sm" onclick="window.open('https://ads.google.com','_blank')">Open Google Ads</button></div></div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius-xs);overflow:hidden">
-            <div style="padding:14px;border-right:1px solid var(--border)"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Total Spend</div><div class="mono" style="font-size:18px;font-weight:700;color:var(--text)" id="combined-spend">€0</div></div>
-            <div style="padding:14px;border-right:1px solid var(--border)"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Impressions</div><div class="mono" style="font-size:18px;font-weight:700;color:var(--text)" id="combined-impr">0</div></div>
-            <div style="padding:14px;border-right:1px solid var(--border)"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Total Clicks</div><div class="mono" style="font-size:18px;font-weight:700;color:var(--accent)" id="combined-clicks">0</div></div>
-            <div style="padding:14px;border-right:1px solid var(--border)"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Avg CTR</div><div class="mono" style="font-size:18px;font-weight:700;color:var(--green)" id="combined-ctr">0%</div></div>
-            <div style="padding:14px"><div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">Blended CPM</div><div class="mono" style="font-size:18px;font-weight:700;color:var(--blue)" id="combined-cpm">€0</div></div>
-          </div>
-          <div style="margin-top:12px;font-size:12px;color:var(--text-muted);line-height:1.65">Live Meta and Google Ads data requires OAuth + hosted server. Log stats above — figures calculate automatically and AI gives targeted recommendations.</div>
-        </div>
-      </div>
-
       <!-- ═══ WEBSITE & SEO ═══ -->
       <div class="page" data-page="website">
         <div class="page-header">
@@ -1532,27 +1489,27 @@ select.st-input option{background:#1a1a1a}
                   <!-- Body: email list + detail/compose panel -->
                   <div style="display:grid;grid-template-columns:1fr 400px;flex:1;overflow:hidden;min-height:0;height:calc(100% - 48px)">
                     <!-- Left: email list -->
-                    <div style="display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)">
+                    <div class="hub-email-list-pane" style="display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)">
                       <div class="hub-tabs">
                         <div class="hub-tab active" onclick="hubTabSwitch('all',this)">All</div>
                         <div class="hub-tab" onclick="hubTabSwitch('unread',this)">Unread</div>
                         <div class="hub-tab" onclick="hubTabSwitch('flagged',this)">Flagged</div>
                       </div>
-                      <!-- Sample preview banner -->
-                      <div style="padding:6px 14px;background:rgba(201,168,76,.06);border-bottom:1px solid rgba(201,168,76,.12);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-                        <span style="font-size:11px;color:rgba(201,168,76,.8)">Sample preview — open Gmail to see your real inbox</span>
-                        <button class="btn-ghost" style="font-size:10px;padding:3px 8px;color:var(--accent)" onclick="window.open('https://mail.google.com','_blank')">Open →</button>
+                      <!-- Sample preview banner (hidden when real Gmail loads) -->
+                      <div id="gmail-sample-banner" style="padding:6px 14px;background:rgba(201,168,76,.06);border-bottom:1px solid rgba(201,168,76,.12);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+                        <span style="font-size:11px;color:rgba(201,168,76,.8)">Sample preview — connect Google to see your real inbox</span>
+                        <button class="btn-ghost" style="font-size:10px;padding:3px 8px;color:var(--accent)" onclick="connectGoogleHub()">Connect →</button>
                       </div>
                       <!-- Email list (populated by renderMailList()) -->
                       <div class="hub-email-list" id="gmail-email-list"></div>
                     </div>
 
                     <!-- Right: email detail OR compose OR default -->
-                    <div style="display:flex;flex-direction:column;overflow:hidden;background:rgba(255,255,255,.01);position:relative">
+                    <div class="hub-email-right" style="display:flex;flex-direction:column;overflow:hidden;background:rgba(255,255,255,.01);position:relative">
                       <!-- Email detail -->
                       <div id="email-detail-panel" style="display:none;flex-direction:column;height:100%;overflow:hidden">
                         <div style="padding:11px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0">
-                          <button class="btn-ghost" onclick="showDefaultRight()">← Back</button>
+                          <button class="btn-ghost" onclick="showDefaultRight();mobCloseMail()">← Back</button>
                           <span style="font-size:13px;font-weight:700;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="detail-subject">Email</span>
                           <button class="btn-s" onclick="replyToEmail()">Reply</button>
                           <button class="btn-ghost" style="font-size:11px" onclick="forwardEmail()">Forward</button>
@@ -1800,7 +1757,6 @@ select.st-input option{background:#1a1a1a}
           <div class="settings-sidebar">
             <div class="settings-nav-label">Settings</div>
             <div class="settings-nav-item active" onclick="switchSettingsTab('profile',this)">Profile</div>
-            <div class="settings-nav-item" onclick="switchSettingsTab('pricing',this)">Pricing</div>
             <div class="settings-nav-item" onclick="switchSettingsTab('ai',this)">AI Config</div>
             <div class="settings-nav-item" onclick="switchSettingsTab('security',this)">Security</div>
             <div class="settings-nav-item" onclick="switchSettingsTab('integrations',this)">Integrations</div>
@@ -1827,19 +1783,6 @@ select.st-input option{background:#1a1a1a}
                 <div class="st-row"><div class="st-field"><div class="st-label">Instagram Followers</div><input class="st-input" id="s-ig-followers" placeholder="0"></div><div class="st-field"><div class="st-label">Monthly Profile Visits</div><input class="st-input" id="s-ig-visits" placeholder="0"></div></div>
                 <div class="st-row"><div class="st-field"><div class="st-label">Monthly DM Enquiries</div><input class="st-input" id="s-ig-dms" placeholder="0"></div><div class="st-field"></div></div>
                 <div class="st-save"><button class="btn-p" onclick="saveSocialStats()">Save Stats</button></div>
-              </div>
-            </div>
-            <!-- Pricing -->
-            <div class="st-tab" id="st-pricing">
-              <div class="st-section-title">Service Pricing</div>
-              <div class="st-section-sub">Used by AI when generating quotes and invoices. Set your base rates.</div>
-              <div class="st-card">
-                <div class="st-card-title">Base Rates (4 hours)</div>
-                <div class="st-card-sub">Starting prices — AI will use these in quotes</div>
-                <div class="st-row"><div class="st-field"><div class="st-label">360 Booth</div><input class="st-input" id="p-360" placeholder="1200"></div><div class="st-field"><div class="st-label">Selfie Mirror</div><input class="st-input" id="p-mirror" placeholder="950"></div></div>
-                <div class="st-row"><div class="st-field"><div class="st-label">Photo Booth</div><input class="st-input" id="p-photo" placeholder="750"></div><div class="st-field"><div class="st-label">Magazine Booth</div><input class="st-input" id="p-mag" placeholder="1100"></div></div>
-                <div class="st-row"><div class="st-field"><div class="st-label">Vintage Booth</div><input class="st-input" id="p-vintage" placeholder="850"></div><div class="st-field"><div class="st-label">Extra Hour Rate</div><input class="st-input" id="p-extra" placeholder="200"></div></div>
-                <div class="st-save"><button class="btn-p" onclick="savePricing()">Save Pricing</button></div>
               </div>
             </div>
             <!-- AI Config -->
@@ -1949,119 +1892,6 @@ select.st-input option{background:#1a1a1a}
                     <button class="int-save-btn" onclick="saveGroqFromInt()">Save</button>
                   </div>
                   <div id="int-groq-status" class="int-badge-nc">● Not configured</div>
-                </div>
-
-                <!-- Zoho CRM -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#E42527;color:#fff;font-size:11px;font-weight:800">Z</div>
-                    <div><div class="int-name">Zoho CRM</div><div style="font-size:10.5px;color:var(--text-muted)">Client and lead management</div></div>
-                  </div>
-                  <div class="int-desc">Sync clients and leads between your dashboard and Zoho CRM.</div>
-                  <div class="int-card-footer">
-                    <span class="int-badge-soon">Coming Soon</span>
-                    <button class="int-btn secondary" onclick="showToast('Zoho CRM','Coming soon — stay tuned!','info')">Connect</button>
-                  </div>
-                </div>
-
-                <!-- Xero Accounting -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#13B5EA;color:#fff;font-size:12px;font-weight:800">X</div>
-                    <div><div class="int-name">Xero Accounting</div><div style="font-size:10.5px;color:var(--text-muted)">Invoices and financial tracking</div></div>
-                  </div>
-                  <div class="int-desc">Push invoices and track your financials with Xero integration.</div>
-                  <div class="int-card-footer">
-                    <span class="int-badge-soon">Coming Soon</span>
-                    <button class="int-btn secondary" onclick="showToast('Xero','Coming soon — stay tuned!','info')">Connect</button>
-                  </div>
-                </div>
-
-                <!-- GoHighLevel -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#f5a623;color:#000">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    </div>
-                    <div><div class="int-name">GoHighLevel</div><div style="font-size:10.5px;color:var(--text-muted)">CRM contacts, pipelines</div></div>
-                  </div>
-                  <div class="int-tags"><span class="int-tag">contacts</span><span class="int-tag">pipelines</span><span class="int-tag">automations</span></div>
-                  <div class="int-desc">Connect GHL to sync contacts, pipelines and automations.</div>
-                  <button class="int-btn" onclick="showToast('GoHighLevel','Enter your GHL API key in Settings → AI Config','info')">Connect GHL</button>
-                </div>
-
-                <!-- Meta Ads -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#1877F2;color:#fff">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.994 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                    </div>
-                    <div><div class="int-name">Meta Ads</div><div style="font-size:10.5px;color:var(--text-muted)">Facebook & Instagram ads</div></div>
-                  </div>
-                  <div class="int-tags"><span class="int-tag">ads_read</span><span class="int-tag">business_management</span></div>
-                  <div class="int-desc">Track CPM, ROAS and ad spend for your Meta campaigns live.</div>
-                  <button class="int-btn" onclick="window.open('https://adsmanager.facebook.com','_blank')">Connect Meta</button>
-                </div>
-
-                <!-- Fathom Notetaker -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#6C5CE7;color:#fff;font-size:12px;font-weight:800">F</div>
-                    <div><div class="int-name">Fathom Notetaker</div><div style="font-size:10.5px;color:var(--text-muted)">AI meeting notes & action items</div></div>
-                  </div>
-                  <div class="int-tags"><span class="int-tag">meetings</span><span class="int-tag">transcripts</span><span class="int-tag">summaries</span></div>
-                  <div class="int-desc">Auto-capture meeting notes, summaries and action items from calls.</div>
-                  <button class="int-btn" onclick="window.open('https://fathom.video','_blank')">Connect Fathom</button>
-                </div>
-
-                <!-- Zoom -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#2D8CFF;color:#fff;font-size:11px;font-weight:800">Z</div>
-                    <div><div class="int-name">Zoom</div><div style="font-size:10.5px;color:var(--text-muted)">Video calls and webinars</div></div>
-                  </div>
-                  <div class="int-tags"><span class="int-tag">meetings:read</span><span class="int-tag">recordings:read</span></div>
-                  <div class="int-desc">Sync Zoom meetings and recordings to your dashboard.</div>
-                  <button class="int-btn" onclick="showToast('Zoom','Coming soon — stay tuned!','info')">Connect Zoom</button>
-                </div>
-
-                <!-- Google Meet -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#fff">
-                      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M26 24l-8-6v12z"/><path fill="#34A853" d="M34 14h-8v10l8 6V14z"/><path fill="#FBBC04" d="M14 14h12v20H14z"/><path fill="#EA4335" d="M34 30l4 3V15l-4 3z"/></svg>
-                    </div>
-                    <div><div class="int-name">Google Meet</div><div style="font-size:10.5px;color:var(--text-muted)">Auto-join calls, capture notes</div></div>
-                  </div>
-                  <div class="int-tags"><span class="int-tag">calendar.events</span><span class="int-tag">meet.links</span></div>
-                  <div class="int-desc">Auto-join Google Meet calls and capture notes. Uses your connected Google account.</div>
-                  <button class="int-btn" onclick="connectGoogleHub()">Connect Google</button>
-                </div>
-
-                <!-- Rightmove Sourcing -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#e60000;color:#fff;font-size:11px;font-weight:800">RM</div>
-                    <div><div class="int-name">Rightmove Sourcing</div><div style="font-size:10.5px;color:var(--text-muted)">Product & inventory alerts</div></div>
-                  </div>
-                  <div class="int-desc">Get notified about sourcing opportunities and product availability.</div>
-                  <div class="int-card-footer">
-                    <span class="int-badge-soon">Coming Soon</span>
-                    <button class="int-btn secondary" onclick="showToast('Rightmove','Coming soon — stay tuned!','info')">Connect</button>
-                  </div>
-                </div>
-
-                <!-- Stripe -->
-                <div class="int-card">
-                  <div class="int-card-header">
-                    <div class="int-icon" style="background:#635BFF;color:#fff">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                    </div>
-                    <div><div class="int-name">Stripe Payments</div><div style="font-size:10.5px;color:var(--text-muted)">Payment processing & invoices</div></div>
-                  </div>
-                  <div class="int-tags"><span class="int-tag">payments</span><span class="int-tag">invoices</span><span class="int-tag">subscriptions</span></div>
-                  <div class="int-desc">Accept payments and sync invoice status via Stripe.</div>
-                  <button class="int-btn" onclick="showToast('Stripe','Connect Stripe via the Hub page','info')">Connect Stripe</button>
                 </div>
 
               </div>
@@ -3148,6 +2978,21 @@ async function testGroqKey(){
     r.ok?showToast('Connected','Groq key is valid \u2014 click Save & Activate','success'):(await r.json().then(e=>showToast('Invalid Key',e.error?.message||'Check your key','error')));
   }catch(e){showToast('Error',e.message,'error')}
 }
+function mobNavActive(el){
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+}
+
+function mobOpenMail(){
+  const right=document.querySelector('.hub-email-right');
+  if(right&&window.innerWidth<=768)right.classList.add('mob-open');
+}
+
+function mobCloseMail(){
+  const right=document.querySelector('.hub-email-right');
+  if(right)right.classList.remove('mob-open');
+}
+
 async function signOut(){
   if(!confirm('Sign out of 360 Booth Ireland dashboard?'))return;
   if(supabaseClient)try{await supabaseClient.auth.signOut()}catch(_){}
@@ -3467,6 +3312,7 @@ async function openMailThread(id){
   if(dateEl)dateEl.textContent=`${m.group} at ${m.date}`;
   if(avEl){avEl.textContent=m.initials;avEl.style.background=m.color;avEl.style.color='#fff'}
   wsCurrentThread={id,subject:m.subject,from:m.email,date:m.date};
+  mobOpenMail();
   const frame=document.getElementById('detail-body-frame');
   if(m.body!==null){
     // Mock email — body is plain text
@@ -3505,7 +3351,7 @@ async function loadRealGmail(){
     const label=wsCurrentMailLabel||'INBOX';
     const data=await gapi(`${GMAIL}/threads?maxResults=20&labelIds=${label}&fields=threads(id,snippet)`);
     if(!data.threads?.length){liveMailData=[];renderMailList();return}
-    const threads=await Promise.all(data.threads.slice(0,20).map(t=>gapi(`${GMAIL}/threads/${t.id}?format=metadata&metadataHeaders=From,Subject,Date`)));
+    const threads=await Promise.all(data.threads.slice(0,20).map(t=>gapi(`${GMAIL}/threads/${t.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`)));
     const today=new Date();
     const yesterday=new Date(today);yesterday.setDate(today.getDate()-1);
     liveMailData=threads.map(t=>{
@@ -3525,6 +3371,8 @@ async function loadRealGmail(){
     const unread=liveMailData.filter(m=>m.unread).length;
     const wsBadge=document.getElementById('ws-gmail-badge');
     if(wsBadge){wsBadge.textContent=unread;wsBadge.style.display=unread?'':'none'}
+    const banner=document.getElementById('gmail-sample-banner');
+    if(banner)banner.style.display='none';
     renderMailList();
   }catch(e){
     if(e.code==='NOT_CONNECTED'||e.code==='TOKEN_EXPIRED'){
