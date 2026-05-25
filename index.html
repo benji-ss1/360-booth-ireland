@@ -4022,7 +4022,9 @@ function init(){
   const secCredsStatus=document.getElementById('sec-creds-status');
   if(secCredsStatus)secCredsStatus.textContent=storage.getItem(LOCAL_CREDS_CHANGED)?'Your custom credentials are active — click "Change Credentials" to update.':'Using default credentials — click "Change Credentials" to secure your dashboard.';
   // Restore last active page
-  const lastPage=localStorage.getItem('b360_last_page')||'overview';
+  const validPages=['overview','bookings','enquiries','invoices','leadgen','website','ai','hub','settings'];
+  const storedPage=localStorage.getItem('b360_last_page')||'overview';
+  const lastPage=validPages.includes(storedPage)?storedPage:'overview';
   if(lastPage!=='overview')navTo(lastPage,null);
   document.querySelectorAll('.sb-item').forEach(item=>{
     item.addEventListener('mouseenter',()=>{if(document.getElementById('sidebar').classList.contains('collapsed')){const island=document.getElementById('sb-island');island.textContent=item.querySelector('.sb-label')?.textContent?.trim()||'';island.style.top=(item.getBoundingClientRect().top+8)+'px';island.classList.add('visible')}});
