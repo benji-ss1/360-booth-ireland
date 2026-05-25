@@ -597,6 +597,12 @@ select.st-input option{background:#1a1a1a}
 .signin-card{box-shadow:0 40px 100px rgba(0,0,0,.9),0 0 0 1px rgba(201,168,76,.15),inset 0 1px 0 rgba(255,255,255,.06)}
 .signin-meta{font-size:10.5px;color:var(--text-subtle);text-align:center;margin-top:12px;line-height:1.5}
 .signin-spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,.15);border-top-color:#1a1a1a;border-radius:50%;animation:spin-slow .7s linear infinite;flex-shrink:0}
+/* ── CREDENTIALS SETUP MODAL ── */
+#creds-setup-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center}
+.creds-modal-card{background:var(--card);border:1px solid rgba(201,168,76,.25);border-radius:18px;padding:36px 32px;width:420px;max-width:92vw;box-shadow:0 28px 72px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.05)}
+.creds-modal-alert{display:flex;gap:10px;padding:10px 12px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:8px;margin-bottom:18px;font-size:12px;color:var(--text-muted);line-height:1.5}
+/* ── MAIL DATE GROUP ── */
+.mail-date-group{padding:6px 14px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-subtle);background:var(--background);border-bottom:1px solid rgba(255,255,255,.03);position:sticky;top:0;z-index:1}
 
 /* ── AI INSIGHT BAR ── */
 #ai-insight-bar{align-items:flex-start;gap:12px}
@@ -742,6 +748,38 @@ select.st-input option{background:#1a1a1a}
       <button class="signin-demo-btn" type="button" onclick="fillDemoCredentials()">Reset</button>
     </div>
     <div class="signin-meta" id="signin-meta">Use the placeholder email and password above to enter the dashboard.</div>
+  </div>
+</div>
+
+<!-- CREDENTIALS SETUP MODAL -->
+<div id="creds-setup-modal">
+  <div class="creds-modal-card">
+    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">Secure Your Dashboard</div>
+    <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:16px">You're using the default placeholder login. Set your own secure email and password — these will be saved to your account.</div>
+    <div class="creds-modal-alert">
+      <span style="font-size:16px;flex-shrink:0">🔐</span>
+      <span>Replace <strong style="color:var(--accent)">owner@360booth.ie</strong> and the demo password with your own credentials so only you can access this dashboard.</span>
+    </div>
+    <div class="signin-form" style="margin-bottom:12px">
+      <div class="signin-field">
+        <label>Your Email</label>
+        <input class="signin-input" id="new-creds-email" type="email" placeholder="your@email.com" autocomplete="off">
+      </div>
+      <div class="signin-field">
+        <label>New Password</label>
+        <input class="signin-input" id="new-creds-pw" type="password" placeholder="Minimum 6 characters" autocomplete="new-password">
+      </div>
+      <div class="signin-field">
+        <label>Confirm Password</label>
+        <input class="signin-input" id="new-creds-pw2" type="password" placeholder="Repeat password" autocomplete="new-password">
+      </div>
+    </div>
+    <div id="creds-setup-error" style="display:none;color:#E05252;font-size:12px;margin-bottom:10px;padding:8px 12px;background:rgba(224,82,82,.08);border-radius:6px;border:1px solid rgba(224,82,82,.2)"></div>
+    <div style="display:flex;gap:8px">
+      <button class="signin-btn" onclick="saveNewCredentials()" style="flex:1">Save Credentials</button>
+      <button onclick="hideCredsSetupModal()" style="padding:13px 16px;border-radius:8px;font-size:13px;background:none;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-family:inherit">Skip for now</button>
+    </div>
+    <div style="font-size:10.5px;color:var(--text-subtle);text-align:center;margin-top:10px;line-height:1.5">Change anytime in <strong>Settings → Security</strong></div>
   </div>
 </div>
 
@@ -1431,7 +1469,7 @@ select.st-input option{background:#1a1a1a}
                 <div class="hub-sidebar">
                   <div class="hub-sidebar-header">
                     <div class="hub-app-name">Email Hub</div>
-                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px" id="gmail-account-label">Not connected</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px">360 Booth Ireland</div>
                   </div>
                   <button class="hub-compose-btn" onclick="showCompose()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
@@ -1440,8 +1478,8 @@ select.st-input option{background:#1a1a1a}
                   <div class="hub-nav-section">Mailbox</div>
                   <div class="hub-nav-item active" id="mail-nav-inbox" onclick="hubMailFilter('INBOX',this)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
-                    Inbox
-                    <span class="hub-nav-badge" id="inbox-unread-badge" style="display:none">0</span>
+                    Primary
+                    <span class="hub-nav-badge" id="inbox-unread-badge">2</span>
                   </div>
                   <div class="hub-nav-item" id="mail-nav-starred" onclick="hubMailFilter('STARRED',this)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -1454,10 +1492,30 @@ select.st-input option{background:#1a1a1a}
                   <div class="hub-nav-item" id="mail-nav-drafts" onclick="hubMailFilter('DRAFT',this)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                     Drafts
+                    <span class="hub-nav-badge" style="background:rgba(91,155,213,.15);color:var(--blue)">3</span>
+                  </div>
+                  <div class="hub-nav-item" id="mail-nav-spam" onclick="hubMailFilter('SPAM',this)">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    Spam
                   </div>
                   <div class="hub-nav-item" id="mail-nav-trash" onclick="hubMailFilter('TRASH',this)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                    Trash
+                    Bin
+                  </div>
+                  <div class="hub-nav-section" style="margin-top:8px">Labels</div>
+                  <div class="hub-nav-item" onclick="hubMailFilter('INBOX',this)">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#5B9BD5;flex-shrink:0;display:inline-block"></span>
+                    Finance
+                    <span class="hub-nav-badge" style="background:rgba(91,155,213,.15);color:var(--blue)">4</span>
+                  </div>
+                  <div class="hub-nav-item" onclick="hubMailFilter('INBOX',this)">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#4CAF7D;flex-shrink:0;display:inline-block"></span>
+                    Work
+                    <span class="hub-nav-badge" style="background:rgba(76,175,125,.12);color:var(--green)">2</span>
+                  </div>
+                  <div class="hub-nav-item" onclick="hubMailFilter('INBOX',this)">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#9B72CF;flex-shrink:0;display:inline-block"></span>
+                    Events
                   </div>
                 </div>
 
@@ -1469,32 +1527,27 @@ select.st-input option{background:#1a1a1a}
                       <input class="hub-search" type="text" id="gmail-search-inp" placeholder="Search mail…" oninput="filterGmailRows(this.value)"/>
                     </div>
                     <button class="btn-ai" style="font-size:12px" onclick="aiSummariseInbox()">✦ AI Summarise</button>
-                    <button class="btn-p" style="font-size:12px;padding:7px 14px" onclick="showCompose()">+ Compose</button>
+                    <button class="btn-p" style="font-size:12px;padding:7px 14px" onclick="window.open('https://mail.google.com','_blank')">Open Gmail ↗</button>
                   </div>
-                  <!-- Body: inbox list + detail/compose panel -->
+                  <!-- Body: email list + detail/compose panel -->
                   <div style="display:grid;grid-template-columns:1fr 400px;flex:1;overflow:hidden;min-height:0;height:calc(100% - 48px)">
-                    <!-- Inbox list -->
+                    <!-- Left: email list -->
                     <div style="display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border)">
                       <div class="hub-tabs">
                         <div class="hub-tab active" onclick="hubTabSwitch('all',this)">All</div>
                         <div class="hub-tab" onclick="hubTabSwitch('unread',this)">Unread</div>
                         <div class="hub-tab" onclick="hubTabSwitch('flagged',this)">Flagged</div>
                       </div>
-                      <!-- Not connected -->
-                      <div id="gmail-not-connected" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:40px;text-align:center">
-                        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,.35)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                        <div style="font-size:15px;font-weight:600;color:var(--text)">Connect Gmail</div>
-                        <div style="font-size:12px;color:var(--text-muted);max-width:220px;line-height:1.6">Sign in with Google to see your real inbox here</div>
-                        <button class="btn-p" style="margin-top:4px;font-size:12px" onclick="connectGoogleHub()">Connect Google Account</button>
+                      <!-- Sample preview banner -->
+                      <div style="padding:6px 14px;background:rgba(201,168,76,.06);border-bottom:1px solid rgba(201,168,76,.12);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+                        <span style="font-size:11px;color:rgba(201,168,76,.8)">Sample preview — open Gmail to see your real inbox</span>
+                        <button class="btn-ghost" style="font-size:10px;padding:3px 8px;color:var(--accent)" onclick="window.open('https://mail.google.com','_blank')">Open →</button>
                       </div>
-                      <!-- Email list -->
-                      <div class="hub-email-list" id="gmail-email-list" style="display:none">
-                        <div id="gmail-loading" style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading inbox…</div>
-                        <div id="gmail-rows"></div>
-                      </div>
+                      <!-- Email list (populated by renderMailList()) -->
+                      <div class="hub-email-list" id="gmail-email-list"></div>
                     </div>
 
-                    <!-- Right panel: email detail OR compose OR default -->
+                    <!-- Right: email detail OR compose OR default -->
                     <div style="display:flex;flex-direction:column;overflow:hidden;background:rgba(255,255,255,.01);position:relative">
                       <!-- Email detail -->
                       <div id="email-detail-panel" style="display:none;flex-direction:column;height:100%;overflow:hidden">
@@ -1502,13 +1555,22 @@ select.st-input option{background:#1a1a1a}
                           <button class="btn-ghost" onclick="showDefaultRight()">← Back</button>
                           <span style="font-size:13px;font-weight:700;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="detail-subject">Email</span>
                           <button class="btn-s" onclick="replyToEmail()">Reply</button>
+                          <button class="btn-ghost" style="font-size:11px" onclick="forwardEmail()">Forward</button>
                         </div>
-                        <div style="padding:11px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
-                          <div style="font-size:12px;font-weight:600;color:var(--text)" id="detail-from"></div>
-                          <div style="font-size:11px;color:var(--text-muted);margin-top:2px" id="detail-date"></div>
+                        <div style="padding:11px 14px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:10px">
+                          <div id="detail-avatar" style="width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">?</div>
+                          <div>
+                            <div style="font-size:12px;font-weight:600;color:var(--text)" id="detail-from"></div>
+                            <div style="font-size:11px;color:var(--text-muted);margin-top:1px" id="detail-date"></div>
+                          </div>
                         </div>
                         <div style="flex:1;overflow:hidden">
-                          <iframe id="detail-body-frame" src="about:blank" style="width:100%;height:100%;border:none;background:#fff" sandbox="allow-same-origin"></iframe>
+                          <iframe id="detail-body-frame" src="about:blank" style="width:100%;height:100%;border:none;background:#181818" sandbox="allow-same-origin"></iframe>
+                        </div>
+                        <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0">
+                          <button class="btn-p" style="font-size:12px;padding:7px 14px" onclick="replyToEmail()">Reply</button>
+                          <button class="btn-ghost" style="font-size:12px" onclick="forwardEmail()">Forward</button>
+                          <button class="btn-ghost" style="font-size:12px;margin-left:auto;color:var(--gold)" onclick="showCompose()">✦ AI Reply</button>
                         </div>
                       </div>
                       <!-- Compose panel -->
@@ -1532,7 +1594,7 @@ select.st-input option{background:#1a1a1a}
                           <div style="display:flex;gap:8px;padding:10px 0 4px;border-top:1px solid rgba(255,255,255,.04);flex-shrink:0">
                             <button class="btn-p" style="font-size:12px;padding:7px 16px" onclick="sendGmail()">
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                              Send
+                              Send via Gmail
                             </button>
                             <button class="btn-ghost" style="font-size:12px;color:var(--gold)" onclick="aiDraftEmail()">✦ AI Draft</button>
                             <button class="btn-ghost" style="margin-left:auto;font-size:12px" onclick="showDefaultRight()">Discard</button>
@@ -1801,10 +1863,10 @@ select.st-input option{background:#1a1a1a}
             <!-- Security -->
             <div class="st-tab" id="st-security">
               <div class="st-section-title">Security</div>
-              <div class="st-section-sub">This dashboard currently uses a simple local email/password gate so you can get straight in.</div>
+              <div class="st-section-sub">Control who can access your 360 Booth Ireland dashboard with a secure email and password.</div>
               <div class="st-card">
                 <div class="st-card-title">Dashboard Access</div>
-                <div class="st-card-sub">Using the placeholder email/password flow for now. Google is optional and only used for workspace integrations.</div>
+                <div class="st-card-sub" id="sec-creds-status">Set your own credentials to secure this dashboard — replace the defaults below.</div>
                 <div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.15);border-radius:var(--radius-sm);margin-top:8px">
                   <div style="width:36px;height:36px;border-radius:50%;background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:16px">🔐</div>
                   <div>
@@ -1812,7 +1874,10 @@ select.st-input option{background:#1a1a1a}
                     <div id="sec-auth-status" style="font-size:11px;color:var(--green)">✓ Authenticated via email/password</div>
                   </div>
                 </div>
-                <div class="st-save"><button class="btn-sm" style="color:var(--red)" onclick="signOut()">Sign Out</button></div>
+                <div class="st-save" style="display:flex;gap:8px;align-items:center">
+                  <button class="btn-sm" onclick="showCredsSetupModal()">Change Credentials</button>
+                  <button class="btn-sm" style="color:var(--red)" onclick="signOut()">Sign Out</button>
+                </div>
               </div>
             </div>
             <!-- Integrations -->
@@ -2081,6 +2146,11 @@ const LOCAL_AUTH_STORAGE='b360_authed';
 const LOCAL_AUTH_EMAIL_STORAGE='b360_auth_email';
 const DEMO_AUTH_EMAIL='owner@360booth.ie';
 const DEMO_AUTH_PASSWORD='booth360demo';
+const AUTH_EXPIRY_MS=7*24*60*60*1000;
+const LOCAL_AUTH_EXPIRY='b360_auth_expiry';
+const LOCAL_CUSTOM_EMAIL='b360_custom_email';
+const LOCAL_CUSTOM_PW='b360_custom_pw';
+const LOCAL_CREDS_CHANGED='b360_creds_changed';
 const GOOGLE_EMAIL_STORAGE='b360_google_email';
 const GTOK_KEY='b360_gtok';
 const GTOK_EXP_KEY='b360_gtok_exp';
@@ -2102,16 +2172,23 @@ function ensureSupabaseClient(){
   return supabaseClient;
 }
 function isBoot360Profile(){return authProfile?.client_id===BOOT360_CLIENT_ID}
-function isLocalAuthed(){return storage.getItem(LOCAL_AUTH_STORAGE)==='1'}
+function isLocalAuthed(){
+  if(storage.getItem(LOCAL_AUTH_STORAGE)!=='1')return false;
+  const exp=parseInt(storage.getItem(LOCAL_AUTH_EXPIRY)||'0');
+  return exp>0&&Date.now()<exp;
+}
 function authEmail(){return authSession?.user?.email||storage.getItem(LOCAL_AUTH_EMAIL_STORAGE)||storage.getItem(GOOGLE_EMAIL_STORAGE)||''}
 function authProvider(){return authSession?.user?.app_metadata?.provider||(isLocalAuthed()?'email/password':'')}
 
 function fillDemoCredentials(){
   const emailInput=document.getElementById('signin-email');
   const passwordInput=document.getElementById('signin-password');
-  if(emailInput)emailInput.value=DEMO_AUTH_EMAIL;
-  if(passwordInput)passwordInput.value=DEMO_AUTH_PASSWORD;
+  const customEmail=storage.getItem(LOCAL_CUSTOM_EMAIL)||'';
+  if(emailInput)emailInput.value=customEmail||DEMO_AUTH_EMAIL;
+  if(passwordInput)passwordInput.value=customEmail?'':DEMO_AUTH_PASSWORD;
   setSigninError('');
+  const demoCopy=document.querySelector('.signin-demo-copy');
+  if(demoCopy)demoCopy.textContent=customEmail?'Enter your password to sign in.':'Demo access is prefilled — sign in to get started.';
 }
 
 function bootDashboard(){
@@ -2151,6 +2228,18 @@ function updateGoogleIntegrationStatus(){
     }
   }
   if(btn)btn.textContent=connected?'Reconnect Google':'Connect Google';
+  updateHubConnDot();
+}
+
+function updateHubConnDot(){
+  const tok=storage.getItem(GTOK_KEY)||'';
+  const exp=parseInt(storage.getItem(GTOK_EXP_KEY)||'0');
+  const connected=!!(tok&&Date.now()<exp);
+  const email=storage.getItem(GOOGLE_EMAIL_STORAGE)||'';
+  const dot=document.getElementById('ws-conn-dot');
+  const tooltip=document.getElementById('ws-conn-tooltip');
+  if(dot){dot.classList.toggle('connected',connected);dot.classList.toggle('disconnected',!connected)}
+  if(tooltip)tooltip.textContent=connected?(email?'Connected: '+email:'Google Connected'):'Connect Google';
 }
 
 function updateAuthMeta(){
@@ -2202,26 +2291,15 @@ async function loadAuthProfile(){
 }
 
 async function handleGoogleOAuthCallback(){
-  const params=new URLSearchParams(window.location.search);
-  if(params.has('google_connected')){
-    const email=params.get('google_email')||'';
-    history.replaceState(null,'',window.location.pathname);
-    // Reload token from DB then navigate to Hub
-    setTimeout(async()=>{
-      await updateHubConnectionStatus();
-      navTo('hub',document.querySelector('[data-page=hub]'));
-      showToast('Connected','Google Workspace connected'+(email?' as '+email:'')+'!','success');
-      setTimeout(()=>loadGmailPanel(),400);
-    },300);
-    return true;
+  const tok=await getHubToken();
+  if(!tok)return false;
+  updateGoogleIntegrationStatus();
+  updateHubConnDot();
+  if(document.getElementById('page-hub')?.classList.contains('active')&&wsCurrentPanel==='gmail'){
+    loadRealGmail();
   }
-  if(params.has('google_error')){
-    const msg=params.get('google_error')||'Unknown error';
-    history.replaceState(null,'',window.location.pathname);
-    showToast('Google Error',decodeURIComponent(msg),'error');
-    return false;
-  }
-  return false;
+  showToast('Google Connected','Gmail and Google Workspace are now live.','success');
+  return true;
 }
 
 async function initAuth(){
@@ -2255,10 +2333,6 @@ async function initAuth(){
           handleGoogleOAuthCallback();
         }else{
           bootDashboard();
-          if(session?.provider_token){
-            updateHubConnectionStatus();
-            if(wsCurrentPanel==='gmail')loadGmailPanel();
-          }
         }
       }else{
         if(authSession&&!isBoot360Profile())showToast('Access Pending','This account is not linked to the 360 Booth workspace yet.','error');
@@ -2303,17 +2377,23 @@ function doSignIn(event){
   const password=document.getElementById('signin-password')?.value||'';
   if(btn)btn.disabled=true;
   setSigninError('');
-  if(email!==DEMO_AUTH_EMAIL||password!==DEMO_AUTH_PASSWORD){
-    setSigninError('Use the prefilled demo email and password to sign in for now.');
+  const customEmail=storage.getItem(LOCAL_CUSTOM_EMAIL)||'';
+  const customPw=storage.getItem(LOCAL_CUSTOM_PW)||'';
+  const validCustom=!!(customEmail&&customPw&&email===customEmail&&password===customPw);
+  const validDemo=email===DEMO_AUTH_EMAIL&&password===DEMO_AUTH_PASSWORD;
+  if(!validCustom&&!validDemo){
+    setSigninError(customEmail?'Incorrect email or password.':'Use the prefilled email and password to sign in.');
     if(btn)btn.disabled=false;
     return;
   }
   storage.setItem(LOCAL_AUTH_STORAGE,'1');
   storage.setItem(LOCAL_AUTH_EMAIL_STORAGE,email);
+  storage.setItem(LOCAL_AUTH_EXPIRY,String(Date.now()+AUTH_EXPIRY_MS));
   updateAuthMeta();
   bootDashboard();
   showToast('Signed In','Dashboard access granted.','success');
   if(btn)btn.disabled=false;
+  if(!storage.getItem(LOCAL_CREDS_CHANGED))setTimeout(()=>showCredsSetupModal(),900);
 }
 
 async function requireAuthedClient(actionLabel='continue'){
@@ -2341,7 +2421,7 @@ async function upsertCredential(service,label,credentials){
 async function hydrateRemoteSettings(force=false){
   const client=ensureSupabaseClient();
   if(!client||!authSession||!isBoot360Profile()||(settingsHydrated&&!force))return;
-  const{data,error}=await client.from('integration_credentials').select('service,credentials').eq('client_id',BOOT360_CLIENT_ID).in('service',['dashboard_settings','groq','google_workspace']);
+  const{data,error}=await client.from('integration_credentials').select('service,credentials').eq('client_id',BOOT360_CLIENT_ID).in('service',['dashboard_settings','groq','google_workspace','dashboard_auth']);
   if(error){console.error(error);return}
   const s=gs();
   (data||[]).forEach(row=>{
@@ -2356,6 +2436,11 @@ async function hydrateRemoteSettings(force=false){
       if(c.model)storage.setItem('b360_groq_model',c.model);
     }
     if(row.service==='google_workspace'&&c.email)storage.setItem(GOOGLE_EMAIL_STORAGE,c.email);
+    if(row.service==='dashboard_auth'&&c.email&&c.password&&!storage.getItem(LOCAL_CUSTOM_EMAIL)){
+      storage.setItem(LOCAL_CUSTOM_EMAIL,c.email);
+      storage.setItem(LOCAL_CUSTOM_PW,c.password);
+      storage.setItem(LOCAL_CREDS_CHANGED,'1');
+    }
   });
   ss(s);
   settingsHydrated=true;
@@ -3068,8 +3153,42 @@ async function signOut(){
   if(supabaseClient)try{await supabaseClient.auth.signOut()}catch(_){}
   storage.removeItem(LOCAL_AUTH_STORAGE);
   storage.removeItem(LOCAL_AUTH_EMAIL_STORAGE);
+  storage.removeItem(LOCAL_AUTH_EXPIRY);
   storage.removeItem('b360_last_page');
   location.reload();
+}
+
+function showCredsSetupModal(){document.getElementById('creds-setup-modal').style.display='flex'}
+function hideCredsSetupModal(){document.getElementById('creds-setup-modal').style.display='none'}
+async function saveNewCredentials(){
+  const email=(document.getElementById('new-creds-email')?.value||'').trim().toLowerCase();
+  const pw=document.getElementById('new-creds-pw')?.value||'';
+  const pw2=document.getElementById('new-creds-pw2')?.value||'';
+  const errEl=document.getElementById('creds-setup-error');
+  errEl.style.display='none';
+  if(!email||!pw){errEl.textContent='Email and password are required.';errEl.style.display='block';return}
+  if(pw!==pw2){errEl.textContent='Passwords do not match.';errEl.style.display='block';return}
+  if(pw.length<6){errEl.textContent='Password must be at least 6 characters.';errEl.style.display='block';return}
+  storage.setItem(LOCAL_CUSTOM_EMAIL,email);
+  storage.setItem(LOCAL_CUSTOM_PW,pw);
+  storage.setItem(LOCAL_CREDS_CHANGED,'1');
+  storage.setItem(LOCAL_AUTH_EMAIL_STORAGE,email);
+  const secEmail=document.getElementById('sec-user-email');
+  if(secEmail)secEmail.textContent=email;
+  const secCredsStatus=document.getElementById('sec-creds-status');
+  if(secCredsStatus)secCredsStatus.textContent='Your custom credentials are active — click "Change Credentials" to update.';
+  try{
+    const client=ensureSupabaseClient();
+    if(client&&authSession){
+      await client.from('integration_credentials').upsert({
+        client_id:BOOT360_CLIENT_ID,service:'dashboard_auth',label:'Dashboard Login',
+        credentials:{email,password:pw,changed_at:new Date().toISOString()},
+        is_active:true,updated_at:new Date().toISOString()
+      },{onConflict:'client_id,service'});
+    }
+  }catch(e){console.error('Could not sync credentials:',e)}
+  hideCredsSetupModal();
+  showToast('Credentials Saved','Your login details have been updated. Use them next time you sign in.','success');
 }
 
 // ══════════════════════════════════
@@ -3208,7 +3327,6 @@ const GAPI='https://www.googleapis.com';
 const GMAIL='https://gmail.googleapis.com/gmail/v1/users/me';
 
 async function getHubToken(){
-  if(!authSession)return null;
   // 1. Fast path: check localStorage cache (set after OAuth or on previous load)
   const cached=storage.getItem(GTOK_KEY);
   const cachedExp=parseInt(storage.getItem(GTOK_EXP_KEY)||'0');
@@ -3222,7 +3340,7 @@ async function getHubToken(){
       return session.provider_token;
     }
     // 3. Fall back to google_tokens DB table
-    const email=authSession.user?.email;
+    const email=authSession?.user?.email||storage.getItem(GOOGLE_EMAIL_STORAGE)||'';
     if(email){
       const{data}=await supabaseClient.from('google_tokens').select('access_token,expires_at').eq('email',email).maybeSingle().catch(()=>({data:null}));
       if(data?.access_token&&new Date(data.expires_at)>new Date(Date.now()+120000)){
@@ -3262,20 +3380,18 @@ function hubNotConnected(service){
 }
 
 async function connectGoogleHub(){
-  const btns=[...document.querySelectorAll('[onclick*="connectGoogleHub"],[onclick*="connectGoogle("]')];
-  btns.forEach(b=>{b._orig=b.textContent;b.textContent='Connecting…';b.disabled=true});
-  try{
-    const returnTo=window.location.href.split('?')[0].split('#')[0];
-    const r=await fetch(`${GOOGLE_AUTH_START_URL}?return_to=${encodeURIComponent(returnTo)}`,{method:'GET'});
-    if(!r.ok){const t=await r.text();throw new Error(t||'Edge function error')}
-    const d=await r.json();
-    if(d.error)throw new Error(d.error);
-    if(!d.url)throw new Error('No OAuth URL returned');
-    window.location.href=d.url;
-  }catch(e){
-    showToast('Error','Could not start Google sign-in: '+e.message,'error');
-    btns.forEach(b=>{b.textContent=b._orig||'Connect Google Account';b.disabled=false});
-  }
+  const client=ensureSupabaseClient();
+  if(!client){showToast('Error','Supabase unavailable — cannot start Google auth.','error');return}
+  const redirectTo=location.href.split('?')[0].split('#')[0];
+  const{error}=await client.auth.signInWithOAuth({
+    provider:'google',
+    options:{
+      redirectTo,
+      scopes:'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/calendar.readonly',
+      queryParams:{access_type:'offline',prompt:'consent'}
+    }
+  });
+  if(error)showToast('OAuth Error',error.message,'error');
 }
 
 function stringToColor(s){
@@ -3283,119 +3399,59 @@ function stringToColor(s){
   return['#C9A84C','#5B9BD5','#9B72CF','#4CAF7D','#E05252','#F0A847'][Math.abs(h)%6];
 }
 
-async function updateHubConnectionStatus(){
-  const tok=await getHubToken();
-  const dot=document.getElementById('ws-conn-dot');
-  const tooltip=document.getElementById('ws-conn-tooltip');
-  const accountLabel=document.getElementById('gmail-account-label');
-  const connectBtn=document.getElementById('ws-connect-btn');
-  if(tok){
-    if(dot){dot.classList.remove('disconnected');dot.classList.add('connected')}
-    const email=storage.getItem(GOOGLE_EMAIL_STORAGE)||authEmail()||'';
-    if(accountLabel)accountLabel.textContent=email||'Connected';
-    if(tooltip)tooltip.textContent=email?'Connected: '+email:'Connected';
-    if(connectBtn){const s=connectBtn.querySelector('svg');if(s)s.setAttribute('stroke','rgba(76,175,125,.7)')}
-  }else{
-    if(dot){dot.classList.remove('connected');dot.classList.add('disconnected')}
-    if(accountLabel)accountLabel.textContent='Not connected';
-    if(tooltip)tooltip.textContent='Connect Google';
-    if(connectBtn){const s=connectBtn.querySelector('svg');if(s)s.setAttribute('stroke','rgba(255,255,255,.3)')}
-  }
-}
-
 // ── WORKSPACE STATE ──
 let wsCurrentPanel='gmail';
 let wsCurrentMailLabel='INBOX';
 let wsCurrentTabFilter='all';
-let wsThreadCache=[];
 let wsCurrentThread=null;
+let selectedMailId=null;
+let liveMailData=[];
 
-function openWsPanel(panel,el){
-  document.querySelectorAll('.ws-app-btn').forEach(b=>b.classList.remove('active'));
-  if(el)el.classList.add('active');
-  document.querySelectorAll('.ws-panel').forEach(p=>p.classList.remove('active'));
-  const target=document.getElementById('ws-'+panel);
-  if(target)target.classList.add('active');
-  wsCurrentPanel=panel;
-  localStorage.setItem('b360_hub_panel',panel);
-  updateHubConnectionStatus();
-  if(panel==='gmail')loadGmailPanel();
-  else if(panel==='drive')loadDrivePanel();
-  else if(panel==='docs')loadDocsPanel();
-  else if(panel==='sheets')loadSheetsPanel();
-  else if(panel==='calendar')loadCalendarPanel();
-}
+const MOCK_MAIL=[
+  {id:'m1',group:'Today',from:'Sarah Murphy',initials:'SM',email:'sarah.murphy@gmail.com',subject:'Wedding Enquiry — 360 Booth for Aug 10th',snippet:"Hi, I'm planning my wedding for August 10th at Powerscourt Estate and came across your 360 Booth. Your work looks stunning!",date:'3:15 PM',unread:true,color:'#C9A84C',body:"Hi Michael,\n\nI'm planning my wedding for August 10th at Powerscourt Estate and came across your 360 Booth Ireland online. Your work looks absolutely stunning!\n\nCould you let me know if you're available on that date and what packages you offer? We're expecting about 80 guests and want something really special.\n\nLooking forward to hearing from you.\n\nKind regards,\nSarah Murphy"},
+  {id:'m2',group:'Today',from:'Stripe',initials:'ST',email:'support@stripe.com',subject:'Your payout of €1,200.00 is on its way',snippet:'Your Stripe payout of €1,200.00 is being transferred to your bank account ending in 4242. It should arrive within 2 business days.',date:'11:42 AM',unread:false,color:'#5B9BD5',body:"Hi,\n\nYour Stripe payout of €1,200.00 is being transferred to your bank account ending in 4242.\n\nEstimated arrival: 2 business days\nAmount: €1,200.00\nReference: PAY-2025-05-25\n\nView your full payout details at dashboard.stripe.com.\n\nThanks,\nThe Stripe Team"},
+  {id:'m3',group:'Yesterday',from:'Google Business',initials:'GB',email:'noreply@google.com',subject:'New 5-star review on your Business Profile',snippet:'"Absolutely amazing! The 360 booth was the highlight of our night. Highly recommend 360 Booth Ireland!" — Emma Doyle',date:'5:30 PM',unread:true,color:'#4CAF7D',body:"Hi Michael,\n\nYou've received a new review on your Google Business Profile!\n\n⭐⭐⭐⭐⭐\n\n\"Absolutely amazing! The 360 booth was the highlight of our night. Every single guest loved it. Highly recommend 360 Booth Ireland to everyone looking for something special!\"\n\n— Emma Doyle\n\nYou can respond to this review from your Business Profile manager."},
+  {id:'m4',group:'Yesterday',from:'Anna Clarke',initials:'AC',email:'anna.clarke@outlook.com',subject:'Re: Booking Confirmation — Debs Night May 31st',snippet:"Hi Michael, just wanted to confirm everything is still on for Saturday. Can I also check what time you'll be arriving to set up?",date:'2:10 PM',unread:false,color:'#9B72CF',body:"Hi Michael,\n\nJust wanted to confirm everything is still on for Saturday night — we're all so excited!\n\nCould I check a couple of things:\n1. What time will you be arriving to set up?\n2. Do we need to provide anything on the night?\n3. Is there parking at the venue for you?\n\nThanks so much!\nAnna"},
+  {id:'m5',group:'23 May',from:'Padraig Connolly',initials:'PC',email:'padraig.c@horizongroup.ie',subject:'Corporate Event Enquiry — 150 Guests, June 15th',snippet:"Good afternoon, I'm Events Manager at Horizon Group. We're looking for a 360 photo booth for our company summer party at the RDS Dublin.",date:'4:15 PM',unread:false,color:'#E05252',body:"Good afternoon,\n\nMy name is Padraig Connolly, Events Manager at Horizon Group. We're organising our annual company summer party on June 15th at the RDS Dublin with approximately 150 guests.\n\nWe'd love to have a 360 photo booth as part of the entertainment. Could you please send through:\n\n• Your availability for June 15th\n• Pricing for a 4-hour package\n• What's included in your package\n• Any corporate branding/overlay options\n\nLooking forward to hearing from you.\n\nKind regards,\nPadraig Connolly\nEvents Manager, Horizon Group"},
+  {id:'m6',group:'22 May',from:'Instagram',initials:'IG',email:'noreply@instagram.com',subject:'Your reel got 892 views this week',snippet:"Your recent reel featuring the 360 booth is getting great engagement: 892 views, 47 likes, 12 new followers this week.",date:'8:45 AM',unread:false,color:'#F0A847',body:"Hi Michael,\n\nYour recent reel is performing really well this week!\n\n📊 7-day stats:\n• Views: 892\n• Likes: 47\n• Comments: 14\n• Shares: 9\n• New followers from reel: 12\n• Profile visits: 38\n\nKeep sharing your amazing 360 booth content — your audience is loving it!\n\nThe Instagram Team"},
+];
 
-// ── GMAIL ──
-async function loadGmailPanel(){
-  const notConn=document.getElementById('gmail-not-connected');
-  const emailList=document.getElementById('gmail-email-list');
-  const loading=document.getElementById('gmail-loading');
-  const rows=document.getElementById('gmail-rows');
-  if(!emailList)return;
-  if(notConn)notConn.style.display='none';
-  emailList.style.display='flex';
-  if(loading)loading.style.display='block';
-  if(rows)rows.innerHTML='';
-  try{
-    const label=wsCurrentMailLabel||'INBOX';
-    const data=await gapi(`${GMAIL}/threads?maxResults=25&labelIds=${label}&fields=threads(id,snippet)`);
-    if(!data.threads?.length){
-      if(loading)loading.style.display='none';
-      if(rows)rows.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">No messages.</div>`;
-      return;
-    }
-    const threads=await Promise.all(data.threads.slice(0,20).map(t=>gapi(`${GMAIL}/threads/${t.id}?format=metadata&metadataHeaders=From,Subject,Date`)));
-    wsThreadCache=threads;
-    const unreadCount=threads.filter(t=>t.messages?.some(m=>m.labelIds?.includes('UNREAD'))).length;
-    const badge=document.getElementById('inbox-unread-badge');
-    const wsBadge=document.getElementById('ws-gmail-badge');
-    if(badge&&label==='INBOX'){badge.textContent=unreadCount;badge.style.display=unreadCount?'':'none'}
-    if(wsBadge&&label==='INBOX'){wsBadge.textContent=unreadCount;wsBadge.style.display=unreadCount?'':'none'}
-    if(loading)loading.style.display='none';
-    renderGmailRows(threads);
-  }catch(e){
-    if(loading)loading.style.display='none';
-    if(e.code==='NOT_CONNECTED'||e.code==='TOKEN_EXPIRED'){
-      emailList.style.display='none';
-      if(notConn)notConn.style.display='flex';
-      updateHubConnectionStatus();
-    }else{
-      if(rows)rows.innerHTML=`<div style="padding:20px;color:var(--red);font-size:13px">Error: ${esc(e.message)}</div>`;
-    }
-  }
-}
-
-function renderGmailRows(threads){
-  const rowsEl=document.getElementById('gmail-rows');
-  if(!rowsEl)return;
-  rowsEl.innerHTML=threads.map(t=>{
-    const msg=t.messages?.[t.messages.length-1];
-    const hdr=msg?.payload?.headers||[];
-    const from=hdr.find(h=>h.name==='From')?.value||'Unknown';
-    const subject=hdr.find(h=>h.name==='Subject')?.value||'(no subject)';
-    const date=hdr.find(h=>h.name==='Date')?.value;
-    const unread=t.messages?.some(m=>m.labelIds?.includes('UNREAD'));
-    const name=from.replace(/<[^>]+>/,'').trim().replace(/"/g,'')||from;
-    const dateStr=date?new Date(date).toLocaleDateString('en-IE',{day:'numeric',month:'short'}):'';
-    const safeId=t.id.replace(/[^a-zA-Z0-9_-]/g,'');
-    return`<div class="hub-email-row${unread?' unread':''}" data-thread="${safeId}" data-subject="${esc(subject)}" data-from="${esc(name)}" data-date="${esc(dateStr)}" onclick="openGmailThread('${safeId}')">
-      <div style="width:32px;height:32px;border-radius:50%;background:${stringToColor(name)};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;margin-top:1px">${name.charAt(0).toUpperCase()}</div>
+function renderMailList(){
+  const listEl=document.getElementById('gmail-email-list');
+  if(!listEl)return;
+  const source=liveMailData.length?liveMailData:MOCK_MAIL;
+  let filtered=source.filter(m=>{
+    if(wsCurrentMailLabel==='STARRED')return m.starred;
+    if(wsCurrentMailLabel==='SENT'||wsCurrentMailLabel==='DRAFT'||wsCurrentMailLabel==='SPAM'||wsCurrentMailLabel==='TRASH')return liveMailData.length?false:false;
+    return true;
+  });
+  if(wsCurrentTabFilter==='unread')filtered=filtered.filter(m=>m.unread);
+  const groups=[...new Set(filtered.map(m=>m.group))];
+  const html=groups.map(g=>{
+    const rows=filtered.filter(m=>m.group===g).map(m=>`<div class="hub-email-row${m.unread?' unread':''}${selectedMailId===m.id?' selected':''}" data-mid="${m.id}" onclick="openMailThread('${m.id}')">
+      <div class="hub-email-avatar" style="background:${m.color};color:#fff">${m.initials}</div>
       <div style="flex:1;min-width:0">
-        <div class="hub-email-sender">${esc(name)}</div>
-        <div class="hub-email-subj">${esc(subject)}</div>
-        <div class="hub-email-snip">${esc(t.snippet||'')}</div>
+        <div class="hub-email-sender">${esc(m.from)}</div>
+        <div class="hub-email-subj">${esc(m.subject)}</div>
+        <div class="hub-email-snip">${esc(m.snippet)}</div>
       </div>
-      <div style="font-size:10px;color:var(--text-subtle);flex-shrink:0;padding-top:2px">${dateStr}</div>
-    </div>`;
+      <div style="font-size:10px;color:var(--text-subtle);flex-shrink:0;padding-top:2px;white-space:nowrap">${m.date}</div>
+    </div>`).join('');
+    return`<div class="mail-date-group">${g}</div>${rows}`;
   }).join('');
+  listEl.innerHTML=html||'<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">No messages.</div>';
+  const unreadCount=source.filter(m=>m.unread).length;
+  const badge=document.getElementById('inbox-unread-badge');
+  if(badge){badge.textContent=unreadCount;badge.style.display=unreadCount?'':'none'}
 }
 
-async function openGmailThread(threadId){
-  const row=document.querySelector(`[data-thread="${threadId}"]`);
-  const subject=row?.dataset?.subject||'Email';
-  const from=row?.dataset?.from||'';
-  const date=row?.dataset?.date||'';
+async function openMailThread(id){
+  const source=liveMailData.length?liveMailData:MOCK_MAIL;
+  const m=source.find(x=>x.id===id);
+  if(!m)return;
+  selectedMailId=id;
+  m.unread=false;
+  renderMailList();
   const detail=document.getElementById('email-detail-panel');
   const compose=document.getElementById('compose-panel');
   const def=document.getElementById('gmail-right-default');
@@ -3405,35 +3461,96 @@ async function openGmailThread(threadId){
   const subEl=document.getElementById('detail-subject');
   const fromEl=document.getElementById('detail-from');
   const dateEl=document.getElementById('detail-date');
-  if(subEl)subEl.textContent=subject;
-  if(fromEl)fromEl.textContent=from;
-  if(dateEl)dateEl.textContent=date;
-  if(row)row.classList.remove('unread');
-  wsCurrentThread={threadId,subject,from,date};
+  const avEl=document.getElementById('detail-avatar');
+  if(subEl)subEl.textContent=m.subject;
+  if(fromEl)fromEl.textContent=`${m.from} <${m.email}>`;
+  if(dateEl)dateEl.textContent=`${m.group} at ${m.date}`;
+  if(avEl){avEl.textContent=m.initials;avEl.style.background=m.color;avEl.style.color='#fff'}
+  wsCurrentThread={id,subject:m.subject,from:m.email,date:m.date};
   const frame=document.getElementById('detail-body-frame');
-  if(frame)frame.srcdoc='<html><body style="background:#1a1a1a;color:#888;font-family:sans-serif;padding:20px;font-size:13px">Loading…</body></html>';
-  try{
-    const thread=wsThreadCache.find(t=>t.id===threadId)||(await gapi(`${GMAIL}/threads/${threadId}?format=full`));
-    const msg=thread.messages?.[thread.messages.length-1];
-    const findPart=(parts,mime)=>{
-      if(!parts)return null;
-      for(const p of parts){
-        if(p.mimeType===mime&&p.body?.data)return p.body.data;
-        if(p.parts){const r=findPart(p.parts,mime);if(r)return r;}
-      }
-      return null;
-    };
-    const decode=b64=>{try{return atob(b64.replace(/-/g,'+').replace(/_/g,'/'))}catch(e){return''}};
-    const htmlData=findPart(msg?.payload?.parts,'text/html')||(msg?.payload?.mimeType==='text/html'?msg?.payload?.body?.data:null);
-    const textData=findPart(msg?.payload?.parts,'text/plain')||(msg?.payload?.mimeType==='text/plain'?msg?.payload?.body?.data:null);
-    let bodyHtml='';
-    if(htmlData){bodyHtml=decode(htmlData)}
-    else if(textData){bodyHtml=`<pre style="white-space:pre-wrap;word-wrap:break-word;font-family:inherit">${decode(textData).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`}
-    else{bodyHtml='<p style="color:#888">(Empty message)</p>'}
-    if(frame)frame.srcdoc=`<html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#111;background:#fff;padding:20px;font-size:14px;line-height:1.6;margin:0}img{max-width:100%}a{color:#1a73e8}</style></head><body>${bodyHtml}</body></html>`;
-  }catch(e){
-    if(frame)frame.srcdoc=`<html><body style="background:#1a1a1a;color:#e05252;padding:20px;font-family:sans-serif;font-size:13px">Error: ${e.message}</body></html>`;
+  if(m.body!==null){
+    // Mock email — body is plain text
+    if(frame)frame.srcdoc=`<html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'DM Sans',sans-serif;color:#d0cdc8;background:#181818;padding:22px 24px;font-size:14px;line-height:1.75;margin:0;word-wrap:break-word}strong{color:#e8e5e0}a{color:#C9A84C}</style></head><body>${m.body.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</body></html>`;
+  }else{
+    // Real email — fetch full thread body from Gmail API
+    if(frame)frame.srcdoc='<html><body style="background:#181818;color:#888;font-family:sans-serif;padding:20px;font-size:13px">Loading…</body></html>';
+    try{
+      const thread=await gapi(`${GMAIL}/threads/${m._threadId}?format=full`);
+      const msg=thread.messages?.[thread.messages.length-1];
+      const findPart=(parts,mime)=>{if(!parts)return null;for(const p of parts){if(p.mimeType===mime&&p.body?.data)return p.body.data;if(p.parts){const r=findPart(p.parts,mime);if(r)return r;}}return null};
+      const decode=b64=>{try{return atob(b64.replace(/-/g,'+').replace(/_/g,'/'))}catch(e){return''}};
+      const htmlData=findPart(msg?.payload?.parts,'text/html')||(msg?.payload?.mimeType==='text/html'?msg?.payload?.body?.data:null);
+      const textData=findPart(msg?.payload?.parts,'text/plain')||(msg?.payload?.mimeType==='text/plain'?msg?.payload?.body?.data:null);
+      let bodyHtml='';
+      if(htmlData)bodyHtml=decode(htmlData);
+      else if(textData)bodyHtml=`<pre style="white-space:pre-wrap;word-wrap:break-word;font-family:inherit">${decode(textData).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+      else bodyHtml='<p style="color:#888">(Empty message)</p>';
+      if(frame)frame.srcdoc=`<html><head><style>body{font-family:-apple-system,BlinkMacSystemFont,'DM Sans',sans-serif;color:#d0cdc8;background:#181818;padding:22px 24px;font-size:14px;line-height:1.75;margin:0;word-wrap:break-word}strong{color:#e8e5e0}a{color:#C9A84C}img{max-width:100%}</style></head><body>${bodyHtml}</body></html>`;
+    }catch(e){
+      if(frame)frame.srcdoc=`<html><body style="background:#181818;color:#e05252;padding:20px;font-family:sans-serif;font-size:13px">Error loading email: ${esc(e.message)}</body></html>`;
+    }
   }
+}
+
+function forwardEmail(){
+  if(!wsCurrentThread)return;
+  showCompose('','Fwd: '+wsCurrentThread.subject,'','Forward');
+}
+
+async function loadRealGmail(){
+  const listEl=document.getElementById('gmail-email-list');
+  if(!listEl)return;
+  listEl.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Loading Gmail…</div>';
+  try{
+    const label=wsCurrentMailLabel||'INBOX';
+    const data=await gapi(`${GMAIL}/threads?maxResults=20&labelIds=${label}&fields=threads(id,snippet)`);
+    if(!data.threads?.length){liveMailData=[];renderMailList();return}
+    const threads=await Promise.all(data.threads.slice(0,20).map(t=>gapi(`${GMAIL}/threads/${t.id}?format=metadata&metadataHeaders=From,Subject,Date`)));
+    const today=new Date();
+    const yesterday=new Date(today);yesterday.setDate(today.getDate()-1);
+    liveMailData=threads.map(t=>{
+      const msg=t.messages?.[t.messages.length-1];
+      const hdr=msg?.payload?.headers||[];
+      const from=hdr.find(h=>h.name==='From')?.value||'Unknown';
+      const subject=hdr.find(h=>h.name==='Subject')?.value||'(no subject)';
+      const dateRaw=hdr.find(h=>h.name==='Date')?.value;
+      const unread=t.messages?.some(m=>m.labelIds?.includes('UNREAD'))||false;
+      const name=from.replace(/<[^>]+>/,'').trim().replace(/^"|"$/g,'')||from;
+      const emailAddr=(from.match(/<([^>]+)>/)||[])[1]||from;
+      const d=dateRaw?new Date(dateRaw):new Date();
+      const group=d.toDateString()===today.toDateString()?'Today':d.toDateString()===yesterday.toDateString()?'Yesterday':d.toLocaleDateString('en-IE',{day:'numeric',month:'short'});
+      const time=d.toLocaleTimeString('en-IE',{hour:'2-digit',minute:'2-digit'});
+      return{id:t.id,group,from:name,initials:(name.split(' ').filter(Boolean).map(w=>w[0]).join('').toUpperCase()||'?').slice(0,2),email:emailAddr,subject,snippet:t.snippet||'',date:time,unread,color:stringToColor(name),body:null,_threadId:t.id};
+    });
+    const unread=liveMailData.filter(m=>m.unread).length;
+    const wsBadge=document.getElementById('ws-gmail-badge');
+    if(wsBadge){wsBadge.textContent=unread;wsBadge.style.display=unread?'':'none'}
+    renderMailList();
+  }catch(e){
+    if(e.code==='NOT_CONNECTED'||e.code==='TOKEN_EXPIRED'){
+      liveMailData=[];renderMailList();updateHubConnDot();
+    }else{
+      if(listEl)listEl.innerHTML=`<div style="padding:20px;color:var(--red);font-size:13px">Error loading Gmail: ${esc(e.message)}</div>`;
+    }
+  }
+}
+
+function openWsPanel(panel,el){
+  document.querySelectorAll('.ws-app-btn').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.ws-panel').forEach(p=>p.classList.remove('active'));
+  const target=document.getElementById('ws-'+panel);
+  if(target)target.classList.add('active');
+  wsCurrentPanel=panel;
+  localStorage.setItem('b360_hub_panel',panel);
+  if(panel==='gmail'){
+    const tok=storage.getItem(GTOK_KEY);const exp=parseInt(storage.getItem(GTOK_EXP_KEY)||'0');
+    if(tok&&Date.now()<exp)loadRealGmail();else renderMailList();
+  }
+  else if(panel==='drive')loadDrivePanel();
+  else if(panel==='docs')loadDocsPanel();
+  else if(panel==='sheets')loadSheetsPanel();
+  else if(panel==='calendar')loadCalendarPanel();
 }
 
 // ── DRIVE ──
@@ -3614,41 +3731,31 @@ function hubMailFilter(label,el){
   document.querySelectorAll('[id^="mail-nav-"]').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
   wsCurrentMailLabel=label;
-  loadGmailPanel();
+  const tok=storage.getItem(GTOK_KEY);const exp=parseInt(storage.getItem(GTOK_EXP_KEY)||'0');
+  if(tok&&Date.now()<exp)loadRealGmail();else renderMailList();
 }
 
 function hubTabSwitch(tab,el){
   document.querySelectorAll('.hub-tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
   wsCurrentTabFilter=tab;
-  document.querySelectorAll('#gmail-rows .hub-email-row').forEach(r=>{
-    if(tab==='all')r.style.display='';
-    else if(tab==='unread')r.style.display=r.classList.contains('unread')?'':'none';
-    else r.style.display='none';
-  });
+  renderMailList();
 }
 
 function filterGmailRows(query){
   const q=(query||'').toLowerCase().trim();
-  document.querySelectorAll('#gmail-rows .hub-email-row').forEach(r=>{
-    const subject=(r.dataset.subject||'').toLowerCase();
-    const from=(r.dataset.from||'').toLowerCase();
-    r.style.display=(!q||subject.includes(q)||from.includes(q))?'':'none';
+  document.querySelectorAll('#gmail-email-list .hub-email-row').forEach(r=>{
+    const text=r.textContent.toLowerCase();
+    r.style.display=(!q||text.includes(q))?'':'none';
   });
 }
 
 async function aiSummariseInbox(){
   const k=groqKey();
   if(!k){showToast('No Groq Key','Add key in Settings → AI Config','error');return}
-  if(!wsThreadCache.length){showToast('No Emails','Load your inbox first','info');return}
   showToast('Summarising…','AI is reading your inbox…','info');
-  const summaries=wsThreadCache.slice(0,10).map(t=>{
-    const msg=t.messages?.[t.messages.length-1];
-    const hdr=msg?.payload?.headers||[];
-    const from=hdr.find(h=>h.name==='From')?.value||'?';
-    const subject=hdr.find(h=>h.name==='Subject')?.value||'(no subject)';
-    return`• ${from} — ${subject}`;
-  }).join('\n');
+  const mailSource=liveMailData.length?liveMailData:MOCK_MAIL;
+  const summaries=mailSource.map(m=>`• ${m.from} — ${m.subject}`).join('\n');
   try{
     const r=await fetch(GROQ_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+k},body:JSON.stringify({model:groqModel(),max_tokens:300,messages:[{role:'user',content:`Summarise these emails for ${gs().owner||'Michael'} at 360 Booth Ireland. Give 3 clear action points:\n${summaries}`}]})});
     const data=await r.json();
@@ -4061,9 +4168,11 @@ function init(){
   updateSbStats();
   // Populate Security tab with logged-in user email
   const secEmail=document.getElementById('sec-user-email');
-  if(secEmail)secEmail.textContent=authEmail()||DEMO_AUTH_EMAIL;
+  if(secEmail)secEmail.textContent=storage.getItem(LOCAL_CUSTOM_EMAIL)||authEmail()||DEMO_AUTH_EMAIL;
   const secStatus=document.getElementById('sec-auth-status');
-  if(secStatus)secStatus.textContent=authSession?.user?.email?'✓ Authenticated via Google Workspace':'✓ Authenticated via email/password';
+  if(secStatus)secStatus.textContent='✓ Authenticated via email/password';
+  const secCredsStatus=document.getElementById('sec-creds-status');
+  if(secCredsStatus)secCredsStatus.textContent=storage.getItem(LOCAL_CREDS_CHANGED)?'Your custom credentials are active — click "Change Credentials" to update.':'Using default credentials — click "Change Credentials" to secure your dashboard.';
   // Restore last active page
   const lastPage=localStorage.getItem('b360_last_page')||'overview';
   if(lastPage!=='overview')navTo(lastPage,null);
