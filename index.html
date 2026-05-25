@@ -2334,8 +2334,8 @@ function navTo(page,el){
   if(sbEl)sbEl.classList.add('active');
   currentPage=page;
   localStorage.setItem('b360_last_page',page);  // persist current page
-  const titles={overview:'Overview',bookings:'Bookings',enquiries:'Pipeline',clients:'Clients',invoices:'Financials',leadgen:'Lead Gen',ads:'Ads Manager',website:'Website & SEO',ai:'AI Insights',hub:'Hub',settings:'Settings'};
-  document.getElementById('tb-page-title').textContent=titles[page]||page;
+  const titles={overview:'Overview',bookings:'Bookings',enquiries:'Pipeline',invoices:'Financials',leadgen:'Lead Gen',website:'Website & SEO',ai:'AI Insights',hub:'Hub',settings:'Settings'};
+  const tbTitle=document.getElementById('tb-page-title');if(tbTitle)tbTitle.textContent=titles[page]||page;
   if(page==='overview')renderOverview();
   else if(page==='bookings')renderBookings();
   else if(page==='enquiries')renderEnquiries();
@@ -2350,22 +2350,22 @@ function navTo(page,el){
     const navEl=document.getElementById('ws-nav-'+lastPanel);
     openWsPanel(lastPanel,navEl);
   }
-  updateSbStats();
-  document.getElementById('notif-panel').style.display='none';
+  try{updateSbStats();}catch(e){console.error('updateSbStats in navTo',e)}
+  const npEl=document.getElementById('notif-panel');if(npEl)npEl.style.display='none';
 }
 
 function updateSbStats(){
   const m=getMetrics(),s=gs();
-  document.getElementById('sb-rev-val').textContent=fmtC(m.moRev);
-  document.getElementById('sb-bk-count').textContent=m.totalBk+' booking'+(m.totalBk===1?'':'s');
-  if(s.bizname)document.getElementById('sb-biz-name').textContent=s.bizname;
+  const rvEl=document.getElementById('sb-rev-val');if(rvEl)rvEl.textContent=fmtC(m.moRev);
+  const bkEl=document.getElementById('sb-bk-count');if(bkEl)bkEl.textContent=m.totalBk+' booking'+(m.totalBk===1?'':'s');
+  if(s.bizname){const bnEl=document.getElementById('sb-biz-name');if(bnEl)bnEl.textContent=s.bizname;}
   const newEnq=DB.get('enquiries').filter(e=>e.stage==='new').length;
   const bdgE=document.getElementById('bdg-enquiries');
   if(bdgE){bdgE.textContent=newEnq;bdgE.style.display=newEnq?'':'none'}
   const overdueInv=DB.get('invoices').filter(i=>i.status==='Overdue').length;
   const bdgI=document.getElementById('bdg-invoices');
   if(bdgI){bdgI.textContent=overdueInv;bdgI.style.display=overdueInv?'':'none'}
-  document.getElementById('bell-badge').textContent=DB.get('activity').length>0?Math.min(9,DB.get('activity').filter(a=>Date.now()-a.time<86400000).length)||'':'';
+  const bbEl=document.getElementById('bell-badge');if(bbEl)bbEl.textContent=DB.get('activity').length>0?Math.min(9,DB.get('activity').filter(a=>Date.now()-a.time<86400000).length)||'':'';
 }
 
 function sBdg(s){
@@ -4005,38 +4005,56 @@ function saveGroqFromInt(){
 // INIT
 // ══════════════════════════════════
 function init(){
-  if(sbColl)document.getElementById('sidebar').classList.add('collapsed');
-  const s=gs();
-  if(s.bizname)document.getElementById('sb-biz-name').textContent=s.bizname;
-  updateGoogleIntegrationStatus();
-  loadSettings();
-  renderOverview();renderBookings();renderEnquiries();renderInvoices();renderLeadGen();loadSiteStats();
-  updateSbStats();
-  // Populate Security tab with logged-in user email
-  const secEmail=document.getElementById('sec-user-email');
-  if(secEmail)secEmail.textContent=storage.getItem(LOCAL_CUSTOM_EMAIL)||authEmail()||DEMO_AUTH_EMAIL;
-  const secStatus=document.getElementById('sec-auth-status');
-  if(secStatus)secStatus.textContent='✓ Authenticated via email/password';
-  const secCredsStatus=document.getElementById('sec-creds-status');
-  if(secCredsStatus)secCredsStatus.textContent=storage.getItem(LOCAL_CREDS_CHANGED)?'Your custom credentials are active — click "Change Credentials" to update.':'Using default credentials — click "Change Credentials" to secure your dashboard.';
-  // Restore last active page
-  const validPages=['overview','bookings','enquiries','invoices','leadgen','website','ai','hub','settings'];
-  const storedPage=localStorage.getItem('b360_last_page')||'overview';
-  const lastPage=validPages.includes(storedPage)?storedPage:'overview';
-  if(lastPage!=='overview')navTo(lastPage,null);
-  document.querySelectorAll('.sb-item').forEach(item=>{
-    item.addEventListener('mouseenter',()=>{if(document.getElementById('sidebar').classList.contains('collapsed')){const island=document.getElementById('sb-island');island.textContent=item.querySelector('.sb-label')?.textContent?.trim()||'';island.style.top=(item.getBoundingClientRect().top+8)+'px';island.classList.add('visible')}});
-    item.addEventListener('mouseleave',()=>document.getElementById('sb-island').classList.remove('visible'));
-  });
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();document.getElementById('notif-panel').style.display='none'}});
-  // Start notification polling
-  startNotifPolling();
+  try{
+    if(sbColl){const sb=document.getElementById('sidebar');if(sb)sb.classList.add('collapsed');}
+    const s=gs();
+    if(s.bizname){const bnEl=document.getElementById('sb-biz-name');if(bnEl)bnEl.textContent=s.bizname;}
+    updateGoogleIntegrationStatus();
+    loadSettings();
+    try{renderOverview();}catch(e){console.error('renderOverview',e)}
+    try{renderBookings();}catch(e){console.error('renderBookings',e)}
+    try{renderEnquiries();}catch(e){console.error('renderEnquiries',e)}
+    try{renderInvoices();}catch(e){console.error('renderInvoices',e)}
+    try{renderLeadGen();}catch(e){console.error('renderLeadGen',e)}
+    try{loadSiteStats();}catch(e){console.error('loadSiteStats',e)}
+    try{updateSbStats();}catch(e){console.error('updateSbStats',e)}
+    // Populate Security tab with logged-in user email
+    const secEmail=document.getElementById('sec-user-email');
+    if(secEmail)secEmail.textContent=storage.getItem(LOCAL_CUSTOM_EMAIL)||authEmail()||DEMO_AUTH_EMAIL;
+    const secStatus=document.getElementById('sec-auth-status');
+    if(secStatus)secStatus.textContent='✓ Authenticated via email/password';
+    const secCredsStatus=document.getElementById('sec-creds-status');
+    if(secCredsStatus)secCredsStatus.textContent=storage.getItem(LOCAL_CREDS_CHANGED)?'Your custom credentials are active — click "Change Credentials" to update.':'Using default credentials — click "Change Credentials" to secure your dashboard.';
+    // Restore last active page
+    const validPages=['overview','bookings','enquiries','invoices','leadgen','website','ai','hub','settings'];
+    const storedPage=localStorage.getItem('b360_last_page')||'overview';
+    const lastPage=validPages.includes(storedPage)?storedPage:'overview';
+    if(lastPage!=='overview')navTo(lastPage,null);
+    document.querySelectorAll('.sb-item').forEach(item=>{
+      item.addEventListener('mouseenter',()=>{const sbEl=document.getElementById('sidebar');if(sbEl&&sbEl.classList.contains('collapsed')){const island=document.getElementById('sb-island');if(island){island.textContent=item.querySelector('.sb-label')?.textContent?.trim()||'';island.style.top=(item.getBoundingClientRect().top+8)+'px';island.classList.add('visible')}}});
+      item.addEventListener('mouseleave',()=>{const island=document.getElementById('sb-island');if(island)island.classList.remove('visible')});
+    });
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();const np=document.getElementById('notif-panel');if(np)np.style.display='none'}});
+    startNotifPolling();
+  }catch(e){
+    console.error('init crash:',e);
+    // Ensure something is visible even if init partially failed
+    try{navTo('overview',null);}catch(_){}
+  }
 }
 
 // ══════════════════════════════════
 // BOOT
 // ══════════════════════════════════
 window.addEventListener('DOMContentLoaded',()=>{
+  // Safety net: if neither app nor signin is visible after 5s, force show signin
+  setTimeout(()=>{
+    const app=document.getElementById('app');
+    const signin=document.getElementById('signin');
+    if(app&&signin&&!app.classList.contains('visible')&&!signin.classList.contains('visible')){
+      signin.classList.add('visible');
+    }
+  },5000);
   setTimeout(()=>{
     document.getElementById('preloader').classList.add('fade-out');
     setTimeout(()=>{document.getElementById('preloader').style.display='none'},300);
