@@ -2339,10 +2339,8 @@ function navTo(page,el){
   if(page==='overview')renderOverview();
   else if(page==='bookings')renderBookings();
   else if(page==='enquiries')renderEnquiries();
-  else if(page==='clients')renderClients();
   else if(page==='invoices')renderInvoices();
   else if(page==='leadgen')renderLeadGen();
-  else if(page==='ads')loadAdsStats();
   else if(page==='website')loadSiteStats();
   else if(page==='settings')loadSettings();
   else if(page==='ai')initAIPage();
@@ -4012,7 +4010,7 @@ function init(){
   if(s.bizname)document.getElementById('sb-biz-name').textContent=s.bizname;
   updateGoogleIntegrationStatus();
   loadSettings();
-  renderOverview();renderBookings();renderEnquiries();renderClients();renderInvoices();renderLeadGen();loadAdsStats();loadSiteStats();
+  renderOverview();renderBookings();renderEnquiries();renderInvoices();renderLeadGen();loadSiteStats();
   updateSbStats();
   // Populate Security tab with logged-in user email
   const secEmail=document.getElementById('sec-user-email');
