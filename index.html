@@ -1190,7 +1190,21 @@ select.st-input option{background:#1a1a1a}
             <div class="page-header-title">Lead Gen</div>
             <div class="page-header-sub">Enquiries from Instagram, website, referrals</div>
           </div>
-          <button class="btn-p" onclick="openModal('lead')">+ Add Lead</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-sm" id="scan-btn" onclick="scanEvents()" title="Scan Eventbrite, Ticketmaster & more for upcoming Irish events">&#x1F50D; Scan Events</button>
+            <button class="btn-p" onclick="openModal('lead')">+ Add Lead</button>
+          </div>
+        </div>
+        <!-- Scan overlay -->
+        <div id="scan-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9000;display:none;align-items:center;justify-content:center">
+          <div style="background:#161616;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:32px 40px;min-width:340px;text-align:center">
+            <div style="font-size:28px;margin-bottom:12px">&#x1F50D;</div>
+            <div style="font-size:15px;font-weight:600;color:#f0f0f0;margin-bottom:8px">Scanning for Events</div>
+            <div id="scan-status" style="font-size:12.5px;color:#6B6560;margin-bottom:20px">Searching Eventbrite, Ticketmaster Ireland&hellip;</div>
+            <div style="height:4px;background:#1C1C1C;border-radius:4px;overflow:hidden">
+              <div id="scan-progress-bar" style="height:100%;width:0%;background:#C9A84C;border-radius:4px;transition:width .4s ease"></div>
+            </div>
+          </div>
         </div>
         <div class="kpi-row">
           <div class="kpi"><div class="shimmer-line"></div>
@@ -1231,6 +1245,73 @@ select.st-input option{background:#1a1a1a}
           <div class="ig-stat"><div class="shimmer-line"></div><div class="ig-stat-label">Profile Visits</div><div class="ig-stat-val mono" id="ig-visits">—</div><div class="ig-stat-sub">This month</div></div>
           <div class="ig-stat"><div class="shimmer-line"></div><div class="ig-stat-label">DM Enquiries</div><div class="ig-stat-val mono" id="ig-dms">—</div><div class="ig-stat-sub">This month</div></div>
         </div>
+
+        <!-- ═══ EVENT SCANNER CARD ═══ -->
+        <div class="card" id="event-scanner-card">
+          <div class="shimmer-line"></div>
+          <div class="card-header" style="margin-bottom:16px">
+            <div>
+              <div class="card-title">&#x1F50D; Event Scanner</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="scanner-last-run-label">Find upcoming Irish events &amp; extract organiser contacts</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span id="scanner-active-badge" style="display:none;background:rgba(76,175,125,.15);color:#4CAF7D;border:1px solid rgba(76,175,125,.3);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">SCHEDULED</span>
+            </div>
+          </div>
+
+          <!-- Pending leads banner -->
+          <div id="pending-leads-banner" style="display:none;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:8px;height:8px;background:#C9A84C;border-radius:50%;flex-shrink:0"></div>
+              <span id="pending-leads-text" style="font-size:13px;color:#f0f0f0;font-weight:500">New event leads ready to import</span>
+            </div>
+            <button class="btn-p" style="font-size:11px;padding:5px 14px" onclick="importPendingLeads()">Import All</button>
+          </div>
+
+          <!-- Schedule config -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <label class="modal-field-label">Frequency</label>
+              <select class="modal-select" id="scan-frequency" onchange="onFrequencyChange()">
+                <option value="manual">Manual only</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="biannual">Every 6 Months</option>
+              </select>
+            </div>
+            <div>
+              <label class="modal-field-label">Next scan date &amp; time</label>
+              <input class="modal-input" type="datetime-local" id="scan-next-run" style="color-scheme:dark">
+            </div>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="modal-field-label">Custom search terms <span style="color:var(--text-muted);font-weight:400">(optional — comma separated)</span></label>
+            <input class="modal-input" type="text" id="scan-custom-terms" placeholder="e.g. gala dinner Galway, tech conference Cork, charity ball Dublin">
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:4px">
+            <button class="btn-sm" id="save-schedule-btn" onclick="saveSchedule()">&#x1F4BE; Save Schedule</button>
+            <button class="btn-p" id="scan-now-btn" onclick="confirmScan()" style="font-size:12.5px">&#x25B6; Scan Now</button>
+          </div>
+        </div>
+
+        <!-- Scan confirmation modal -->
+        <div id="scan-confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9001;align-items:center;justify-content:center">
+          <div style="background:#161616;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:32px;max-width:400px;width:90%">
+            <div style="font-size:22px;margin-bottom:10px;text-align:center">&#x1F50D;</div>
+            <div style="font-size:16px;font-weight:700;color:#f0f0f0;margin-bottom:6px;text-align:center">Ready to Scan</div>
+            <div style="font-size:12.5px;color:var(--text-muted);text-align:center;margin-bottom:20px">Searching Irish event sites for upcoming events and extracting organiser contacts. Takes ~30–60 seconds.</div>
+            <div style="background:#0F0F0F;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12.5px;line-height:1.8">
+              <div><span style="color:var(--text-muted)">Sites:</span> <span style="color:#f0f0f0">Eventbrite, Ticketmaster, Meetup</span></div>
+              <div id="scan-confirm-focus"><span style="color:var(--text-muted)">Focus:</span> <span style="color:#f0f0f0">All event types</span></div>
+              <div id="scan-confirm-custom" style="display:none"><span style="color:var(--text-muted)">Custom:</span> <span id="scan-confirm-custom-val" style="color:#C9A84C"></span></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sm" onclick="closeScanConfirm()" style="flex:1">Cancel</button>
+              <button class="btn-p" onclick="runScan()" style="flex:1">&#x25B6; Run Scan</button>
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="shimmer-line"></div>
           <div class="card-header"><div class="card-title">Lead Register</div><span id="lead-count" style="font-size:12px;color:var(--text-muted)">0 leads</span></div>
@@ -2369,7 +2450,7 @@ function updateSbStats(){
 }
 
 function sBdg(s){
-  const m={'Confirmed':'pill pill-green','Dep. Paid':'pill pill-blue','Completed':'pill pill-neu','Cancelled':'pill pill-red','Enquiry':'pill pill-gold','Awaiting Payment':'pill pill-gold','Deposit Received':'pill pill-blue','Paid':'pill pill-green','Overdue':'pill pill-red','new':'pill pill-gold','viewing':'pill pill-blue','offer':'pill pill-gold','confirmed':'pill pill-green','Wedding':'pill pill-gold','Corporate':'pill pill-blue','Birthday':'pill pill-green','Party':'pill pill-purple','Other':'pill pill-neu','360 Booth':'pill pill-gold','Selfie Mirror':'pill pill-blue','Photo Booth':'pill pill-green','Magazine Booth':'pill pill-purple','Vintage Booth':'pill pill-neu'};
+  const m={'Confirmed':'pill pill-green','Dep. Paid':'pill pill-blue','Completed':'pill pill-neu','Cancelled':'pill pill-red','Enquiry':'pill pill-gold','Awaiting Payment':'pill pill-gold','Deposit Received':'pill pill-blue','Paid':'pill pill-green','Overdue':'pill pill-red','new':'pill pill-gold','viewing':'pill pill-blue','offer':'pill pill-gold','confirmed':'pill pill-green','Wedding':'pill pill-gold','Corporate':'pill pill-blue','Birthday':'pill pill-green','Party':'pill pill-purple','Other':'pill pill-neu','360 Booth':'pill pill-gold','Selfie Mirror':'pill pill-blue','Photo Booth':'pill pill-green','Magazine Booth':'pill pill-purple','Vintage Booth':'pill pill-neu','Event Scrape':'pill pill-purple'};
   return m[s]||'pill pill-neu';
 }
 function sBadge(s,size=''){return`<span class="${sBdg(s)} ${size}">${esc(s||'—')}</span>`}
@@ -2642,6 +2723,8 @@ function createInvFromBk(id){const b=DB.get('bookings').find(x=>x.id===id);if(b)
 // LEAD GEN
 // ══════════════════════════════════
 function renderLeadGen(){
+  loadScanConfig();
+  loadPendingEventLeads();
   const leads=DB.get('leads'),s=gs();
   const now=new Date(),mo=now.getMonth(),yr=now.getFullYear();
   const moLeads=leads.filter(l=>{const d=new Date(l.date||l.createdAt||0);return d.getMonth()===mo&&d.getFullYear()===yr});
@@ -2675,6 +2758,231 @@ function renderLeadGen(){
       <td><button class="btn-sm" style="font-size:11px" onclick="openModal('lead','${l.id}')">View</button></td>
     </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">No leads yet. Add your first lead.</td></tr>';
 }
+
+// ══════════════════════════════════════════════════════════════
+// EVENT LEAD SCANNER — Schedule, confirm, run, import
+// ══════════════════════════════════════════════════════════════
+
+// ── Load saved schedule config into the UI ──────────────────
+function loadScanConfig(){
+  const cfg=JSON.parse(localStorage.getItem('b360_scan_config')||'{}');
+  const freqEl=document.getElementById('scan-frequency');
+  const nextEl=document.getElementById('scan-next-run');
+  const termsEl=document.getElementById('scan-custom-terms');
+  const lastLabel=document.getElementById('scanner-last-run-label');
+  const activeBadge=document.getElementById('scanner-active-badge');
+  if(freqEl&&cfg.schedule_type)freqEl.value=cfg.schedule_type;
+  if(nextEl&&cfg.next_run_at){
+    // datetime-local expects YYYY-MM-DDTHH:MM
+    const d=new Date(cfg.next_run_at);
+    const pad=n=>String(n).padStart(2,'0');
+    nextEl.value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  if(termsEl&&cfg.custom_terms)termsEl.value=cfg.custom_terms;
+  if(lastLabel&&cfg.last_run_at){
+    const ago=fmtSD(cfg.last_run_at);
+    lastLabel.textContent=`Last scan: ${ago} — ${cfg.last_leads_found||0} leads found`;
+  }
+  if(activeBadge)activeBadge.style.display=(cfg.schedule_type&&cfg.schedule_type!=='manual')?'inline-block':'none';
+  // Check if a scheduled scan is due right now
+  if(cfg.next_run_at&&cfg.schedule_type!=='manual'){
+    const next=new Date(cfg.next_run_at);
+    if(next<=new Date()){
+      setTimeout(()=>runScan(true),3000); // silent auto-run after 3s delay
+    }
+  }
+}
+
+// ── Load pending event leads from Supabase (written by cron) ────────────────
+async function loadPendingEventLeads(){
+  if(!supabaseClient||!authSession)return;
+  try{
+    const{data,error}=await supabaseClient.from('event_leads').select('*').eq('imported',false).order('scan_run_at',{ascending:false});
+    if(error||!data?.length)return;
+    const banner=document.getElementById('pending-leads-banner');
+    const txt=document.getElementById('pending-leads-text');
+    if(banner&&data.length){
+      banner.style.display='flex';
+      if(txt)txt.textContent=`${data.length} new event lead${data.length===1?'':'s'} ready to import (from scheduled scan)`;
+      banner._pendingLeads=data;
+    }
+  }catch(_){}
+}
+
+// ── Import pending leads (from Supabase) into b360_leads ────────────────────
+async function importPendingLeads(){
+  const banner=document.getElementById('pending-leads-banner');
+  const pending=banner?._pendingLeads||[];
+  if(!pending.length)return;
+  const existing=DB.get('leads');
+  const existingEmails=new Set(existing.map(l=>(l.email||'').toLowerCase()).filter(Boolean));
+  const existingPhones=new Set(existing.map(l=>(l.phone||'').replace(/\s/g,'')).filter(Boolean));
+  const newLeads=pending.filter(l=>{
+    if(l.email&&existingEmails.has(l.email.toLowerCase()))return false;
+    if(l.phone&&existingPhones.has(l.phone.replace(/\s/g,'')))return false;
+    return true;
+  }).map(l=>({id:l.id,name:l.name,email:l.email||'',phone:l.phone||'',source:l.source||'Event Scrape',service:l.service||'360 Booth',status:'New',date:l.date||new Date().toISOString().slice(0,10),notes:l.notes||'',createdAt:Date.now()}));
+  if(!newLeads.length){showToast('Info','All leads already exist in your register','info');return}
+  DB.set('leads',[...existing,...newLeads]);
+  logAct(`Imported ${newLeads.length} event lead${newLeads.length===1?'':'s'} from scheduled scan`,'enquiry');
+  // Mark as imported in Supabase
+  if(supabaseClient&&authSession){
+    const ids=pending.map(l=>l.id);
+    supabaseClient.from('event_leads').update({imported:true}).in('id',ids).then(()=>{});
+  }
+  if(banner)banner.style.display='none';
+  renderLeadGen();updateSbStats();
+  showToast('Imported',''+newLeads.length+' new event lead'+(newLeads.length===1?'':'s')+' added to Lead Register','success');
+}
+
+// ── Frequency change handler ─────────────────────────────────────────────────
+function onFrequencyChange(){
+  const freq=document.getElementById('scan-frequency')?.value;
+  const nextEl=document.getElementById('scan-next-run');
+  if(!nextEl||!freq||freq==='manual')return;
+  const d=new Date();
+  if(freq==='weekly')d.setDate(d.getDate()+7);
+  else if(freq==='monthly')d.setMonth(d.getMonth()+1);
+  else if(freq==='biannual')d.setMonth(d.getMonth()+6);
+  d.setHours(9,0,0,0);
+  const pad=n=>String(n).padStart(2,'0');
+  nextEl.value=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// ── Save schedule to localStorage + Supabase scan_config ────────────────────
+async function saveSchedule(){
+  const freq=document.getElementById('scan-frequency')?.value||'manual';
+  const nextRaw=document.getElementById('scan-next-run')?.value;
+  const terms=document.getElementById('scan-custom-terms')?.value.trim()||'';
+  const cfg={
+    schedule_type:freq,
+    frequency_label:{'manual':'Manual only','weekly':'Weekly','monthly':'Monthly','biannual':'Every 6 Months'}[freq]||freq,
+    next_run_at:nextRaw?new Date(nextRaw).toISOString():null,
+    custom_terms:terms,
+    is_active:freq!=='manual',
+  };
+  localStorage.setItem('b360_scan_config',JSON.stringify({...cfg,last_run_at:JSON.parse(localStorage.getItem('b360_scan_config')||'{}').last_run_at||null,last_leads_found:JSON.parse(localStorage.getItem('b360_scan_config')||'{}').last_leads_found||0}));
+  // Save to Supabase for cron access
+  if(supabaseClient&&authSession){
+    supabaseClient.from('scan_config').upsert({id:'main',...cfg,updated_at:new Date().toISOString()}).then(()=>{});
+  }
+  const badge=document.getElementById('scanner-active-badge');
+  if(badge)badge.style.display=freq!=='manual'?'inline-block':'none';
+  showToast('Schedule Saved',freq==='manual'?'Manual-only mode — use Scan Now when ready':`Next scan: ${nextRaw?new Date(nextRaw).toLocaleDateString('en-IE'):'—'}`,'success');
+}
+
+// ── Show confirmation modal before running scan ─────────────────────────────
+function confirmScan(){
+  const terms=document.getElementById('scan-custom-terms')?.value.trim()||'';
+  const confirmCustom=document.getElementById('scan-confirm-custom');
+  const confirmCustomVal=document.getElementById('scan-confirm-custom-val');
+  if(terms&&confirmCustom&&confirmCustomVal){
+    confirmCustom.style.display='block';
+    confirmCustomVal.textContent=terms;
+  } else if(confirmCustom){
+    confirmCustom.style.display='none';
+  }
+  const overlay=document.getElementById('scan-confirm-overlay');
+  if(overlay)overlay.style.display='flex';
+}
+
+function closeScanConfirm(){
+  const overlay=document.getElementById('scan-confirm-overlay');
+  if(overlay)overlay.style.display='none';
+}
+
+// ── The actual scan runner ───────────────────────────────────────────────────
+async function runScan(silent=false){
+  closeScanConfirm();
+  const scanOverlay=document.getElementById('scan-overlay');
+  const statusEl=document.getElementById('scan-status');
+  const progressBar=document.getElementById('scan-progress-bar');
+  const nowBtn=document.getElementById('scan-now-btn');
+  const headerBtn=document.getElementById('scan-btn');
+
+  if(!silent){
+    if(scanOverlay)scanOverlay.style.display='flex';
+    if(nowBtn){nowBtn.disabled=true;nowBtn.textContent='Scanning…';}
+    if(headerBtn){headerBtn.disabled=true;headerBtn.textContent='Scanning…';}
+  }
+
+  const steps=[
+    {pct:15,msg:'Searching Eventbrite Ireland…'},
+    {pct:35,msg:'Searching Ticketmaster & Meetup…'},
+    {pct:55,msg:'Extracting event pages…'},
+    {pct:75,msg:'AI extracting organiser contacts…'},
+    {pct:90,msg:'Structuring leads…'},
+  ];
+  let stepIdx=0;
+  const ticker=!silent?setInterval(()=>{
+    if(stepIdx<steps.length){
+      const s=steps[stepIdx++];
+      if(statusEl)statusEl.textContent=s.msg;
+      if(progressBar)progressBar.style.width=s.pct+'%';
+    }
+  },2200):null;
+
+  const customTerms=document.getElementById('scan-custom-terms')?.value.trim()||'';
+  const token=authSession?.access_token||'';
+
+  try{
+    const res=await fetch('/api/scan-leads',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({customTerms}),
+    });
+    if(ticker)clearInterval(ticker);
+    if(!res.ok){
+      const err=await res.json().catch(()=>({error:'Scan failed'}));
+      throw new Error(err.error||'Scan failed');
+    }
+    const data=await res.json();
+    if(progressBar)progressBar.style.width='100%';
+    if(statusEl)statusEl.textContent='Done!';
+
+    // Deduplicate against existing leads
+    const existing=DB.get('leads');
+    const existingEmails=new Set(existing.map(l=>(l.email||'').toLowerCase()).filter(Boolean));
+    const existingPhones=new Set(existing.map(l=>(l.phone||'').replace(/\s/g,'')).filter(Boolean));
+    const newLeads=(data.leads||[]).filter(l=>{
+      if(l.email&&existingEmails.has(l.email.toLowerCase()))return false;
+      if(l.phone&&existingPhones.has(l.phone.replace(/\s/g,'')))return false;
+      return true;
+    });
+
+    // Update last scan metadata
+    const cfg=JSON.parse(localStorage.getItem('b360_scan_config')||'{}');
+    cfg.last_run_at=new Date().toISOString();
+    cfg.last_leads_found=newLeads.length;
+    localStorage.setItem('b360_scan_config',JSON.stringify(cfg));
+    const lastLabel=document.getElementById('scanner-last-run-label');
+    if(lastLabel)lastLabel.textContent=`Last scan: just now — ${newLeads.length} leads found`;
+
+    setTimeout(()=>{
+      if(scanOverlay)scanOverlay.style.display='none';
+      if(nowBtn){nowBtn.disabled=false;nowBtn.textContent='▶ Scan Now';}
+      if(headerBtn){headerBtn.disabled=false;headerBtn.textContent='🔍 Scan Events';}
+      if(!newLeads.length){
+        if(!silent)showToast('Scan Complete',`No new leads (${data.count} scanned, all duplicates)`,'info');
+        return;
+      }
+      DB.set('leads',[...existing,...newLeads]);
+      logAct(`Event scan found ${newLeads.length} new lead${newLeads.length===1?'':'s'}`,'enquiry');
+      renderLeadGen();updateSbStats();
+      if(!silent)showToast('Scan Complete',`Found ${newLeads.length} new event lead${newLeads.length===1?'':'s'} — imported to Lead Register`,'success');
+    },600);
+
+  }catch(err){
+    if(ticker)clearInterval(ticker);
+    if(scanOverlay)scanOverlay.style.display='none';
+    if(nowBtn){nowBtn.disabled=false;nowBtn.textContent='▶ Scan Now';}
+    if(headerBtn){headerBtn.disabled=false;headerBtn.textContent='🔍 Scan Events';}
+    if(!silent)showToast('Scan Failed',err.message||'Could not reach event scanner API','error');
+  }
+}
+
+// Legacy alias — header button still calls this
+function scanEvents(){confirmScan();}
 
 // ══════════════════════════════════
 // ADS + SITE STATS
@@ -3812,7 +4120,7 @@ function openModal(type,id,prefill){
     tEl.textContent=id?'Edit Lead':'Add New Lead';sEl.textContent='Track your enquiries and prospects';
     bEl.innerHTML=`
       <div class="grid-2"><div><label class="modal-field-label">Full Name <span class="modal-req">*</span></label><input class="modal-input" id="f-name" value="${esc(v('name'))}" placeholder="e.g. Sarah M."></div><div><label class="modal-field-label">Email</label><input class="modal-input" id="f-email" type="email" value="${esc(v('email'))}" placeholder="email@example.com"></div></div>
-      <div class="grid-2"><div><label class="modal-field-label">Phone</label><input class="modal-input" id="f-phone" value="${esc(v('phone'))}" placeholder="+353 …"></div><div><label class="modal-field-label">Lead Source <span class="modal-req">*</span></label><select class="modal-select" id="f-source">${opt('source',['Instagram','Website','Referral','Google','Facebook','Walk-in','Other'])}</select></div></div>
+      <div class="grid-2"><div><label class="modal-field-label">Phone</label><input class="modal-input" id="f-phone" value="${esc(v('phone'))}" placeholder="+353 …"></div><div><label class="modal-field-label">Lead Source <span class="modal-req">*</span></label><select class="modal-select" id="f-source">${opt('source',['Instagram','Website','Referral','Google','Facebook','Walk-in','Other','Event Scrape'])}</select></div></div>
       <div class="grid-2"><div><label class="modal-field-label">Service Interest</label><select class="modal-select" id="f-service">${opt('service',['360 Booth','Selfie Mirror','Photo Booth','Magazine Booth','Vintage Booth'])}</select></div><div><label class="modal-field-label">Status</label><select class="modal-select" id="f-status">${opt('status',['New','Discovery Booked','Follow-up','Qualified','Nurturing','Not Qualified','Converted'])}</select></div></div>
       <div class="grid-2"><div><label class="modal-field-label">Date</label><input class="modal-input" id="f-date" type="date" value="${v('date')||new Date().toISOString().slice(0,10)}"></div><div></div></div>
       <div><label class="modal-field-label">Notes</label><textarea class="modal-textarea" id="f-notes" placeholder="How they came in, what they're looking for…">${esc(v('notes'))}</textarea></div>`;
