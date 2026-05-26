@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/scan-leads.js": { "maxDuration": 60 }
+  },
   "crons": [
     {
       "path": "/api/auto-scan",

@@ -1,52 +1,24 @@
-// 360 Booth Ireland — Lead Scout Intelligence Engine v4
-// Simplified: open-web queries, no date filter, compact 11-field Groq prompt.
-// Core fix: exaContentsBatch (chunks of 10), all queries parallel, highlights fallback.
+// 360 Booth Ireland — Lead Scout v5
+// Exa Agent beta handles autonomous multi-hop research (search + crawl + extract).
+// Groq (GROQ_SCRAPER_KEY) scores and filters the structured results.
 
 const EXA_BASE = 'https://api.exa.ai';
 const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
-
-const QUERIES = [
-  'corporate event company Dublin Ireland 2026 contact email',
-  'wedding venue event hire Ireland 2026 enquiries contact',
-  'charity gala fundraiser Dublin Cork Galway 2026 organiser contact',
-  'corporate awards ceremony conference Ireland 2026 booking contact',
-  'brand activation product launch event Dublin 2026 contact',
-  'hotel conference dinner event Dublin 2026 enquiries contact',
-  'entertainment hire event Dublin Cork Ireland 2026 quote',
-  'event management agency Ireland 2026 upcoming events contact',
-  'business gala networking dinner Dublin 2026 registration',
-  'graduation ball university event Ireland 2026 entertainment hire',
-  'Galway Cork Limerick corporate event 2026 organiser contact',
-  'photo booth 360 booth wedding corporate hire Ireland 2026',
-  'Christmas party corporate venue Dublin 2026 contact',
-  'awards night gala dinner Irish business 2026 organiser',
-  'tech summit conference Ireland 2026 event contact registration',
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-function inferService(eventType) {
-  const t = (eventType || '').toLowerCase();
+function inferService(type) {
+  const t = (type || '').toLowerCase();
   return (t === 'wedding' || t === 'birthday' || t === 'party') ? 'Selfie Mirror' : '360 Booth';
 }
 
-function extractEmailFallback(text) {
-  const m = (text || '').match(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/);
-  return m ? m[0] : null;
-}
-
-function extractPhoneFallback(text) {
-  const m = (text || '').match(/(\+353|0)[\s\-]?\d[\s\-]?\d{3}[\s\-]?\d{4}/);
-  return m ? m[0].replace(/[\s\-]/g, '') : null;
-}
-
-function calcUrgency(eventDate) {
-  if (!eventDate) return 'unknown';
+function calcUrgency(dateStr) {
+  if (!dateStr) return 'unknown';
   try {
-    const days = Math.ceil((new Date(eventDate) - Date.now()) / 86400000);
+    const days = Math.ceil((new Date(dateStr) - Date.now()) / 86400000);
     if (days < 0) return 'past';
     if (days <= 14) return 'urgent';
     if (days <= 30) return 'high';
@@ -55,102 +27,97 @@ function calcUrgency(eventDate) {
   } catch { return 'unknown'; }
 }
 
-function getContactQuality(e) {
-  if (e.email || e.phone) return 'direct';
-  if (e.website) return 'social';
-  if (e.organizer_name || e.company) return 'discovery';
-  if (e.event_name) return 'event-only';
-  return null;
-}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ── Exa: open-web search, no date filter ─────────────────────────────────────
-async function exaSearch(query, exaKey, numResults = 8) {
-  try {
-    const res = await fetch(`${EXA_BASE}/search`, {
-      method: 'POST',
-      headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        type: 'auto',
-        numResults,
-        contents: { highlights: { numSentences: 4, highlightsPerUrl: 2 } },
-      }),
-    });
-    if (!res.ok) {
-      console.error('[exa-search] HTTP', res.status, query.slice(0, 60));
-      return [];
-    }
-    const data = await res.json();
-    return (data.results || []).map(r => ({
-      url: r.url,
-      title: r.title || '',
-      highlights: (r.highlights || []).join(' '),
-    }));
-  } catch (err) {
-    console.error('[exa-search] error:', err.message, query.slice(0, 60));
-    return [];
+// ── Exa Agent: start a research run ──────────────────────────────────────────
+async function startAgentRun(query, exaKey) {
+  const res = await fetch(`${EXA_BASE}/agent/runs`, {
+    method: 'POST',
+    headers: {
+      'x-api-key': exaKey,
+      'Content-Type': 'application/json',
+      'Exa-Beta': 'agent-2026-05-07',
+    },
+    body: JSON.stringify({
+      query,
+      effort: 'low',
+      outputSchema: {
+        type: 'object',
+        required: ['leads'],
+        properties: {
+          leads: {
+            type: 'array',
+            maxItems: 30,
+            items: {
+              type: 'object',
+              properties: {
+                event_name:     { type: 'string' },
+                event_date:     { type: 'string' },
+                venue:          { type: 'string' },
+                city:           { type: 'string' },
+                event_type:     { type: 'string' },
+                organizer_name: { type: 'string' },
+                company:        { type: 'string' },
+                email:          { type: 'string' },
+                phone:          { type: 'string' },
+                website:        { type: 'string' },
+                source_url:     { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => res.status);
+    throw new Error(`Exa Agent start failed (${res.status}): ${body}`);
   }
+  return res.json();
 }
 
-// ── Exa: findSimilar ──────────────────────────────────────────────────────────
-async function exaFindSimilar(url, exaKey) {
-  try {
-    const res = await fetch(`${EXA_BASE}/findSimilar`, {
-      method: 'POST',
-      headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, numResults: 4 }),
+// ── Exa Agent: poll until done or timeout ────────────────────────────────────
+async function pollAgentRun(runId, exaKey, maxMs = 52000) {
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    await sleep(4000);
+    const res = await fetch(`${EXA_BASE}/agent/runs/${runId}`, {
+      headers: {
+        'x-api-key': exaKey,
+        'Exa-Beta': 'agent-2026-05-07',
+      },
     });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.results || []).map(r => ({ url: r.url, title: r.title || '', highlights: '' }));
-  } catch (err) {
-    console.error('[exa-similar] error:', err.message);
-    return [];
-  }
-}
-
-// ── Exa: content fetch — BATCHED in chunks of 10 (single large POST silently fails)
-async function exaContentsBatch(urls, exaKey) {
-  if (!urls.length) return {};
-  const chunks = [];
-  for (let i = 0; i < urls.length; i += 10) chunks.push(urls.slice(i, i + 10));
-  const maps = await Promise.all(chunks.map(async chunk => {
-    try {
-      const res = await fetch(`${EXA_BASE}/contents`, {
-        method: 'POST',
-        headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: chunk, text: { maxCharacters: 4000 } }),
-      });
-      if (!res.ok) {
-        console.error('[exa-contents] HTTP', res.status, 'chunk size', chunk.length);
-        return {};
-      }
-      const data = await res.json();
-      const map = {};
-      for (const r of (data.results || [])) map[r.url] = r.text || '';
-      return map;
-    } catch (err) {
-      console.error('[exa-contents] chunk error:', err.message);
-      return {};
+    if (!res.ok) continue;
+    const run = await res.json();
+    if (run.status === 'completed') return run;
+    if (run.status === 'failed' || run.status === 'cancelled') {
+      throw new Error(`Agent run ${run.status}`);
     }
-  }));
-  return Object.assign({}, ...maps);
+  }
+  throw new Error('Agent run did not complete within 52s — try again or use a shorter search term.');
 }
 
-// ── Groq: compact 11-field prompt — simple enough to never truncate at 600 tokens
-async function extractWithGroq(text, title, url, groqKey) {
-  const content = (text && text.length >= 30) ? text : (title ? `Event: ${title}\nURL: ${url}` : '');
-  if (content.length < 10) return null;
+// ── Groq: score each lead (uses GROQ_SCRAPER_KEY) ────────────────────────────
+async function scoreWithGroq(leads, groqKey) {
+  if (!leads.length) return leads;
+  const prompt = `You score event leads for 360 Booth Ireland (photo booth hire).
 
-  const prompt = `You extract event organiser leads for 360 Booth Ireland (photo booth hire).
+Score each lead 0–100. Rules:
++25 corporate/company event, +20 luxury/premium/VIP, +20 Dublin location, +15 200+ attendees, +10 email or phone present, +10 awards/gala/conference, -20 free/volunteer event, -15 past event, -10 outside Ireland.
 
-From this web page return ONLY valid compact JSON (no markdown, no explanation):
-{"event_name":null,"event_date":null,"venue":null,"city":null,"event_type":"corporate|wedding|gala|conference|party|other","organizer_name":null,"company":null,"email":null,"phone":null,"website":null,"lead_score":0}
+Return ONLY valid JSON: {"scores":[{"index":0,"lead_score":75,"likelihood":"high"},…]}
+likelihood: "high" if score≥60, "medium" if 30–59, else "low".
 
-lead_score (0–100): +25 corporate/company event, +20 premium/luxury/VIP, +20 Dublin location, +15 200+ attendees, +10 has email or phone, +10 awards/gala/conference, -20 free/volunteer, -15 past event.
-
-Page:
-${content.slice(0, 4000)}`;
+Leads to score:
+${JSON.stringify(leads.map((l, i) => ({
+  index: i,
+  event_type: l.event_type,
+  city: l.city,
+  event_name: l.event_name,
+  has_email: !!l.email,
+  has_phone: !!l.phone,
+  company: l.company,
+})))}`;
 
   try {
     const res = await fetch(GROQ_BASE, {
@@ -160,67 +127,60 @@ ${content.slice(0, 4000)}`;
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
-        max_tokens: 600,
+        max_tokens: 800,
         response_format: { type: 'json_object' },
       }),
     });
-    if (!res.ok) {
-      console.error('[groq] HTTP', res.status);
-      return null;
-    }
+    if (!res.ok) return leads;
     const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content || '{}';
-    const parsed = JSON.parse(raw);
-    if (!parsed.email) parsed.email = extractEmailFallback(content);
-    if (!parsed.phone) parsed.phone = extractPhoneFallback(content);
-    parsed.source_url = url;
-    return parsed;
+    const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
+    const scores = parsed.scores || [];
+    return leads.map((l, i) => {
+      const s = scores.find(x => x.index === i) || {};
+      return { ...l, lead_score: s.lead_score || 0, likelihood_to_buy: s.likelihood || 'low' };
+    });
   } catch (err) {
-    console.error('[groq] error:', err.message, url.slice(0, 60));
-    return {
-      event_name: title || null,
-      event_date: null, venue: null, city: null,
-      event_type: 'other',
-      organizer_name: null, company: null,
-      email: extractEmailFallback(content),
-      phone: extractPhoneFallback(content),
-      website: null,
-      lead_score: 20,
-      source_url: url,
-    };
+    console.error('[groq-score] error:', err.message);
+    return leads;
   }
 }
 
-function mapToLead(extracted) {
-  if (!extracted) return null;
-  const cq = getContactQuality(extracted);
+// ── Map Exa Agent result to 360 lead schema ───────────────────────────────────
+function mapToLead(item) {
+  const cq = item.email || item.phone ? 'direct'
+    : item.website ? 'social'
+    : item.organizer_name || item.company ? 'discovery'
+    : item.event_name ? 'event-only'
+    : null;
   if (!cq) return null;
 
-  const urgency = calcUrgency(extracted.event_date);
+  const urgency = calcUrgency(item.event_date);
   const parts = [];
-  if (extracted.event_name) parts.push(`Event: ${extracted.event_name}`);
-  if (extracted.event_date) parts.push(`Date: ${extracted.event_date}`);
+  if (item.event_name) parts.push(`Event: ${item.event_name}`);
+  if (item.event_date) parts.push(`Date: ${item.event_date}`);
   if (urgency && urgency !== 'unknown' && urgency !== 'past') parts.push(`Urgency: ${urgency}`);
-  if (extracted.venue) parts.push(`Venue: ${extracted.venue}`);
-  if (extracted.city) parts.push(`City: ${extracted.city}`);
-  if (extracted.company) parts.push(`Company: ${extracted.company}`);
-  if (extracted.website) parts.push(`Website: ${extracted.website}`);
-  if (extracted.source_url) parts.push(`Source: ${extracted.source_url}`);
+  if (item.venue) parts.push(`Venue: ${item.venue}`);
+  if (item.city) parts.push(`City: ${item.city}`);
+  if (item.company) parts.push(`Company: ${item.company}`);
+  if (item.website) parts.push(`Website: ${item.website}`);
+  if (item.likelihood_to_buy) parts.push(`Likelihood: ${item.likelihood_to_buy}`);
+  if (item.source_url) parts.push(`Source: ${item.source_url}`);
 
   return {
     id: uid(),
-    name: extracted.organizer_name || extracted.company || `${extracted.event_name || 'Event'} Organiser`,
-    email: extracted.email || '',
-    phone: extracted.phone || '',
+    name: item.organizer_name || item.company || `${item.event_name || 'Event'} Organiser`,
+    email: item.email || '',
+    phone: item.phone || '',
     source: 'Event Scrape',
-    service: inferService(extracted.event_type),
+    service: inferService(item.event_type),
     status: 'New',
     date: new Date().toISOString().slice(0, 10),
     notes: parts.join(' | '),
-    lead_score: extracted.lead_score || 0,
+    lead_score: item.lead_score || 0,
+    likelihood_to_buy: item.likelihood_to_buy || 'low',
     urgency,
     contact_quality: cq,
-    source_url: extracted.source_url || '',
+    source_url: item.source_url || '',
     createdAt: Date.now(),
   };
 }
@@ -238,58 +198,29 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'EXA_API_KEY and GROQ_SCRAPER_KEY must be set in Vercel environment variables.' });
   }
 
-  const body = req.body || {};
-  const customTerms = (body.customTerms || '').trim();
-  const queries = [...QUERIES];
-  if (customTerms) {
-    queries.unshift(`${customTerms} event company Dublin Cork Ireland contact`);
-    queries.unshift(`${customTerms} Ireland 2026 organiser contact email`);
-  }
-
-  const seen = new Set();
-  const meta = { queriesRun: queries.length, pagesScanned: 0 };
-
-  function dedup(results, cap) {
-    const fresh = [];
-    for (const r of results) {
-      if (r.url && !seen.has(r.url)) {
-        seen.add(r.url);
-        fresh.push(r);
-        if (cap && fresh.length >= cap) break;
-      }
-    }
-    return fresh;
-  }
+  const customTerms = (req.body?.customTerms || '').trim();
+  const query = [
+    'Find 25 event organisers in Ireland (Dublin, Cork, Galway, Limerick, Waterford) planning events in 2026 that would benefit from a 360 photo booth or selfie mirror entertainment service.',
+    'Target: corporate gala dinners, awards ceremonies, company Christmas parties, brand activation events, product launches, hotel conference managers, wedding planners, charity fundraiser balls, university graduation balls, networking event organisers.',
+    customTerms ? `Also specifically search for: ${customTerms}.` : '',
+    'For each organiser, extract: organiser name, company name, email address, phone number, website, event name, event date, venue name, city, and event type.',
+    'Prioritise results with direct contact information (email or phone). Focus on events with professional budgets.',
+  ].filter(Boolean).join(' ');
 
   try {
-    // All queries fire in parallel — open web, no domain filter, no date filter
-    const searchResults = (await Promise.all(queries.map(q => exaSearch(q, EXA_KEY, 8)))).flat();
-    let pages = dedup(searchResults, 25);
+    console.log('[scan-leads v5] Starting Exa Agent run — effort: low');
+    const run = await startAgentRun(query, EXA_KEY);
+    console.log('[scan-leads v5] Run queued:', run.id, '— polling...');
 
-    // Recursive discovery from top seeds
-    if (pages.length >= 3) {
-      const seeds = pages.slice(0, 5).map(p => p.url);
-      const similar = (await Promise.all(seeds.map(url => exaFindSimilar(url, EXA_KEY)))).flat();
-      pages = pages.concat(dedup(similar, 35 - pages.length));
-    }
+    const completed = await pollAgentRun(run.id, EXA_KEY, 52000);
+    const rawLeads = completed?.output?.structured?.leads || [];
+    console.log('[scan-leads v5] Agent done — raw leads:', rawLeads.length, '— cost:', JSON.stringify(completed?.costDollars));
 
-    meta.pagesScanned = pages.length;
-    console.log(`[scan-leads] searching ${pages.length} pages via ${meta.queriesRun} queries`);
-
-    // Fetch full content — batched in chunks of 10
-    const contentMap = await exaContentsBatch(pages.map(p => p.url), EXA_KEY);
-
-    // All Groq calls in parallel — use highlights as fallback if contents failed
-    const extracted = await Promise.all(pages.map(p => {
-      const fullText = contentMap[p.url] || '';
-      const text = fullText.length >= 30 ? fullText : p.highlights || '';
-      return extractWithGroq(text, p.title, p.url, GROQ_KEY);
-    }));
-
-    const leads = extracted.map(mapToLead).filter(Boolean);
+    const scored = await scoreWithGroq(rawLeads, GROQ_KEY);
+    const leads = scored.map(mapToLead).filter(Boolean);
     leads.sort((a, b) => (b.lead_score || 0) - (a.lead_score || 0));
 
-    console.log(`[scan-leads] done: ${leads.length} leads (direct:${leads.filter(l=>l.contact_quality==='direct').length}, discovery:${leads.filter(l=>l.contact_quality==='discovery').length})`);
+    console.log('[scan-leads v5] Final leads:', leads.length, `(direct:${leads.filter(l=>l.contact_quality==='direct').length})`);
 
     return res.status(200).json({
       leads,
@@ -299,11 +230,12 @@ module.exports = async function handler(req, res) {
       discoveryCount: leads.filter(l => l.contact_quality === 'discovery').length,
       eventOnlyCount: leads.filter(l => l.contact_quality === 'event-only').length,
       scannedAt: new Date().toISOString(),
-      ...meta,
+      queriesRun: 1,
+      pagesScanned: rawLeads.length,
     });
 
   } catch (err) {
-    console.error('[scan-leads] fatal:', err);
+    console.error('[scan-leads v5] error:', err.message);
     return res.status(500).json({ error: err.message || 'Scan failed' });
   }
 };
