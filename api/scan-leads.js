@@ -1,8 +1,6 @@
 // 360 Booth Ireland — Event Lead Scanner API
 // Called by the dashboard "Scan Now" button.
-// Requires a valid Supabase session (JWT) in the Authorization header.
 
-const SUPABASE_URL = 'https://kcjmmiifemdarknrvpas.supabase.co';
 const EXA_BASE = 'https://api.exa.ai';
 const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -26,8 +24,7 @@ function uid() {
 
 function inferService(eventType) {
   const t = (eventType || '').toLowerCase();
-  if (t === 'wedding') return 'Selfie Mirror';
-  if (t === 'birthday' || t === 'party') return 'Selfie Mirror';
+  if (t === 'wedding' || t === 'birthday' || t === 'party') return 'Selfie Mirror';
   return '360 Booth';
 }
 
@@ -39,24 +36,6 @@ function extractEmailFallback(text) {
 function extractPhoneFallback(text) {
   const m = (text || '').match(/(\+353|0)[\s\-]?\d[\s\-]?\d{3}[\s\-]?\d{4}/);
   return m ? m[0].replace(/[\s\-]/g, '') : null;
-}
-
-async function verifySession(authHeader) {
-  const token = (authHeader || '').replace('Bearer ', '').trim();
-  if (!token) return false;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) return false;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: serviceKey,
-      },
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
 }
 
 async function exaSearch(query, extraDomains, exaKey) {
@@ -172,24 +151,16 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // ── Auth: verify Supabase session ──────────────────────────────────────────
-  const authed = await verifySession(req.headers.authorization);
-  if (!authed) {
-    return res.status(401).json({ error: 'Not authenticated. Sign in to the 360 dashboard first.' });
-  }
-
   const EXA_KEY = process.env.EXA_API_KEY;
   const GROQ_KEY = process.env.GROQ_API_KEY;
   if (!EXA_KEY || !GROQ_KEY) {
     return res.status(500).json({ error: 'EXA_API_KEY and GROQ_API_KEY must be set in Vercel environment variables.' });
   }
 
-  // Accept optional custom search config from dashboard
   const body = req.body || {};
   const customTerms = body.customTerms || '';
   const extraDomains = body.extraDomains || [];
 
-  // Build query list (default + custom)
   const queries = [...DEFAULT_QUERIES];
   if (customTerms.trim()) {
     customTerms.split(',').map(t => t.trim()).filter(Boolean).forEach(term => {
@@ -198,14 +169,12 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Step 1: Search all queries
     const allResults = [];
     for (const q of queries) {
       const results = await exaSearch(q, extraDomains, EXA_KEY);
       allResults.push(...results);
     }
 
-    // Deduplicate + cap at 30
     const seen = new Set();
     const unique = allResults.filter(r => {
       if (seen.has(r.url)) return false;
@@ -217,10 +186,8 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ leads: [], count: 0, scannedAt: new Date().toISOString() });
     }
 
-    // Step 2: Fetch page content
     const contentMap = await exaContents(unique.map(r => r.url), EXA_KEY);
 
-    // Step 3: Extract leads in parallel batches of 5
     const leads = [];
     for (let i = 0; i < unique.length; i += 5) {
       const batch = unique.slice(i, i + 5);
