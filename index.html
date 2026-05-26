@@ -3005,13 +3005,13 @@ function lscoutAddMsg(role,html){
 
 function lscoutAddPlan(){
   const layers=[
-    {id:'l1',label:'Discovery',tag:'Searching 20+ sources'},
-    {id:'l2',label:'Extraction',tag:'Fetching page content'},
-    {id:'l3',label:'AI Enrichment',tag:'Extracting contacts with LLaMA'},
-    {id:'l4',label:'Verification',tag:'Validating emails & phones'},
-    {id:'l5',label:'Scoring',tag:'Ranking by relevance'},
-    {id:'l6',label:'Deduplication',tag:'Removing existing leads'},
-    {id:'l7',label:'Output',tag:'Structured leads ready'},
+    {id:'l1',label:'Semantic Expansion',tag:'50+ query variants across Dublin, Cork, Galway, Limerick'},
+    {id:'l2',label:'Multi-Platform Search',tag:'Scanning Eventbrite, Meetup, Dice, news, venues & more'},
+    {id:'l3',label:'Recursive Discovery',tag:'findSimilar crawl from top seed pages'},
+    {id:'l4',label:'Content Extraction',tag:'Deep-reading event pages for contact details'},
+    {id:'l5',label:'AI Intelligence',tag:'LLaMA 70B extracting organiser, company, social + scoring'},
+    {id:'l6',label:'Revenue Scoring',tag:'Urgency tiers, likelihood to buy, estimated budget'},
+    {id:'l7',label:'Prioritised Output',tag:'Sorted by urgency then lead score — ready to outreach'},
   ];
   const planHtml=`<div style="font-weight:600;margin-bottom:8px" id="lscout-thinking" class="lscout-thinking">Lead Scout is scanning…</div><ul class="lscout-plan" id="lscout-plan">${layers.map(l=>`<li class="lscout-layer" id="${l.id}"><div class="lscout-layer-icon">◯</div><span class="lscout-layer-label">${l.label}</span><span class="lscout-layer-tag">${l.tag}</span></li>`).join('')}</ul>`;
   return lscoutAddMsg('ai',planHtml);
@@ -3092,19 +3092,49 @@ async function runScan(silent=false){
       if(!newLeads.length){
         lscoutAddMsg('ai',`<strong>No new leads found.</strong> Scanned ${data.count||0} event pages — all contacts already exist in your register, or no contact info was extractable. Try adding custom search terms for a different event type.`);
       } else {
-        // Show summary + lead cards
+        // Show summary + lead cards with full intelligence fields
         const scoreColor=s=>s>=70?'#4CAF7D':s>=40?'#C9A84C':'#6B6560';
-        const leadCardsHtml=newLeads.slice(0,6).map(l=>`<div class="lscout-lead-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px">
-            <div class="lscout-lead-name">${esc(l.name)}</div>
-            ${l.lead_score?`<span style="font-size:10px;font-weight:700;color:${scoreColor(l.lead_score)};background:${scoreColor(l.lead_score)}18;border:1px solid ${scoreColor(l.lead_score)}30;padding:1px 7px;border-radius:10px;flex-shrink:0">${l.lead_score}/100</span>`:''}
-          </div>
-          ${l.email?`<div class="lscout-lead-detail"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${esc(l.email)}</div>`:''}
-          ${l.phone?`<div class="lscout-lead-detail"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 12a19.79 19.79 0 01-3.07-8.67A2 2 0 013.6 1.19h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-.85a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>${esc(l.phone)}</div>`:''}
-          <div class="lscout-lead-detail" style="font-size:10.5px;margin-top:2px;opacity:.6">${esc(l.service||'360 Booth')}</div>
-        </div>`).join('');
+        const urgencyColor=u=>u==='urgent'?'#E05252':u==='high'?'#C9A84C':u==='pipeline'?'#4B8FD6':'#6B6560';
+        const urgencyLabel=u=>u==='urgent'?'🔴 Urgent':u==='high'?'🟡 High':u==='pipeline'?'🔵 Pipeline':u==='long-term'?'⚪ Long-term':'';
+        const likelyColor=v=>v==='high'?'#4CAF7D':v==='medium'?'#C9A84C':'#6B6560';
+        const leadCardsHtml=newLeads.slice(0,6).map(l=>{
+          // Parse notes to extract intelligence bits
+          const notesParts=(l.notes||'').split(' | ');
+          const getNote=key=>{ const p=notesParts.find(n=>n.startsWith(key+':')); return p?p.slice(key.length+1).trim():''; };
+          const whyRelevant=getNote('Why relevant');
+          const scoreReason=getNote('Score reason');
+          const li=getNote('LinkedIn');
+          const ig=getNote('Instagram');
+          const revPotential=l.estimated_revenue||getNote('Revenue potential');
+          const company=getNote('Company');
+          const city=getNote('City');
+          const eventName=getNote('Event');
+          return `<div class="lscout-lead-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+              <div class="lscout-lead-name">${esc(l.name)}</div>
+              <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+                ${l.urgency&&urgencyLabel(l.urgency)?`<span style="font-size:9px;font-weight:700;color:${urgencyColor(l.urgency)};background:${urgencyColor(l.urgency)}15;border:1px solid ${urgencyColor(l.urgency)}30;padding:1px 6px;border-radius:8px">${urgencyLabel(l.urgency)}</span>`:''}
+                ${l.lead_score?`<span style="font-size:10px;font-weight:700;color:${scoreColor(l.lead_score)};background:${scoreColor(l.lead_score)}18;border:1px solid ${scoreColor(l.lead_score)}30;padding:1px 7px;border-radius:10px">${l.lead_score}/100</span>`:''}
+              </div>
+            </div>
+            ${eventName?`<div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">📅 ${esc(eventName)}${city?' · '+esc(city):''}</div>`:''}
+            ${company?`<div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">🏢 ${esc(company)}</div>`:''}
+            ${l.email?`<div class="lscout-lead-detail"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${esc(l.email)}</div>`:''}
+            ${l.phone?`<div class="lscout-lead-detail"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 12a19.79 19.79 0 01-3.07-8.67A2 2 0 013.6 1.19h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-.85a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>${esc(l.phone)}</div>`:''}
+            ${li||ig?`<div style="display:flex;gap:8px;margin-top:3px">
+              ${li?`<a href="${esc(li)}" target="_blank" style="font-size:10px;color:#0A66C2;text-decoration:none">LinkedIn ↗</a>`:''}
+              ${ig?`<a href="${esc(ig)}" target="_blank" style="font-size:10px;color:#E1306C;text-decoration:none">Instagram ↗</a>`:''}
+            </div>`:''}
+            <div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap">
+              ${l.likelihood_to_buy?`<span style="font-size:9.5px;color:${likelyColor(l.likelihood_to_buy)};font-weight:600">Likelihood: ${l.likelihood_to_buy}</span>`:''}
+              ${revPotential?`<span style="font-size:9.5px;color:var(--text-muted)">· Est. revenue: ${esc(revPotential)}</span>`:''}
+              <span style="font-size:9.5px;color:var(--text-muted)">· ${esc(l.service||'360 Booth')}</span>
+            </div>
+            ${whyRelevant?`<div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;line-height:1.4;font-style:italic">"${esc(whyRelevant)}"</div>`:''}
+          </div>`;
+        }).join('');
         const moreText=newLeads.length>6?`<div style="font-size:11px;color:var(--text-muted);margin-top:6px">+ ${newLeads.length-6} more added to Lead Register</div>`:'';
-        lscoutAddMsg('ai',`<strong style="color:#4CAF7D">✓ Found ${newLeads.length} new lead${newLeads.length===1?'':'s'}</strong> — added to your Lead Register below.${leadCardsHtml}${moreText}`);
+        lscoutAddMsg('ai',`<strong style="color:#4CAF7D">✓ Found ${newLeads.length} new lead${newLeads.length===1?'':'s'}</strong> — sorted by urgency then score. Added to your Lead Register below.${leadCardsHtml}${moreText}`);
       }
     }
 
