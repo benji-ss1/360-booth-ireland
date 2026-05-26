@@ -1858,30 +1858,21 @@ select.st-input option{background:#1a1a1a}
                 <div class="st-field" style="margin-bottom:11px"><div class="st-label">Business Description</div><textarea class="st-input" id="s-bio" rows="3" style="height:auto;padding:10px 12px" placeholder="Premium 360 booth, selfie mirror and photo booth hire for weddings, corporate events and parties across Ireland. 5-star rated."></textarea></div>
                 <div class="st-save"><button class="btn-p" onclick="saveBusinessSettings()">Save Profile</button></div>
               </div>
-              <div class="st-card">
-                <div class="st-card-title">Social Stats</div>
-                <div class="st-card-sub">Used in Lead Gen dashboard</div>
-                <div class="st-row"><div class="st-field"><div class="st-label">Instagram Followers</div><input class="st-input" id="s-ig-followers" placeholder="0"></div><div class="st-field"><div class="st-label">Monthly Profile Visits</div><input class="st-input" id="s-ig-visits" placeholder="0"></div></div>
-                <div class="st-row"><div class="st-field"><div class="st-label">Monthly DM Enquiries</div><input class="st-input" id="s-ig-dms" placeholder="0"></div><div class="st-field"></div></div>
-                <div class="st-save"><button class="btn-p" onclick="saveSocialStats()">Save Stats</button></div>
-              </div>
             </div>
             <!-- AI Config -->
             <div class="st-tab" id="st-ai">
               <div class="st-section-title">AI Configuration</div>
-              <div class="st-section-sub">Powered by Groq — fast, free AI inference. Get your key at <a href="https://console.groq.com" target="_blank" style="color:var(--blue)">console.groq.com</a></div>
+              <div class="st-section-sub">Powered by Groq — ultra-fast LLaMA 3.3 70B. Pre-configured and ready to go.</div>
               <div class="st-card">
-                <div class="st-card-title">Groq API Key</div>
-                <div class="st-card-sub">Sign up at console.groq.com, create an API key, paste it below. Enables all AI features across every page.</div>
-                <div class="st-field" style="margin-bottom:11px"><div class="st-label">API Key</div><input class="st-input" id="groq-key-inp" type="password" placeholder="gsk_…"></div>
-                <div class="st-field" style="margin-bottom:14px"><div class="st-label">Model</div>
-                  <select class="st-input" id="groq-model-sel">
-                    <option value="llama-3.3-70b-versatile" selected>llama-3.3-70b-versatile (recommended)</option>
-                    <option value="llama-3.1-8b-instant">llama-3.1-8b-instant (faster)</option>
-                    <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
-                  </select>
+                <div class="st-card-title">Groq AI</div>
+                <div class="st-card-sub">Your AI is pre-configured and active. No setup required.</div>
+                <div style="display:flex;align-items:center;gap:12px;padding:14px;background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:var(--radius-sm);margin-top:4px">
+                  <div style="width:36px;height:36px;border-radius:50%;background:rgba(76,175,125,.15);display:flex;align-items:center;justify-content:center;font-size:18px">⚡</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;color:var(--green)">● AI Active</div>
+                    <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">llama-3.3-70b-versatile — quotes, emails, insights all powered</div>
+                  </div>
                 </div>
-                <div class="st-save"><button class="btn-sm" onclick="testGroqKey()" style="margin-right:8px">Test Connection</button><button class="btn-p" onclick="saveGroqKey()">Save & Activate</button></div>
               </div>
             </div>
             <!-- Security -->
@@ -1968,11 +1959,8 @@ select.st-input option{background:#1a1a1a}
                     <div><div class="int-name">Groq AI</div><div style="font-size:10.5px;color:var(--text-muted)">LLaMA 3.3 70B business advisor</div></div>
                   </div>
                   <div class="int-tags"><span class="int-tag">openai-compatible</span><span class="int-tag">chat completions</span></div>
-                  <div class="int-api-row">
-                    <input class="int-api-input" id="int-groq-key" placeholder="gsk_..." type="password" value="">
-                    <button class="int-save-btn" onclick="saveGroqFromInt()">Save</button>
-                  </div>
-                  <div id="int-groq-status" class="int-badge-nc">● Not configured</div>
+                  <div class="int-desc">AI is pre-configured and active across your entire dashboard.</div>
+                  <div id="int-groq-status" style="padding:4px 10px;border-radius:5px;background:rgba(76,175,125,.1);border:1px solid rgba(76,175,125,.3);color:#4CAF7D;font-size:10px;font-weight:600;align-self:flex-start">● Connected</div>
                 </div>
 
               </div>
@@ -3222,18 +3210,14 @@ function saveBusinessSettings(){
     const el=document.getElementById('s-'+k);if(el)s[k]=el.value.trim();
   });
   ss(s);
-  // Immediately update sidebar, topbar, site URL, AI context
-  if(s.bizname){
-    document.getElementById('sb-biz-name').textContent=s.bizname;
-    document.getElementById('tb-name').textContent=s.bizname;
-  }
+  const bnEl=document.getElementById('sb-biz-name');if(bnEl&&s.bizname)bnEl.textContent=s.bizname;
+  const tbEl=document.getElementById('tb-name');if(tbEl&&s.bizname)tbEl.textContent=s.bizname;
   if(s.website){
     const clean=s.website.replace(/https?:\/\//,'');
     const sub=document.getElementById('site-url-sub');if(sub)sub.textContent=clean;
     const urlBar=document.getElementById('embed-url-bar');if(urlBar)urlBar.textContent=clean;
     const openBtn=document.getElementById('open-site-btn');if(openBtn)openBtn.onclick=()=>window.open(s.website,'_blank');
   }
-  // Flash the save button green
   const btn=document.querySelector('#st-profile .st-save .btn-p');
   if(btn){const orig=btn.textContent;btn.textContent='✓ Saved';btn.style.background='var(--green)';setTimeout(()=>{btn.textContent=orig;btn.style.background=''},2000)}
   showToast('Profile Saved','Business details updated — AI will use this info immediately','success');
@@ -3348,6 +3332,20 @@ async function saveNewCredentials(){
 const GROQ_URL='https://api.groq.com/openai/v1/chat/completions';
 function groqKey(){return storage.getItem('b360_groq_key')||''}
 function groqModel(){return storage.getItem('b360_groq_model')||'llama-3.3-70b-versatile'}
+
+async function fetchAndSeedGroqKey(){
+  if(storage.getItem('b360_groq_key'))return; // already have it
+  try{
+    const token=authSession?.access_token;if(!token)return;
+    const r=await fetch('/api/get-keys',{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok)return;
+    const d=await r.json();
+    if(d.groqKey){
+      storage.setItem('b360_groq_key',d.groqKey);
+      storage.setItem('b360_groq_model','llama-3.3-70b-versatile');
+    }
+  }catch(_){}
+}
 
 function buildCtx(){
   const s=gs(),m=getMetrics(),bk=DB.get('bookings'),inv=DB.get('invoices'),enq=DB.get('enquiries'),now=new Date();
@@ -4319,6 +4317,7 @@ function init(){
     if(s.bizname){const bnEl=document.getElementById('sb-biz-name');if(bnEl)bnEl.textContent=s.bizname;}
     updateGoogleIntegrationStatus();
     loadSettings();
+    fetchAndSeedGroqKey();
     try{renderOverview();}catch(e){console.error('renderOverview',e)}
     try{renderBookings();}catch(e){console.error('renderBookings',e)}
     try{renderEnquiries();}catch(e){console.error('renderEnquiries',e)}

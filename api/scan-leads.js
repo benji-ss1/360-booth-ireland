@@ -3,7 +3,6 @@
 // Requires a valid Supabase session (JWT) in the Authorization header.
 
 const SUPABASE_URL = 'https://kcjmmiifemdarknrvpas.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_rUCvu27lMjfNz3zakrgB-Q_-I68xRO4';
 const EXA_BASE = 'https://api.exa.ai';
 const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -45,11 +44,13 @@ function extractPhoneFallback(text) {
 async function verifySession(authHeader) {
   const token = (authHeader || '').replace('Bearer ', '').trim();
   if (!token) return false;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) return false;
   try {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        apikey: SUPABASE_ANON_KEY,
+        apikey: serviceKey,
       },
     });
     return res.ok;
