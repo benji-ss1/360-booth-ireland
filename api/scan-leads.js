@@ -102,6 +102,32 @@ const EVENT_DOMAINS = [
   'dublinbic.ie', 'ibec.ie', 'isme.ie', 'siliconrepublic.com',
 ];
 
+// ── Recovery queries — broader, different angles, fallback sources ────────────
+const RECOVERY_QUERIES = [
+  // Open web — no domain restriction
+  'upcoming events Ireland 2026 contact organiser',
+  'event organiser Dublin Cork Galway email contact 2026',
+  'Ireland conference gala dinner 2026 registration contact',
+  'corporate event planner Dublin 2026 enquiries',
+  // Venue-led — find events through venue pages
+  'Dublin hotel conference booking events 2026',
+  'Cork conference centre events 2026',
+  'Galway event venue hire 2026',
+  // Organiser-led — find agencies and repeat players
+  'event management company Dublin Ireland 2026',
+  'corporate events agency Ireland contact',
+  'wedding event planner Dublin 2026 enquiries',
+  // Broader Irish discovery
+  'Ireland 2026 event gala registration',
+  'Northern Ireland Belfast events 2026 contact',
+  'Irish startup launch event 2026',
+  'Ireland experiential activation agency 2026',
+  // Social proof angles
+  'event entertainment hire Ireland 2026',
+  '360 photo booth event Ireland hire',
+  'photo booth wedding corporate hire Dublin 2026',
+];
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -135,24 +161,38 @@ function calcUrgency(eventDate) {
   } catch { return 'unknown'; }
 }
 
+// Any lead with actionable intelligence is worth keeping — not just email/phone
+function getContactQuality(e) {
+  if (e.email || e.phone) return 'direct';
+  if (e.linkedin || e.instagram || e.website) return 'social';
+  if ((e.organizer_name || e.company) && (e.lead_score || 0) >= 30) return 'discovery';
+  return null; // discard
+}
+
+function hasActionableContact(lead) {
+  return lead.contact_quality && lead.contact_quality !== null;
+}
+
 // ── Exa: standard semantic search ────────────────────────────────────────────
-async function exaSearch(query, extraDomains, exaKey) {
+async function exaSearch(query, extraDomains, exaKey, opts = {}) {
   const today = new Date().toISOString().slice(0, 10);
   const nextYear = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const domains = extraDomains?.length ? [...EVENT_DOMAINS, ...extraDomains] : EVENT_DOMAINS;
+  const body = {
+    query,
+    type: 'auto',
+    numResults: opts.numResults || 10,
+    startPublishedDate: opts.startDate || today,
+    endPublishedDate: opts.endDate || nextYear,
+    contents: { highlights: true },
+  };
+  // Recovery mode: don't restrict to known domains — search the open web
+  if (!opts.openWeb) body.includeDomains = domains;
   try {
     const res = await fetch(`${EXA_BASE}/search`, {
       method: 'POST',
       headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        type: 'auto',
-        numResults: 10,
-        startPublishedDate: today,
-        endPublishedDate: nextYear,
-        includeDomains: domains,
-        contents: { highlights: true },
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -346,6 +386,8 @@ function mapToLead(extracted) {
   if (extracted.reasoning) parts.push(`Score reason: ${extracted.lead_score}/100 — ${extracted.reasoning}`);
   if (extracted.source_url) parts.push(`Source: ${extracted.source_url}`);
 
+  const cq = getContactQuality(extracted);
+
   return {
     id: uid(),
     name: extracted.organizer_name || extracted.company || `${extracted.event_name || 'Event'} Organiser`,
@@ -360,6 +402,7 @@ function mapToLead(extracted) {
     likelihood_to_buy: extracted.likelihood_to_buy || 'low',
     urgency,
     estimated_revenue: extracted.estimated_revenue || null,
+    contact_quality: cq,
     createdAt: Date.now(),
   };
 }
@@ -391,51 +434,39 @@ module.exports = async function handler(req, res) {
     queries.push(`${base} event company launch Ireland`);
   }
 
-  try {
-    // LAYER 1: Discovery — parallel query batches of 5
-    const allResults = [];
-    for (let i = 0; i < queries.length; i += 5) {
-      const batch = queries.slice(i, i + 5);
+  const seen = new Set();
+  const meta = { queriesRun: 0, pagesScanned: 0, recoveryRan: false, recoveryReason: null };
+
+  async function runQueryBatch(queryList, opts = {}) {
+    const results = [];
+    for (let i = 0; i < queryList.length; i += 5) {
+      const batch = queryList.slice(i, i + 5);
       const batchResults = await Promise.all(
-        batch.map(q => exaSearch(q, extraDomains, EXA_KEY))
+        batch.map(q => exaSearch(q, extraDomains, EXA_KEY, opts))
       );
-      for (const r of batchResults) allResults.push(...r);
+      for (const r of batchResults) results.push(...r);
+      meta.queriesRun += batch.length;
     }
+    return results;
+  }
 
-    // LAYER 2: Deduplication — cap at 50 unique URLs
-    const seen = new Set();
-    let unique = allResults.filter(r => {
-      if (!r.url || seen.has(r.url)) return false;
-      seen.add(r.url);
-      return true;
-    }).slice(0, 50);
-
-    if (!unique.length) {
-      return res.status(200).json({ leads: [], count: 0, scannedAt: new Date().toISOString() });
-    }
-
-    // LAYER 2b: Recursive discovery — findSimilar on top 8 seed URLs
-    const seedUrls = unique.slice(0, 8).map(r => r.url);
-    const similarResults = await Promise.all(
-      seedUrls.map(url => exaFindSimilar(url, EXA_KEY))
-    );
-    for (const batch of similarResults) {
-      for (const r of batch) {
-        if (r.url && !seen.has(r.url)) {
-          seen.add(r.url);
-          unique.push(r);
-        }
+  function dedup(results, cap) {
+    const fresh = [];
+    for (const r of results) {
+      if (r.url && !seen.has(r.url)) {
+        seen.add(r.url);
+        fresh.push(r);
+        if (fresh.length >= cap) break;
       }
     }
-    unique = unique.slice(0, 70);
+    return fresh;
+  }
 
-    // LAYER 3: Full content extraction in batches
-    const contentMap = await exaContents(unique.map(r => r.url), EXA_KEY);
-
-    // LAYER 4: AI Intelligence — extract, enrich, score in parallel batches of 8
+  async function extractLeads(pages) {
+    const contentMap = await exaContents(pages.map(r => r.url), EXA_KEY);
     const leads = [];
-    for (let i = 0; i < unique.length; i += 8) {
-      const batch = unique.slice(i, i + 8);
+    for (let i = 0; i < pages.length; i += 8) {
+      const batch = pages.slice(i, i + 8);
       const extracted = await Promise.all(
         batch.map(r => {
           const c = contentMap[r.url];
@@ -444,23 +475,77 @@ module.exports = async function handler(req, res) {
       );
       for (const e of extracted) {
         const lead = mapToLead(e);
-        if (lead && (lead.email || lead.phone)) leads.push(lead);
+        // Keep any lead with actionable intelligence — not just email/phone
+        if (lead && hasActionableContact(lead)) leads.push(lead);
+      }
+    }
+    meta.pagesScanned += pages.length;
+    return leads;
+  }
+
+  try {
+    // ── PASS 1: Primary multi-platform discovery ──────────────────────────────
+    const pass1Results = await runQueryBatch(queries);
+    let unique = dedup(pass1Results, 50);
+
+    // ── Recursive findSimilar on top 8 seeds ─────────────────────────────────
+    if (unique.length) {
+      const seedUrls = unique.slice(0, 8).map(r => r.url);
+      const similarBatches = await Promise.all(seedUrls.map(url => exaFindSimilar(url, EXA_KEY)));
+      const similarFlat = similarBatches.flat();
+      unique = unique.concat(dedup(similarFlat, 70 - unique.length));
+    }
+
+    let leads = unique.length ? await extractLeads(unique) : [];
+
+    // ── PASS 2: Recovery — if direct-contact leads < 5 ───────────────────────
+    const directLeads = leads.filter(l => l.contact_quality === 'direct');
+    if (directLeads.length < 5) {
+      meta.recoveryRan = true;
+      meta.recoveryReason = directLeads.length === 0
+        ? 'Zero direct contacts found on primary pass — executing open-web recovery'
+        : `Only ${directLeads.length} direct contact(s) found — expanding search space`;
+
+      // Recovery A: same domains, wider date window (past 30 days → 18 months ahead)
+      const wideStart = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+      const wideEnd = new Date(Date.now() + 545 * 86400000).toISOString().slice(0, 10);
+      const recoveryA = await runQueryBatch(RECOVERY_QUERIES, { startDate: wideStart, endDate: wideEnd });
+      const recoveryAPages = dedup(recoveryA, 30);
+
+      // Recovery B: open web — no domain restriction on top recovery queries
+      const openWebQueries = RECOVERY_QUERIES.slice(0, 6);
+      const recoveryB = await runQueryBatch(openWebQueries, { openWeb: true, numResults: 8 });
+      const recoveryBPages = dedup(recoveryB, 20);
+
+      const recoveryPages = [...recoveryAPages, ...recoveryBPages];
+      if (recoveryPages.length) {
+        const recoveryLeads = await extractLeads(recoveryPages);
+        // Merge — avoid duplicate names/emails already in leads
+        const existingIds = new Set(leads.map(l => l.email || l.name));
+        for (const l of recoveryLeads) {
+          if (!existingIds.has(l.email || l.name)) {
+            leads.push(l);
+            existingIds.add(l.email || l.name);
+          }
+        }
       }
     }
 
-    // LAYER 5: Sort — urgent + high-score leads first
+    // ── Sort: urgency → score ─────────────────────────────────────────────────
     const urgencyRank = { urgent: 0, high: 1, pipeline: 2, 'long-term': 3, unknown: 4, past: 5 };
     leads.sort((a, b) => {
       const uDiff = (urgencyRank[a.urgency] ?? 4) - (urgencyRank[b.urgency] ?? 4);
-      if (uDiff !== 0) return uDiff;
-      return (b.lead_score || 0) - (a.lead_score || 0);
+      return uDiff !== 0 ? uDiff : (b.lead_score || 0) - (a.lead_score || 0);
     });
 
     return res.status(200).json({
       leads,
       count: leads.length,
+      directCount: leads.filter(l => l.contact_quality === 'direct').length,
+      socialCount: leads.filter(l => l.contact_quality === 'social').length,
+      discoveryCount: leads.filter(l => l.contact_quality === 'discovery').length,
       scannedAt: new Date().toISOString(),
-      pagesScanned: unique.length,
+      ...meta,
     });
 
   } catch (err) {

@@ -3090,13 +3090,22 @@ async function runScan(silent=false){
 
     if(!silent){
       if(!newLeads.length){
-        lscoutAddMsg('ai',`<strong>No new leads found.</strong> Scanned ${data.count||0} event pages — all contacts already exist in your register, or no contact info was extractable. Try adding custom search terms for a different event type.`);
+        // Recovery: never give up — show what was found + diagnostic
+        const direct=data.directCount||0, social=data.socialCount||0, discovery=data.discoveryCount||0;
+        const totalFound=(data.leads||[]).length;
+        const recoveryNote=data.recoveryRan?`<div style="font-size:10.5px;color:var(--accent);margin-top:6px">⚡ Recovery mode ran: ${esc(data.recoveryReason||'')}</div>`:'';
+        if(totalFound){
+          lscoutAddMsg('ai',`<strong style="color:#C9A84C">⚠ ${totalFound} event opportunit${totalFound===1?'y':'ies'} found — all already in your register.</strong><div style="font-size:11px;color:var(--text-muted);margin-top:5px">Direct contacts: ${direct} · Social/web: ${social} · Discovery leads: ${discovery}<br>Scanned ${data.pagesScanned||0} pages · ${data.queriesRun||0} queries run${data.recoveryRan?' · Recovery pass executed':''}</div>${recoveryNote}<div style="font-size:11px;margin-top:8px;color:var(--text-muted)">Try a custom search term to find new event niches, or wait 24h for new listings to appear.</div>`);
+        } else {
+          lscoutAddMsg('ai',`<strong style="color:#C9A84C">⚠ Intelligence failure — no actionable leads surfaced.</strong><div style="font-size:11px;color:var(--text-muted);margin-top:5px">Scanned ${data.pagesScanned||0} pages · ${data.queriesRun||0} queries · Recovery: ${data.recoveryRan?'executed':'not triggered'}</div><div style="font-size:11.5px;margin-top:8px;line-height:1.5">Possible causes:<br>• Event listings not yet published for target dates<br>• Exa date filters excluded relevant pages<br>• Contact info behind login walls<br><br>Try: <em>add a custom term</em> like "Dublin corporate dinner 2026" or "Galway wedding fair" to narrow scope.</div>`);
+        }
       } else {
         // Show summary + lead cards with full intelligence fields
         const scoreColor=s=>s>=70?'#4CAF7D':s>=40?'#C9A84C':'#6B6560';
         const urgencyColor=u=>u==='urgent'?'#E05252':u==='high'?'#C9A84C':u==='pipeline'?'#4B8FD6':'#6B6560';
         const urgencyLabel=u=>u==='urgent'?'🔴 Urgent':u==='high'?'🟡 High':u==='pipeline'?'🔵 Pipeline':u==='long-term'?'⚪ Long-term':'';
         const likelyColor=v=>v==='high'?'#4CAF7D':v==='medium'?'#C9A84C':'#6B6560';
+        const cqBadge=q=>q==='direct'?'<span style="font-size:9px;background:#4CAF7D18;color:#4CAF7D;border:1px solid #4CAF7D30;padding:1px 6px;border-radius:8px;font-weight:700">✉ Direct</span>':q==='social'?'<span style="font-size:9px;background:#5B9BD518;color:#5B9BD5;border:1px solid #5B9BD530;padding:1px 6px;border-radius:8px;font-weight:700">🔗 Social</span>':'<span style="font-size:9px;background:#C9A84C18;color:#C9A84C;border:1px solid #C9A84C30;padding:1px 6px;border-radius:8px;font-weight:700">🔍 Discovery</span>';
         const leadCardsHtml=newLeads.slice(0,6).map(l=>{
           // Parse notes to extract intelligence bits
           const notesParts=(l.notes||'').split(' | ');
@@ -3111,7 +3120,10 @@ async function runScan(silent=false){
           const eventName=getNote('Event');
           return `<div class="lscout-lead-card">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
-              <div class="lscout-lead-name">${esc(l.name)}</div>
+              <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                <div class="lscout-lead-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.name)}</div>
+                ${l.contact_quality?cqBadge(l.contact_quality):''}
+              </div>
               <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
                 ${l.urgency&&urgencyLabel(l.urgency)?`<span style="font-size:9px;font-weight:700;color:${urgencyColor(l.urgency)};background:${urgencyColor(l.urgency)}15;border:1px solid ${urgencyColor(l.urgency)}30;padding:1px 6px;border-radius:8px">${urgencyLabel(l.urgency)}</span>`:''}
                 ${l.lead_score?`<span style="font-size:10px;font-weight:700;color:${scoreColor(l.lead_score)};background:${scoreColor(l.lead_score)}18;border:1px solid ${scoreColor(l.lead_score)}30;padding:1px 7px;border-radius:10px">${l.lead_score}/100</span>`:''}
@@ -3134,7 +3146,12 @@ async function runScan(silent=false){
           </div>`;
         }).join('');
         const moreText=newLeads.length>6?`<div style="font-size:11px;color:var(--text-muted);margin-top:6px">+ ${newLeads.length-6} more added to Lead Register</div>`:'';
-        lscoutAddMsg('ai',`<strong style="color:#4CAF7D">✓ Found ${newLeads.length} new lead${newLeads.length===1?'':'s'}</strong> — sorted by urgency then score. Added to your Lead Register below.${leadCardsHtml}${moreText}`);
+        const directN=newLeads.filter(l=>l.contact_quality==='direct').length;
+        const socialN=newLeads.filter(l=>l.contact_quality==='social').length;
+        const discN=newLeads.filter(l=>l.contact_quality==='discovery').length;
+        const recovNote=data.recoveryRan?`<div style="font-size:10px;color:var(--accent);margin-bottom:6px">⚡ Recovery pass executed — ${esc(data.recoveryReason||'')}</div>`:'';
+        const statsLine=`<div style="font-size:10.5px;color:var(--text-muted);margin-bottom:8px">${data.pagesScanned||0} pages · ${data.queriesRun||0} queries · Direct: ${directN} · Social/web: ${socialN} · Discovery: ${discN}</div>`;
+        lscoutAddMsg('ai',`<strong style="color:#4CAF7D">✓ Found ${newLeads.length} new lead${newLeads.length===1?'':'s'}</strong> — sorted urgency → score. Added to Lead Register.${recovNote}${statsLine}${leadCardsHtml}${moreText}`);
       }
     }
 
