@@ -233,9 +233,9 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const EXA_KEY = process.env.EXA_API_KEY;
-  const GROQ_KEY = process.env.GROQ_API_KEY;
+  const GROQ_KEY = process.env.GROQ_SCRAPER_KEY || process.env.GROQ_API_KEY;
   if (!EXA_KEY || !GROQ_KEY) {
-    return res.status(500).json({ error: 'EXA_API_KEY and GROQ_API_KEY must be set in Vercel environment variables.' });
+    return res.status(500).json({ error: 'EXA_API_KEY and GROQ_SCRAPER_KEY must be set in Vercel environment variables.' });
   }
 
   const body = req.body || {};
