@@ -549,7 +549,7 @@ select.st-input option{background:#1a1a1a}
 .lscout-sched-btn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-muted);font-size:11px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;transition:all 150ms;display:flex;align-items:center;gap:5px}
 .lscout-sched-btn:hover{border-color:rgba(201,168,76,.4);color:var(--accent)}
 .lscout-sched-panel{padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
-.lscout-chat-area{height:320px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+.lscout-chat-area{height:520px;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
 .lscout-chat-area::-webkit-scrollbar{width:4px}
 .lscout-chat-area::-webkit-scrollbar-track{background:transparent}
 .lscout-chat-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
@@ -587,6 +587,12 @@ select.st-input option{background:#1a1a1a}
 .lscout-scan-btn{height:38px;padding:0 18px;background:var(--accent);color:#000;font-size:12.5px;font-weight:700;border:none;border-radius:8px;cursor:pointer;white-space:nowrap;transition:opacity 150ms;display:flex;align-items:center;gap:6px}
 .lscout-scan-btn:hover{opacity:.88}
 .lscout-scan-btn:disabled{opacity:.45;cursor:not-allowed}
+.lscout-mic-btn{width:38px;height:38px;flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);transition:all 150ms}
+.lscout-mic-btn:hover{color:var(--text);border-color:rgba(201,168,76,.4)}
+.lscout-mic-btn.listening{color:#E05252;border-color:#E05252;background:rgba(224,82,82,.08);animation:lscout-pulse 1s ease infinite}
+.ai-mic-btn{width:32px;height:32px;flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);transition:all 150ms}
+.ai-mic-btn:hover{color:var(--text);border-color:rgba(201,168,76,.4)}
+.ai-mic-btn.listening{color:#E05252;border-color:#E05252;animation:lscout-pulse 1s ease infinite}
 .lscout-pending-banner{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:rgba(201,168,76,.08);border-bottom:1px solid rgba(201,168,76,.2)}
 /* Divider inside chat */
 .lscout-divider{text-align:center;font-size:10px;color:var(--text-muted);opacity:.5;padding:2px 0}
@@ -825,7 +831,7 @@ select.st-input option{background:#1a1a1a}
 
   /* ──────────────────────────────────
      LEAD GEN — Chat card mobile */
-  .lscout-chat-area{height:220px!important}
+  .lscout-chat-area{height:300px!important}
   .lscout-footer{padding:10px 12px!important}
   .lscout-header{padding:12px 14px 10px!important}
   .lscout-bubble{max-width:100%!important;font-size:12px!important}
@@ -1425,7 +1431,10 @@ select.st-input option{background:#1a1a1a}
 
           <!-- Input footer -->
           <div class="lscout-footer">
-            <input class="lscout-input" type="text" id="scan-custom-terms" placeholder="Custom search: charity ball Dublin, tech summit Cork, wedding expo…">
+            <button class="lscout-mic-btn" id="scout-mic-btn" onclick="startVoice('scan-custom-terms','scout-mic-btn')" title="Speak your search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <input class="lscout-input" type="text" id="scan-custom-terms" placeholder="Custom search: charity ball Dublin, tech summit Cork…" onkeydown="if(event.key==='Enter')runScan()">
             <button class="lscout-scan-btn" id="scan-now-btn" onclick="runScan()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               Scan Now
@@ -1548,29 +1557,35 @@ select.st-input option{background:#1a1a1a}
             <div class="ai-title">360 Booth AI Advisor</div>
             <div class="ai-sub">Your private business intelligence — powered by Groq & LLaMA</div>
             <div class="ai-input-wrap">
-              <textarea class="ai-textarea" id="ai-main-input" placeholder="Ask about your bookings, write a quote, analyse revenue, get business advice…" rows="3" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendFromWelcome()}"></textarea>
+              <textarea class="ai-textarea" id="ai-main-input" placeholder="Ask about your bookings, leads, revenue, write a quote…" rows="3" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendFromWelcome()}"></textarea>
+              <button class="ai-mic-btn" id="ai-main-mic-btn" style="position:absolute;left:10px;bottom:10px;z-index:2" onclick="startVoice('ai-main-input','ai-main-mic-btn',sendFromWelcome)" title="Speak">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
               <button class="ai-send-btn" onclick="sendFromWelcome()"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
             </div>
             <div class="ai-chips">
-              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Write a quote for a new enquiry</div>
-              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>Strongest performing service analysis</div>
-              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Draft follow-up email for enquiry</div>
               <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>What should I action this week?</div>
-              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Pricing advice for corporate events</div>
-              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20"/></svg>Instagram content ideas for this week</div>
-              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Portfolio revenue review</div>
+              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>How many leads did we scrape this week?</div>
+              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>When is the next scheduled scan?</div>
+              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>Revenue and bookings summary</div>
+              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Write a quote for a new enquiry</div>
+              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Which pipeline leads should I chase?</div>
+              <div class="ai-chip" onclick="sendAIChip(this)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>Draft outreach email for a scraped lead</div>
             </div>
           </div>
           <div id="ai-chat-screen" style="display:none;flex:1;flex-direction:column;overflow:hidden">
             <div class="ai-chat-area" id="ai-chat-area"></div>
             <div class="ai-bottom">
               <div class="ai-bottom-row">
-                <textarea class="ai-bottom-inp" id="ai-chat-input" placeholder="Ask anything about your business…" rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIChat()}"></textarea>
+                <button class="ai-mic-btn" id="ai-mic-btn" onclick="startVoice('ai-chat-input','ai-mic-btn',sendAIChat)" title="Speak your question">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </button>
+                <textarea class="ai-bottom-inp" id="ai-chat-input" placeholder="Ask anything — bookings, leads, revenue, next scan…" rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIChat()}"></textarea>
                 <button class="ai-send-btn" style="position:relative;width:30px;height:30px;flex-shrink:0" onclick="sendAIChat()"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
               </div>
               <div style="display:flex;gap:10px;margin-top:8px">
                 <button class="btn-sm" style="font-size:10px" onclick="resetAIChat()">New Chat</button>
-                <span style="font-size:10px;color:var(--text-subtle);padding-top:2px">Groq LLaMA 3.3 70B — reads your live business data</span>
+                <span style="font-size:10px;color:var(--text-subtle);padding-top:2px">Groq LLaMA 3.3 70B · Reads all live dashboard data</span>
               </div>
             </div>
           </div>
@@ -2834,6 +2849,8 @@ function createInvFromBk(id){const b=DB.get('bookings').find(x=>x.id===id);if(b)
 function renderLeadGen(){
   loadScanConfig();
   loadPendingEventLeads();
+  // Restore Lead Scout chat history from localStorage
+  restoreScoutChat();
   const leads=DB.get('leads'),s=gs();
   const now=new Date(),mo=now.getMonth(),yr=now.getFullYear();
   const moLeads=leads.filter(l=>{const d=new Date(l.date||l.createdAt||0);return d.getMonth()===mo&&d.getFullYear()===yr});
@@ -3000,6 +3017,8 @@ function lscoutAddMsg(role,html){
   div.innerHTML=`<div class="lscout-msg-avatar ${isUser?'user':'ai'}">${isUser?'360':'🤖'}</div><div class="lscout-bubble${isUser?' user-bubble':''}">${html}</div>`;
   chat.appendChild(div);
   chat.scrollTop=chat.scrollHeight;
+  // Persist chat to localStorage — restore on next load
+  setTimeout(saveScoutChat,100);
   return div;
 }
 
@@ -3553,25 +3572,57 @@ async function fetchAndSeedGroqKey(){
 }
 
 function buildCtx(){
-  const s=gs(),m=getMetrics(),bk=DB.get('bookings'),inv=DB.get('invoices'),enq=DB.get('enquiries'),now=new Date();
-  let c=`You are the AI assistant for ${s.bizname||'360 Booth Ireland'}, a premium photo booth hire business${s.location?' based in '+s.location:''}. Run by ${s.owner||'Michael'}.`;
+  const s=gs(),m=getMetrics(),bk=DB.get('bookings'),inv=DB.get('invoices'),enq=DB.get('enquiries'),leads=DB.get('leads'),now=new Date();
+  let c=`You are the AI Business Advisor for ${s.bizname||'360 Booth Ireland'}, a premium photo booth hire company${s.location?' based in '+s.location:''}. Run by ${s.owner||'the owner'}.`;
   if(s.bio)c+=` ${s.bio}`;
   if(s.email)c+=` Contact: ${s.email}${s.phone?', '+s.phone:''}.`;
   if(s.website)c+=` Website: ${s.website}.`;
   const pricing=[['price360','360 Booth'],['priceMirror','Selfie Mirror'],['pricePhoto','Photo Booth'],['priceMag','Magazine Booth'],['priceVintage','Vintage Booth'],['priceExtra','Extra Hour']].filter(([k])=>s[k]).map(([k,n])=>`${n}: \u20AC${s[k]}`).join(', ');
   if(pricing)c+=` Pricing: ${pricing}.`;
-  c+=`\n\nLIVE DATA (${now.toLocaleDateString('en-IE',{day:'numeric',month:'long',year:'numeric'})}):`+
-    `\n\u2022 Revenue this month: ${fmtC(m.moRev)} | All-time: ${fmtC(m.totalRev)}`+
-    `\n\u2022 Total bookings: ${m.totalBk} | ${m.allUpcoming.length} upcoming`+
-    `\n\u2022 Open enquiries: ${m.openEnq} (${enq.filter(e=>e.stage==='new').length} new)`+
-    `\n\u2022 Outstanding invoices: ${fmtC(m.outstanding)} | ${m.overdueCount} overdue`+
-    `\n\u2022 Total clients: ${m.clientCount}`;
+
+  // Bookings & revenue
+  c+=`\n\nLIVE DASHBOARD DATA (${now.toLocaleDateString('en-IE',{day:'numeric',month:'long',year:'numeric'})}):`;
+  c+=`\n\u2022 Revenue this month: ${fmtC(m.moRev)} | All-time: ${fmtC(m.totalRev)}`;
+  c+=`\n\u2022 Total bookings: ${m.totalBk} | Upcoming: ${m.allUpcoming.length} | Confirmed: ${bk.filter(b=>b.status==='Confirmed').length} | Completed: ${bk.filter(b=>b.status==='Completed').length}`;
   if(m.upcoming.length)c+=`\n\u2022 Next events: ${m.upcoming.slice(0,3).map(b=>`${b.client} (${b.service}) ${fmtSD(b.eventDate)}`).join(', ')}`;
+
+  // Pipeline / enquiries
+  c+=`\n\u2022 Open enquiries: ${m.openEnq} total (${enq.filter(e=>e.stage==='new').length} new, ${enq.filter(e=>e.stage==='quoted').length} quoted, ${enq.filter(e=>e.stage==='negotiating').length} negotiating, ${enq.filter(e=>e.stage==='won').length} won, ${enq.filter(e=>e.stage==='lost').length} lost)`;
   const newEnqs=enq.filter(e=>e.stage==='new').slice(0,3);
   if(newEnqs.length)c+=`\n\u2022 New pipeline: ${newEnqs.map(e=>`${e.name} (${e.service||''}${e.estimatedValue?', ~\u20AC'+e.estimatedValue:''})`).join(', ')}`;
+
+  // Invoices
+  c+=`\n\u2022 Outstanding invoices: ${fmtC(m.outstanding)} | ${m.overdueCount} overdue`;
   const overdueInvs=inv.filter(i=>i.status==='Overdue');
   if(overdueInvs.length)c+=`\n\u2022 Overdue: ${overdueInvs.map(i=>`${i.number} ${i.client} ${fmtC(i.amount)}`).join(', ')}`;
-  c+=`\n\nBe concise, specific, and actionable. Use \u2022 bullet points. Address ${s.owner?.split(' ')[0]||'Michael'} by first name.`;
+
+  // Lead Gen / Lead Scout intelligence
+  const scanLeads=leads.filter(l=>l.source==='Event Scrape');
+  const oneWeekAgo=Date.now()-7*86400000;
+  const oneMonthAgo=Date.now()-30*86400000;
+  const scanThisWeek=scanLeads.filter(l=>l.createdAt>oneWeekAgo).length;
+  const scanThisMonth=scanLeads.filter(l=>l.createdAt>oneMonthAgo).length;
+  const directLeads=scanLeads.filter(l=>l.contact_quality==='direct').length;
+  const highScoreLeads=scanLeads.filter(l=>(l.lead_score||0)>=70).length;
+  const urgentLeads=scanLeads.filter(l=>l.urgency==='urgent').length;
+  const scanCfg=JSON.parse(localStorage.getItem('b360_scan_config')||'{}');
+  c+=`\n\u2022 Lead Scout \u2014 Total scraped leads: ${scanLeads.length} | This week: ${scanThisWeek} | This month: ${scanThisMonth}`;
+  c+=`\n\u2022 Lead quality: ${directLeads} direct contacts | ${highScoreLeads} high-score (70+) | ${urgentLeads} urgent (event <14 days)`;
+  if(scanCfg.last_run_at)c+=`\n\u2022 Last scan: ${new Date(scanCfg.last_run_at).toLocaleDateString('en-IE')} \u2014 found ${scanCfg.last_leads_found||0} leads`;
+  if(scanCfg.next_run_at)c+=`\n\u2022 Next scheduled scan: ${new Date(scanCfg.next_run_at).toLocaleDateString('en-IE')}`;
+  if(scanCfg.schedule_type)c+=` (${scanCfg.schedule_type})`;
+
+  // Conversion funnel
+  const totalLeads=leads.length;
+  const leadsToEnq=enq.filter(e=>e.source==='Lead Scout'||e.source==='Event Scrape').length;
+  const enqToBook=bk.filter(b=>b.source==='Lead Scout'||b.source==='Event Scrape').length;
+  c+=`\n\u2022 Conversion funnel: ${totalLeads} total leads \u2192 ${enq.length} enquiries \u2192 ${bk.length} bookings`;
+  if(leadsToEnq)c+=` (${leadsToEnq} enquiries from Lead Scout, ${enqToBook} bookings from Lead Scout)`;
+
+  // Client count
+  c+=`\n\u2022 Total clients: ${m.clientCount}`;
+
+  c+=`\n\nYou have FULL access to all dashboard data above. When asked about leads, scans, bookings, revenue, pipeline, or schedule \u2014 answer using the specific numbers. Be concise, specific, and actionable. Use \u2022 bullet points. Address ${s.owner?.split(' ')[0]||'the owner'} by first name.`;
   return c;
 }
 
@@ -3609,6 +3660,41 @@ async function generateInsight(page){
 // AI CHAT
 // ══════════════════════════════════
 let aiChatHistory=[];
+
+// ── Voice input — shared across Lead Scout and AI Adviser ────────────────────
+let _voiceRecognition=null;
+function startVoice(inputId,btnId,onComplete){
+  const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRec){showToast('Voice not supported in this browser (try Chrome)');return}
+  const btn=document.getElementById(btnId);
+  if(_voiceRecognition){_voiceRecognition.abort();_voiceRecognition=null;if(btn)btn.classList.remove('listening');return}
+  const rec=new SpeechRec();
+  _voiceRecognition=rec;
+  rec.lang='en-IE';rec.continuous=false;rec.interimResults=false;
+  if(btn)btn.classList.add('listening');
+  rec.onresult=e=>{
+    const t=e.results[0][0].transcript;
+    const inp=document.getElementById(inputId);
+    if(inp){inp.value=t;inp.focus();}
+    if(btn)btn.classList.remove('listening');
+    _voiceRecognition=null;
+    if(onComplete)onComplete();
+  };
+  rec.onerror=rec.onend=()=>{if(btn)btn.classList.remove('listening');_voiceRecognition=null;};
+  rec.start();
+}
+
+// ── Lead Scout chat memory ───────────────────────────────────────────────────
+const SCOUT_CHAT_KEY='b360_scout_chat';
+function saveScoutChat(){
+  const chat=document.getElementById('scan-chat-area');
+  if(chat)localStorage.setItem(SCOUT_CHAT_KEY,chat.innerHTML);
+}
+function restoreScoutChat(){
+  const saved=localStorage.getItem(SCOUT_CHAT_KEY);
+  const chat=document.getElementById('scan-chat-area');
+  if(saved&&chat){chat.innerHTML=saved;chat.scrollTop=chat.scrollHeight;}
+}
 
 function initAIPage(){
   const k=groqKey();

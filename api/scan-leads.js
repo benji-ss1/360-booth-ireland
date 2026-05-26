@@ -161,29 +161,32 @@ function calcUrgency(eventDate) {
   } catch { return 'unknown'; }
 }
 
-// Any lead with actionable intelligence is worth keeping — not just email/phone
+// Classify contact quality — never discard a lead that has any event intelligence
 function getContactQuality(e) {
   if (e.email || e.phone) return 'direct';
   if (e.linkedin || e.instagram || e.website) return 'social';
-  if ((e.organizer_name || e.company) && (e.lead_score || 0) >= 30) return 'discovery';
-  return null; // discard
+  if (e.organizer_name || e.company) return 'discovery';
+  if (e.event_name && (e.lead_score || 0) >= 15) return 'event-only';
+  return null;
 }
 
+// Keep any lead with a quality tier — even event-only leads can be researched
 function hasActionableContact(lead) {
-  return lead.contact_quality && lead.contact_quality !== null;
+  return lead.contact_quality !== null;
 }
 
 // ── Exa: standard semantic search ────────────────────────────────────────────
 async function exaSearch(query, extraDomains, exaKey, opts = {}) {
-  const today = new Date().toISOString().slice(0, 10);
-  const nextYear = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // Event listings are published BEFORE the event — search from 90 days ago, not today
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+  const eighteenMonths = new Date(Date.now() + 548 * 86400000).toISOString().slice(0, 10);
   const domains = extraDomains?.length ? [...EVENT_DOMAINS, ...extraDomains] : EVENT_DOMAINS;
   const body = {
     query,
     type: 'auto',
     numResults: opts.numResults || 10,
-    startPublishedDate: opts.startDate || today,
-    endPublishedDate: opts.endDate || nextYear,
+    startPublishedDate: opts.startDate || ninetyDaysAgo,
+    endPublishedDate: opts.endDate || eighteenMonths,
     contents: { highlights: true },
   };
   // Recovery mode: don't restrict to known domains — search the open web
