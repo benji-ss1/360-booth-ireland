@@ -744,75 +744,92 @@ select.st-input option{background:#1a1a1a}
   #app{flex-direction:column}
   #sidebar{display:none}
   #main{height:calc(100vh - 56px);overflow-y:auto;padding-bottom:56px}
-  /* Bottom navigation bar */
+
+  /* ── Bottom nav bar ── */
   #mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--sidebar-bg);border-top:1px solid var(--border);z-index:9000;align-items:stretch}
   .mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text-subtle);font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;border:none;background:none;padding:6px 0;position:relative;transition:color 150ms}
   .mob-nav-btn.active{color:var(--accent)}
   .mob-nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .mob-nav-badge{position:absolute;top:6px;right:calc(50% - 16px);background:var(--accent);color:#000;font-size:8px;font-weight:800;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px}
-  /* Pages */
-  .page{padding:12px}
-  .page-header{flex-direction:column;align-items:flex-start;gap:10px;padding-bottom:12px}
-  .page-header>div:last-child{width:100%;justify-content:flex-start}
-  /* KPI row wraps to 2 cols */
-  .kpi-row{grid-template-columns:repeat(2,1fr)!important}
-  /* Cards full width */
-  .card{padding:14px}
-  /* Tables scroll horizontally */
+
+  /* ── Pages ── */
+  .page{padding:10px}
+  .page-header{flex-direction:column;align-items:flex-start;gap:8px;padding-bottom:10px}
+  .page-header-title{font-size:18px!important}
+  .page-header>div:last-child{width:100%;justify-content:flex-start;flex-wrap:wrap;gap:6px}
+
+  /* ── Cards & KPIs ── */
+  .kpi-row{grid-template-columns:repeat(2,1fr)!important;gap:8px!important}
+  .kpi{padding:12px!important}
+  .kpi-value{font-size:24px!important}
+  .card{padding:12px}
+  .chart-row{grid-template-columns:1fr!important;gap:8px!important}
+  .ig-stats-row{grid-template-columns:repeat(3,1fr)!important;gap:6px!important}
+  .ig-stat{padding:10px!important}
+  .ig-stat-val{font-size:20px!important}
+
+  /* ── Tables ── */
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{min-width:500px}
-  /* Hub full-screen on mobile */
-  .page[data-page="hub"]{padding:0;height:100%}
-  .hub-shell{flex-direction:column;height:100%}
-  .ws-sidebar{display:none}
-  .hub-main{flex-direction:column}
-  /* Gmail mobile: list full width, reading pane slides over */
-  .hub-email-list-pane{width:100%!important;border-right:none!important}
-  .hub-email-right{position:fixed;inset:0;z-index:8000;background:var(--background);transform:translateX(100%);transition:transform 280ms cubic-bezier(.4,0,.2,1);display:flex!important;flex-direction:column}
-  .hub-email-right.mob-open{transform:translateX(0)}
-  #email-detail-panel,#compose-panel{height:100%;overflow-y:auto}
-  /* Hub app icons as horizontal scroll row */
-  .hub-shell>.hub-sidebar{width:100%!important;min-width:unset!important;border-right:none!important;border-bottom:1px solid var(--border);flex-direction:row!important;overflow-x:auto;padding:8px!important;gap:4px!important;flex-shrink:0}
-  .hub-nav-item{flex-direction:row!important;min-width:unset!important;padding:6px 12px!important;white-space:nowrap;border-radius:20px!important}
-  .hub-sidebar-header{display:none}
-  .hub-sidebar-label{display:none}
-  /* Settings mobile */
-  .page[data-page="settings"]{padding:0;height:100%;overflow-y:auto}
-  .settings-layout{flex-direction:column!important}
-  .settings-sidebar{width:100%!important;border-right:none!important;border-bottom:1px solid var(--border);flex-direction:row!important;overflow-x:auto;white-space:nowrap;padding:8px 12px!important;display:flex;gap:4px}
-  .settings-nav-label{display:none}
-  .settings-nav-item{display:inline-flex;padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-size:12px;min-width:unset;margin:0}
-  .settings-nav-item.active{background:rgba(201,168,76,.12);border-color:rgba(201,168,76,.35);color:var(--accent)}
-  .settings-content{padding:14px}
-  .st-row{flex-direction:column!important;gap:10px!important}
-  .st-field{width:100%!important}
-  /* Integrations grid */
-  .int-grid{grid-template-columns:1fr!important}
-  /* Hub toolbar */
-  .hub-toolbar{flex-wrap:wrap;gap:6px}
-  /* Sign-in card */
-  .signin-card{padding:28px 20px;width:calc(100% - 32px)}
-  /* Compose panel */
-  #compose-panel{padding:12px}
-  /* Modal full screen on mobile */
-  .modal-card{width:calc(100vw - 24px)!important;max-height:85vh;overflow-y:auto}
-  /* Credential modal */
-  .creds-modal-card{width:calc(100vw - 32px);padding:24px 20px}
-  /* Chart/stat rows stack on mobile */
-  .chart-row{grid-template-columns:1fr!important}
-  .ig-stats-row{grid-template-columns:repeat(3,1fr)!important}
-  /* Bookings/enquiries grids */
+  table{min-width:480px}
+
+  /* ── Modals ── */
+  .modal-card{width:calc(100vw - 20px)!important;max-height:88vh;overflow-y:auto}
+  .creds-modal-card{width:calc(100vw - 28px);padding:20px 16px}
+  #compose-panel{padding:10px}
+
+  /* ── Sign-in ── */
+  .signin-card{padding:24px 16px;width:calc(100% - 28px)}
+
+  /* ── Grids ── */
   [style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr!important}
   [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
-  /* Event Scanner buttons full-width on mobile */
-  #event-scanner-card [style*="justify-content:flex-end"]{flex-direction:column!important;align-items:stretch!important}
-  #event-scanner-card [style*="justify-content:flex-end"] button{width:100%!important;justify-content:center}
-  /* Scan overlay fits small screens */
-  #scan-overlay>div{min-width:unset!important;width:calc(100vw - 48px)!important;padding:24px 20px!important}
-  /* Scan confirm modal fits small screens */
-  #scan-confirm-overlay>div{width:calc(100vw - 32px)!important;padding:24px 20px!important}
-  /* Lead Gen page header buttons wrap */
-  .page[data-page="leadgen"] .page-header>div:last-child{flex-wrap:wrap}
+
+  /* ──────────────────────────────────
+     SETTINGS — CRITICAL FIX
+     settings-wrap is display:flex (row by default).
+     On mobile the sidebar takes width:100%, leaving 0px for content.
+     Fix: stack vertically and give content area scroll. */
+  .page[data-page="settings"]{padding:0;height:100%;overflow:hidden}
+  .settings-wrap{flex-direction:column!important;height:100%!important;border-radius:0!important;border-left:none!important;border-right:none!important;border-top:none!important;overflow:hidden}
+  .settings-sidebar{width:100%!important;border-right:none!important;border-bottom:1px solid var(--border)!important;flex-direction:row!important;overflow-x:auto!important;overflow-y:hidden!important;white-space:nowrap;padding:10px 12px!important;display:flex!important;gap:6px!important;flex-shrink:0;height:auto!important;min-height:unset}
+  .settings-nav-label{display:none}
+  .settings-nav-item{display:inline-flex!important;padding:7px 16px;border-radius:20px;border:1px solid var(--border);font-size:12.5px;min-width:unset;margin:0;flex-shrink:0}
+  .settings-nav-item.active{background:rgba(201,168,76,.12);border-color:rgba(201,168,76,.35);color:var(--accent)}
+  .settings-content{flex:1!important;overflow-y:auto!important;padding:14px!important;-webkit-overflow-scrolling:touch}
+  .st-row{flex-direction:column!important;gap:10px!important}
+  .st-field{width:100%!important}
+  .int-grid{grid-template-columns:1fr!important}
+
+  /* ──────────────────────────────────
+     HUB — CRITICAL FIX
+     Gmail panel uses grid-template-columns:1fr 400px.
+     On a 390px phone the 400px right pane destroys layout.
+     Fix: collapse to single column, right pane slides in. */
+  .page[data-page="hub"]{padding:0;height:100%;overflow:hidden}
+  .hub-shell{flex-direction:column!important;height:100%}
+  .ws-sidebar{display:none!important}
+  .hub-main{flex:1!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;min-height:0}
+  .hub-shell>.hub-sidebar{width:100%!important;min-width:unset!important;border-right:none!important;border-bottom:1px solid var(--border)!important;flex-direction:row!important;overflow-x:auto!important;padding:6px 8px!important;gap:4px!important;flex-shrink:0!important;height:auto!important}
+  .hub-nav-item{flex-direction:row!important;min-width:unset!important;padding:6px 12px!important;white-space:nowrap;border-radius:20px!important;border-left:none!important;font-size:11.5px!important}
+  .hub-sidebar-header,.hub-sidebar-label{display:none!important}
+  /* Email list fills full width; right pane slides in from right */
+  [style*="grid-template-columns:1fr 400px"]{display:flex!important;flex-direction:column!important;height:100%!important}
+  .hub-email-list-pane{width:100%!important;border-right:none!important;flex:1;overflow:hidden;display:flex!important;flex-direction:column!important;min-height:0}
+  .hub-email-list{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
+  .hub-email-right{position:fixed!important;inset:0!important;z-index:8000!important;background:var(--background)!important;transform:translateX(100%);transition:transform 280ms cubic-bezier(.4,0,.2,1);display:flex!important;flex-direction:column!important}
+  .hub-email-right.mob-open{transform:translateX(0)}
+  #email-detail-panel,#compose-panel{height:100%;overflow-y:auto}
+  .hub-toolbar{flex-wrap:wrap;gap:6px;padding:8px 10px}
+  .hub-tabs{padding:0 10px}
+
+  /* ──────────────────────────────────
+     LEAD GEN — Chat card mobile */
+  .lscout-chat-area{height:220px!important}
+  .lscout-footer{padding:10px 12px!important}
+  .lscout-header{padding:12px 14px 10px!important}
+  .lscout-bubble{max-width:100%!important;font-size:12px!important}
+  .lscout-lead-card{padding:8px 10px!important}
+  .lscout-sources{display:none}
 }
 @media(min-width:769px){#mobile-nav{display:none}}
 </style>
@@ -1359,19 +1376,9 @@ select.st-input option{background:#1a1a1a}
               <div class="lscout-msg-avatar ai">&#x1F916;</div>
               <div class="lscout-bubble">
                 <div style="font-weight:600;margin-bottom:4px">Lead Scout ready.</div>
-                I'll search across <strong>20+ Irish event sources</strong> — Eventbrite, Meetup, Dice, Skiddle, Ticketmaster, Resident Advisor, 10Times, AllEvents and more — then use AI to extract organiser names, emails and phone numbers.
+                Searching <strong>25+ Irish event platforms</strong> with recursive discovery — each result fans out to find more related events. Leads are scored 0–100 by booking probability and sorted by value.
                 <div class="lscout-sources" style="margin-top:8px">
-                  <span class="lscout-source-tag">eventbrite.ie</span>
-                  <span class="lscout-source-tag">meetup.com</span>
-                  <span class="lscout-source-tag">dice.fm</span>
-                  <span class="lscout-source-tag">skiddle.com</span>
-                  <span class="lscout-source-tag">ticketmaster.ie</span>
-                  <span class="lscout-source-tag">residentadvisor.net</span>
-                  <span class="lscout-source-tag">10times.com</span>
-                  <span class="lscout-source-tag">allevents.in</span>
-                  <span class="lscout-source-tag">songkick.com</span>
-                  <span class="lscout-source-tag">universe.com</span>
-                  <span class="lscout-source-tag">+ more</span>
+                  <span class="lscout-source-tag">eventbrite</span><span class="lscout-source-tag">meetup</span><span class="lscout-source-tag">dice.fm</span><span class="lscout-source-tag">skiddle</span><span class="lscout-source-tag">ticketmaster</span><span class="lscout-source-tag">residentadvisor</span><span class="lscout-source-tag">lu.ma</span><span class="lscout-source-tag">fever</span><span class="lscout-source-tag">humanitix</span><span class="lscout-source-tag">10times</span><span class="lscout-source-tag">allevents</span><span class="lscout-source-tag">universe</span><span class="lscout-source-tag">songkick</span><span class="lscout-source-tag">fatsoma</span><span class="lscout-source-tag">+ more</span>
                 </div>
               </div>
             </div>
@@ -3047,8 +3054,12 @@ async function runScan(silent=false){
         lscoutAddMsg('ai',`<strong>No new leads found.</strong> Scanned ${data.count||0} event pages — all contacts already exist in your register, or no contact info was extractable. Try adding custom search terms for a different event type.`);
       } else {
         // Show summary + lead cards
+        const scoreColor=s=>s>=70?'#4CAF7D':s>=40?'#C9A84C':'#6B6560';
         const leadCardsHtml=newLeads.slice(0,6).map(l=>`<div class="lscout-lead-card">
-          <div class="lscout-lead-name">${esc(l.name)}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px">
+            <div class="lscout-lead-name">${esc(l.name)}</div>
+            ${l.lead_score?`<span style="font-size:10px;font-weight:700;color:${scoreColor(l.lead_score)};background:${scoreColor(l.lead_score)}18;border:1px solid ${scoreColor(l.lead_score)}30;padding:1px 7px;border-radius:10px;flex-shrink:0">${l.lead_score}/100</span>`:''}
+          </div>
           ${l.email?`<div class="lscout-lead-detail"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${esc(l.email)}</div>`:''}
           ${l.phone?`<div class="lscout-lead-detail"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.69 12a19.79 19.79 0 01-3.07-8.67A2 2 0 013.6 1.19h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-.85a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>${esc(l.phone)}</div>`:''}
           <div class="lscout-lead-detail" style="font-size:10.5px;margin-top:2px;opacity:.6">${esc(l.service||'360 Booth')}</div>
