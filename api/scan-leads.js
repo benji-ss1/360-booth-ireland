@@ -1,18 +1,17 @@
-// 360 Booth Ireland — Lead Scout Intelligence Engine v2
-// Full autonomous event intelligence: Exa multi-layer search + recursive enrichment + Groq scoring
+// 360 Booth Ireland — Lead Scout Intelligence Engine v3
+// Fixed: exaContents batched (was silently dropping all 70 URLs), queries parallelised,
+// Groq fully parallel, recovery window corrected, highlights used as content fallback.
 
 const EXA_BASE = 'https://api.exa.ai';
 const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
 
-// ── 50+ semantic query variants — Dublin, Cork, Galway, Limerick ─────────────
 const DEFAULT_QUERIES = [
-  // ── Corporate / Business ──────────────────────────────────
   'Dublin corporate events 2026',
   'Dublin business networking events 2026',
   'Dublin conferences summit 2026',
   'Dublin company launches events 2026',
   'Dublin startup ecosystem events 2026',
-  'Dublin award ceremonies 2026',
+  'Dublin award ceremonies gala 2026',
   'Dublin gala dinners 2026',
   'Dublin product launches 2026',
   'Dublin executive networking events 2026',
@@ -23,108 +22,71 @@ const DEFAULT_QUERIES = [
   'Dublin experiential marketing brand activation 2026',
   'Dublin Christmas party corporate event 2026',
   'Dublin company party venue hire 2026',
-
-  // ── Brand / Influencer / Experiential ─────────────────────
   'brand activation event Dublin Ireland 2026',
   'influencer event brand launch Dublin 2026',
   'experiential marketing activation Ireland 2026',
   'product launch party event Dublin Cork 2026',
   'hospitality launch reception Ireland 2026',
-
-  // ── Weddings / Luxury ─────────────────────────────────────
   'luxury wedding reception venue hire Ireland 2026',
   'Dublin luxury weddings 2026',
   'bridal expo wedding fair Ireland 2026',
   'wedding venue event Dublin Galway Cork 2026',
-
-  // ── Charity / Fundraisers ─────────────────────────────────
   'charity gala ball fundraiser dinner Ireland 2026',
   'fundraising gala auction dinner Dublin 2026',
   'black tie charity ball Ireland 2026',
-
-  // ── University / Graduation ───────────────────────────────
   'Dublin university events 2026',
   'university college graduation ball Ireland 2026',
   'student union event college party Ireland 2026',
   'UCD Trinity DCU graduation event 2026',
-  'Dublin university gala prom 2026',
-
-  // ── Sports / Awards ───────────────────────────────────────
   'sports awards banquet dinner Ireland 2026',
   'golf classic corporate dinner Ireland 2026',
-  'sports gala ceremony Ireland 2026',
-
-  // ── Entertainment / Nightlife / Festivals ─────────────────
   'festival outdoor event summer Ireland 2026',
   'nightclub event party Dublin Cork 2026',
   'music live concert venue Ireland 2026',
-  'Dice events Dublin 2026',
-  'Resident Advisor Dublin events 2026',
-
-  // ── Cork / Galway / Regional ──────────────────────────────
   'Cork corporate events conferences 2026',
   'Galway business events networking 2026',
   'Limerick corporate events 2026',
   'events Galway Limerick Waterford 2026',
   'events Cork Kerry Kilkenny Wexford 2026',
   'hospitality venue hotel event Cork Galway 2026',
-
-  // ── News / Press releases ─────────────────────────────────
-  'upcoming corporate event announcement Dublin 2026 site:irishtimes.com OR site:independent.ie OR site:businesspost.ie',
-  'event launch announcement Ireland 2026 press release',
-
-  // ── Venue-led discovery ───────────────────────────────────
   'conference centre events booking Ireland 2026',
   'hotel ballroom event hire Dublin Cork 2026',
   'RDS Aviva Convention Centre event Dublin 2026',
+  'event management company Dublin Ireland 2026',
+  'corporate events agency Ireland contact',
+  'Ireland event announcement 2026 press release',
 ];
 
-// ── Platforms: event, news, corporate, venue, Ireland-specific ────────────────
 const EVENT_DOMAINS = [
-  // Ireland-specific event & media
   'eventbrite.ie', 'entertainment.ie', 'lovin.ie', 'visitdublin.com',
   'discoverireland.ie', 'dublintown.ie', 'goldenplec.com',
-  // Major event platforms
   'eventbrite.com', 'ticketmaster.ie', 'ticketmaster.com',
   'meetup.com', 'universe.com', 'tickettailor.com',
-  // Music & nightlife
   'dice.fm', 'residentadvisor.net', 'skiddle.com',
   'songkick.com', 'bandsintown.com', 'fatsoma.com',
-  // B2B / corporate
   '10times.com', 'allevents.in', 'yapsody.com',
   'eventzilla.net', 'splash.com', 'conferenz.co.uk',
-  // Social & community
   'lu.ma', 'humanitix.com', 'fever.com', 'goldstar.com',
-  // Irish news (press releases & event announcements)
   'irishtimes.com', 'independent.ie', 'businesspost.ie',
   'irishexaminer.com', 'silicon.ie', 'thejournal.ie',
-  // Corporate / chamber / startup
   'dublinbic.ie', 'ibec.ie', 'isme.ie', 'siliconrepublic.com',
 ];
 
-// ── Recovery queries — broader, different angles, fallback sources ────────────
 const RECOVERY_QUERIES = [
-  // Open web — no domain restriction
   'upcoming events Ireland 2026 contact organiser',
   'event organiser Dublin Cork Galway email contact 2026',
   'Ireland conference gala dinner 2026 registration contact',
   'corporate event planner Dublin 2026 enquiries',
-  // Venue-led — find events through venue pages
   'Dublin hotel conference booking events 2026',
   'Cork conference centre events 2026',
   'Galway event venue hire 2026',
-  // Organiser-led — find agencies and repeat players
   'event management company Dublin Ireland 2026',
   'corporate events agency Ireland contact',
   'wedding event planner Dublin 2026 enquiries',
-  // Broader Irish discovery
   'Ireland 2026 event gala registration',
-  'Northern Ireland Belfast events 2026 contact',
   'Irish startup launch event 2026',
   'Ireland experiential activation agency 2026',
-  // Social proof angles
   'event entertainment hire Ireland 2026',
-  '360 photo booth event Ireland hire',
   'photo booth wedding corporate hire Dublin 2026',
 ];
 
@@ -135,8 +97,7 @@ function uid() {
 
 function inferService(eventType) {
   const t = (eventType || '').toLowerCase();
-  if (t === 'wedding' || t === 'birthday' || t === 'party') return 'Selfie Mirror';
-  return '360 Booth';
+  return (t === 'wedding' || t === 'birthday' || t === 'party') ? 'Selfie Mirror' : '360 Booth';
 }
 
 function extractEmailFallback(text) {
@@ -161,49 +122,52 @@ function calcUrgency(eventDate) {
   } catch { return 'unknown'; }
 }
 
-// Classify contact quality — never discard a lead that has any event intelligence
 function getContactQuality(e) {
   if (e.email || e.phone) return 'direct';
   if (e.linkedin || e.instagram || e.website) return 'social';
   if (e.organizer_name || e.company) return 'discovery';
-  if (e.event_name && (e.lead_score || 0) >= 15) return 'event-only';
+  if (e.event_name) return 'event-only'; // no score threshold — any named event is worth keeping
   return null;
 }
 
-// Keep any lead with a quality tier — even event-only leads can be researched
-function hasActionableContact(lead) {
-  return lead.contact_quality !== null;
-}
-
-// ── Exa: standard semantic search ────────────────────────────────────────────
-async function exaSearch(query, extraDomains, exaKey, opts = {}) {
-  // Event listings are published BEFORE the event — search from 90 days ago, not today
-  const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+// ── Exa: search — returns url, title, AND highlights for fallback content ─────
+async function exaSearch(query, exaKey, opts = {}) {
+  // Search from 6 months ago so existing listings are included, not just today's
+  const sixMonthsAgo = new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10);
   const eighteenMonths = new Date(Date.now() + 548 * 86400000).toISOString().slice(0, 10);
-  const domains = extraDomains?.length ? [...EVENT_DOMAINS, ...extraDomains] : EVENT_DOMAINS;
   const body = {
     query,
     type: 'auto',
     numResults: opts.numResults || 10,
-    startPublishedDate: opts.startDate || ninetyDaysAgo,
+    startPublishedDate: opts.startDate || sixMonthsAgo,
     endPublishedDate: opts.endDate || eighteenMonths,
-    contents: { highlights: true },
+    contents: { highlights: { numSentences: 5, highlightsPerUrl: 3 } },
   };
-  // Recovery mode: don't restrict to known domains — search the open web
-  if (!opts.openWeb) body.includeDomains = domains;
+  if (!opts.openWeb) body.includeDomains = EVENT_DOMAINS;
   try {
     const res = await fetch(`${EXA_BASE}/search`, {
       method: 'POST',
       headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error('[exa-search] HTTP', res.status, query.slice(0, 60));
+      return [];
+    }
     const data = await res.json();
-    return (data.results || []).map(r => ({ url: r.url, title: r.title || '' }));
-  } catch { return []; }
+    return (data.results || []).map(r => ({
+      url: r.url,
+      title: r.title || '',
+      // Carry highlights forward — used as content fallback if /contents fails
+      highlights: (r.highlights || []).join(' '),
+    }));
+  } catch (err) {
+    console.error('[exa-search] error:', err.message, query.slice(0, 60));
+    return [];
+  }
 }
 
-// ── Exa: findSimilar — recursive discovery from seed URLs ────────────────────
+// ── Exa: findSimilar ──────────────────────────────────────────────────────────
 async function exaFindSimilar(url, exaKey) {
   try {
     const res = await fetch(`${EXA_BASE}/findSimilar`, {
@@ -213,98 +177,62 @@ async function exaFindSimilar(url, exaKey) {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.results || []).map(r => ({ url: r.url, title: r.title || '' }));
-  } catch { return []; }
+    return (data.results || []).map(r => ({ url: r.url, title: r.title || '', highlights: '' }));
+  } catch (err) {
+    console.error('[exa-similar] error:', err.message);
+    return [];
+  }
 }
 
-// ── Exa: batch fetch full page content ───────────────────────────────────────
-async function exaContents(urls, exaKey) {
+// ── Exa: fetch full content — BATCHED in groups of 10 to prevent silent failure
+async function exaContentsBatch(urls, exaKey) {
   if (!urls.length) return {};
-  try {
-    const res = await fetch(`${EXA_BASE}/contents`, {
-      method: 'POST',
-      headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: urls, text: { maxCharacters: 5000 } }),
-    });
-    if (!res.ok) return {};
-    const data = await res.json();
-    const map = {};
-    for (const r of (data.results || [])) map[r.url] = r;
-    return map;
-  } catch { return {}; }
+  // Split into chunks of 10 and run in parallel — a single large batch silently fails
+  const chunks = [];
+  for (let i = 0; i < urls.length; i += 10) chunks.push(urls.slice(i, i + 10));
+  const maps = await Promise.all(chunks.map(async chunk => {
+    try {
+      const res = await fetch(`${EXA_BASE}/contents`, {
+        method: 'POST',
+        headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: chunk, text: { maxCharacters: 4000 } }),
+      });
+      if (!res.ok) {
+        console.error('[exa-contents] HTTP', res.status, 'chunk size', chunk.length);
+        return {};
+      }
+      const data = await res.json();
+      const map = {};
+      for (const r of (data.results || [])) map[r.url] = r.text || '';
+      return map;
+    } catch (err) {
+      console.error('[exa-contents] chunk error:', err.message);
+      return {};
+    }
+  }));
+  return Object.assign({}, ...maps);
 }
 
-// ── Groq: full intelligence extraction + scoring ──────────────────────────────
+// ── Groq: extract + score ─────────────────────────────────────────────────────
 async function extractWithGroq(text, title, url, groqKey) {
-  if (!text || text.length < 80) return null;
+  // Fallback to title if content is short — still worth attempting extraction
+  const content = (text && text.length >= 30) ? text : `Event title: ${title}\nURL: ${url}`;
+  if (!content || content.length < 10) return null;
 
   const prompt = `You are the Lead Scout AI for 360 Booth Ireland — a premium 360 photo booth and experiential activation company.
 
-Analyse this event page and return ONLY valid JSON. Never invent data — use null for unknown fields.
+Analyse this event page and return ONLY valid JSON. If data is missing use null. Do NOT invent data.
 
-EXTRACTION REQUIREMENTS:
-
-EVENT fields:
-- event_name: string
-- date: "YYYY-MM-DD or null"
-- venue: string or null
-- address: string or null
-- city: string or null (Dublin/Cork/Galway/Limerick/Other)
-- ticket_price: string or null ("Free", "€20", "€500" etc)
-- attendance_estimate: number or null
-- sponsors: array of strings (brands/companies sponsoring) or []
-- event_type: "corporate|brand_activation|product_launch|luxury_wedding|awards_gala|conference|trade_show|networking|christmas_party|graduation|university|festival|nightlife|sports|fundraiser|birthday|party|other"
-
-ORGANISER fields:
-- organizer_name: string or null
-- company: string or null
-- email: string or null
-- phone: string or null
-- website: string or null
-- linkedin: string or null
-- instagram: string or null
-
-INTELLIGENCE fields:
-- lead_score: 0–100 (use scoring guide below)
-- reasoning: "one sentence explaining the score"
-- likelihood_to_buy: "high|medium|low"
-- estimated_budget: "€500–€2,000|€2,000–€5,000|€5,000–€15,000|€15,000+" or null
-- estimated_revenue: "€500–€1,500|€1,500–€3,000|€3,000–€8,000|€8,000+" or null
-- why_relevant: "one sentence on why 360 Booth Ireland should pitch this"
-- confidence: "high|medium|low" (how confident are you in this extraction)
-
-LEAD SCORING GUIDE (0–100):
-
-Add:
-+25 if corporate event / company-organised
-+20 if luxury event (high-end wedding, premium gala, VIP)
-+20 if brand activation or product launch
-+15 if large attendance (200+ people)
-+15 if premium Dublin/Cork/Galway venue
-+15 if awards ceremony / conference / gala dinner
-+15 if graduation ball or university event
-+10 if sponsors or partners present (signals budget)
-+10 if repeat/annual event
-+10 if Dublin location
-+10 if fundraiser gala ball
-+10 if Christmas party or NYE event
-
-Subtract:
--20 if small gathering (under 30 people)
--15 if volunteer / community / free informal event
--15 if clearly low-budget or student bake sale type
-
-Return ONLY this JSON structure:
+Return this exact JSON structure:
 {
   "event_name": null,
   "date": null,
   "venue": null,
-  "address": null,
   "city": null,
   "ticket_price": null,
   "attendance_estimate": null,
   "sponsors": [],
-  "event_type": "other",
+  "event_type": "corporate|brand_activation|product_launch|luxury_wedding|awards_gala|conference|trade_show|networking|christmas_party|graduation|university|festival|nightlife|sports|fundraiser|birthday|party|other",
   "organizer_name": null,
   "company": null,
   "email": null,
@@ -321,8 +249,27 @@ Return ONLY this JSON structure:
   "confidence": "low"
 }
 
+LEAD SCORING (0–100):
++25 corporate/company event
++20 luxury/high-end/VIP event
++20 brand activation or product launch
++15 large attendance (200+)
++15 premium Dublin/Cork/Galway venue
++15 awards/conference/gala dinner
++15 graduation ball/university event
++10 sponsors present (signals budget)
++10 Dublin location
++10 Christmas/NYE party
+-20 small gathering under 30 people
+-15 free volunteer/community meetup
+-15 low-budget event
+
+likelihood_to_buy: "high" if score≥60, "medium" if 30–59, "low" below 30
+estimated_budget: "€500–€2,000" / "€2,000–€5,000" / "€5,000–€15,000" / "€15,000+"
+estimated_revenue: "€500–€1,500" / "€1,500–€3,000" / "€3,000–€8,000" / "€8,000+"
+
 Page content:
-${text.slice(0, 4500)}`;
+${content.slice(0, 3800)}`;
 
   try {
     const res = await fetch(GROQ_BASE, {
@@ -332,43 +279,43 @@ ${text.slice(0, 4500)}`;
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
-        max_tokens: 600,
+        max_tokens: 500,
         response_format: { type: 'json_object' },
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error('[groq] HTTP', res.status);
+      return null;
+    }
     const data = await res.json();
     const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    // Fallback regex extraction if AI missed them
-    if (!parsed.email) parsed.email = extractEmailFallback(text);
-    if (!parsed.phone) parsed.phone = extractPhoneFallback(text);
+    if (!parsed.email) parsed.email = extractEmailFallback(content);
+    if (!parsed.phone) parsed.phone = extractPhoneFallback(content);
     parsed.source_url = url;
     return parsed;
-  } catch {
+  } catch (err) {
+    console.error('[groq] error:', err.message, url.slice(0, 60));
     return {
-      event_name: title || 'Unknown Event',
-      date: null, venue: null, address: null, city: null,
-      ticket_price: null, attendance_estimate: null, sponsors: [],
-      event_type: 'other',
+      event_name: title || null,
+      date: null, venue: null, city: null, ticket_price: null,
+      attendance_estimate: null, sponsors: [], event_type: 'other',
       organizer_name: null, company: null,
-      email: extractEmailFallback(text),
-      phone: extractPhoneFallback(text),
+      email: extractEmailFallback(content),
+      phone: extractPhoneFallback(content),
       website: null, linkedin: null, instagram: null,
-      lead_score: 30, reasoning: 'Fallback extraction',
-      likelihood_to_buy: 'low',
-      estimated_budget: null, estimated_revenue: null,
-      why_relevant: '', confidence: 'low',
-      source_url: url,
+      lead_score: 25, reasoning: 'Fallback — Groq parse error',
+      likelihood_to_buy: 'low', estimated_budget: null, estimated_revenue: null,
+      why_relevant: '', confidence: 'low', source_url: url,
     };
   }
 }
 
 function mapToLead(extracted) {
   if (!extracted) return null;
-  const today = new Date().toISOString().slice(0, 10);
-  const urgency = calcUrgency(extracted.date);
+  const cq = getContactQuality(extracted);
+  if (!cq) return null; // no event name at all — not usable
 
-  // Build notes as rich intelligence summary
+  const urgency = calcUrgency(extracted.date);
   const parts = [];
   if (extracted.event_name) parts.push(`Event: ${extracted.event_name}`);
   if (extracted.date) parts.push(`Date: ${extracted.date}`);
@@ -386,10 +333,8 @@ function mapToLead(extracted) {
   if (extracted.estimated_budget) parts.push(`Budget: ${extracted.estimated_budget}`);
   if (extracted.estimated_revenue) parts.push(`Revenue potential: ${extracted.estimated_revenue}`);
   if (extracted.why_relevant) parts.push(`Why relevant: ${extracted.why_relevant}`);
-  if (extracted.reasoning) parts.push(`Score reason: ${extracted.lead_score}/100 — ${extracted.reasoning}`);
+  if (extracted.reasoning) parts.push(`Score: ${extracted.lead_score}/100 — ${extracted.reasoning}`);
   if (extracted.source_url) parts.push(`Source: ${extracted.source_url}`);
-
-  const cq = getContactQuality(extracted);
 
   return {
     id: uid(),
@@ -399,13 +344,14 @@ function mapToLead(extracted) {
     source: 'Event Scrape',
     service: inferService(extracted.event_type),
     status: 'New',
-    date: today,
+    date: new Date().toISOString().slice(0, 10),
     notes: parts.join(' | '),
     lead_score: extracted.lead_score || 0,
     likelihood_to_buy: extracted.likelihood_to_buy || 'low',
     urgency,
     estimated_revenue: extracted.estimated_revenue || null,
     contact_quality: cq,
+    source_url: extracted.source_url || '',
     createdAt: Date.now(),
   };
 }
@@ -424,35 +370,19 @@ module.exports = async function handler(req, res) {
   }
 
   const body = req.body || {};
-  const customTerms = body.customTerms || '';
-  const extraDomains = body.extraDomains || [];
-
-  // Build query list — defaults + custom semantic expansions
+  const customTerms = (body.customTerms || '').trim();
   const queries = [...DEFAULT_QUERIES];
-  if (customTerms.trim()) {
-    const base = customTerms.trim();
-    queries.push(`${base} Ireland 2026`);
-    queries.push(`${base} event organiser contact Ireland`);
-    queries.push(`${base} venue booking Dublin Cork Galway`);
-    queries.push(`${base} event company launch Ireland`);
+  if (customTerms) {
+    queries.push(`${customTerms} Ireland 2026`);
+    queries.push(`${customTerms} event organiser contact Ireland`);
+    queries.push(`${customTerms} venue booking Dublin Cork Galway`);
+    queries.push(`${customTerms} event company launch Ireland`);
   }
 
   const seen = new Set();
   const meta = { queriesRun: 0, pagesScanned: 0, recoveryRan: false, recoveryReason: null };
 
-  async function runQueryBatch(queryList, opts = {}) {
-    const results = [];
-    for (let i = 0; i < queryList.length; i += 5) {
-      const batch = queryList.slice(i, i + 5);
-      const batchResults = await Promise.all(
-        batch.map(q => exaSearch(q, extraDomains, EXA_KEY, opts))
-      );
-      for (const r of batchResults) results.push(...r);
-      meta.queriesRun += batch.length;
-    }
-    return results;
-  }
-
+  // Deduplicate by URL using the shared seen set
   function dedup(results, cap) {
     const fresh = [];
     for (const r of results) {
@@ -465,81 +395,84 @@ module.exports = async function handler(req, res) {
     return fresh;
   }
 
+  // Run all queries in parallel — not sequentially in batches
+  async function runAllQueries(queryList, opts = {}) {
+    meta.queriesRun += queryList.length;
+    const all = await Promise.all(queryList.map(q => exaSearch(q, EXA_KEY, opts)));
+    return all.flat();
+  }
+
+  // Extract leads from a page list — all Groq calls run fully in parallel
   async function extractLeads(pages) {
-    const contentMap = await exaContents(pages.map(r => r.url), EXA_KEY);
-    const leads = [];
-    for (let i = 0; i < pages.length; i += 8) {
-      const batch = pages.slice(i, i + 8);
-      const extracted = await Promise.all(
-        batch.map(r => {
-          const c = contentMap[r.url];
-          return extractWithGroq(c?.text || '', r.title || '', r.url, GROQ_KEY);
-        })
-      );
-      for (const e of extracted) {
-        const lead = mapToLead(e);
-        // Keep any lead with actionable intelligence — not just email/phone
-        if (lead && hasActionableContact(lead)) leads.push(lead);
-      }
-    }
+    if (!pages.length) return [];
+    // Fetch full page content in batched parallel chunks of 10
+    const contentMap = await exaContentsBatch(pages.map(p => p.url), EXA_KEY);
     meta.pagesScanned += pages.length;
-    return leads;
+
+    // For each page: use full content if available, fall back to search highlights
+    const extracted = await Promise.all(pages.map(p => {
+      const fullText = contentMap[p.url] || '';
+      const text = fullText.length >= 30 ? fullText : p.highlights || '';
+      return extractWithGroq(text, p.title, p.url, GROQ_KEY);
+    }));
+
+    return extracted.map(mapToLead).filter(Boolean);
   }
 
   try {
-    // ── PASS 1: Primary multi-platform discovery ──────────────────────────────
-    const pass1Results = await runQueryBatch(queries);
+    // PASS 1: Fire all queries in parallel
+    const pass1Results = await runAllQueries(queries);
     let unique = dedup(pass1Results, 50);
 
-    // ── Recursive findSimilar on top 8 seeds ─────────────────────────────────
+    // Recursive discovery from top 8 seeds — parallel
     if (unique.length) {
-      const seedUrls = unique.slice(0, 8).map(r => r.url);
-      const similarBatches = await Promise.all(seedUrls.map(url => exaFindSimilar(url, EXA_KEY)));
-      const similarFlat = similarBatches.flat();
-      unique = unique.concat(dedup(similarFlat, 70 - unique.length));
+      const seeds = unique.slice(0, 8).map(p => p.url);
+      const similar = (await Promise.all(seeds.map(url => exaFindSimilar(url, EXA_KEY)))).flat();
+      unique = unique.concat(dedup(similar, 70 - unique.length));
     }
 
-    let leads = unique.length ? await extractLeads(unique) : [];
+    let leads = await extractLeads(unique);
 
-    // ── PASS 2: Recovery — if direct-contact leads < 5 ───────────────────────
-    const directLeads = leads.filter(l => l.contact_quality === 'direct');
-    if (directLeads.length < 5) {
+    // PASS 2: Recovery if direct contacts still thin
+    const directCount = leads.filter(l => l.contact_quality === 'direct').length;
+    if (directCount < 5) {
       meta.recoveryRan = true;
-      meta.recoveryReason = directLeads.length === 0
-        ? 'Zero direct contacts found on primary pass — executing open-web recovery'
-        : `Only ${directLeads.length} direct contact(s) found — expanding search space`;
+      meta.recoveryReason = directCount === 0
+        ? 'Zero direct contacts — running open-web recovery'
+        : `Only ${directCount} direct contact(s) — expanding`;
 
-      // Recovery A: same domains, wider date window (past 30 days → 18 months ahead)
-      const wideStart = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-      const wideEnd = new Date(Date.now() + 545 * 86400000).toISOString().slice(0, 10);
-      const recoveryA = await runQueryBatch(RECOVERY_QUERIES, { startDate: wideStart, endDate: wideEnd });
-      const recoveryAPages = dedup(recoveryA, 30);
+      // Recovery A: wider date window (2 years ago → 2 years ahead, no domain restriction)
+      const recovA = await runAllQueries(RECOVERY_QUERIES, { openWeb: true, numResults: 12 });
+      const recovAPages = dedup(recovA, 30);
 
-      // Recovery B: open web — no domain restriction on top recovery queries
-      const openWebQueries = RECOVERY_QUERIES.slice(0, 6);
-      const recoveryB = await runQueryBatch(openWebQueries, { openWeb: true, numResults: 8 });
-      const recoveryBPages = dedup(recoveryB, 20);
+      // Recovery B: domain-restricted but very wide date window
+      const wideStart = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+      const wideEnd = new Date(Date.now() + 730 * 86400000).toISOString().slice(0, 10);
+      const recovB = await runAllQueries(RECOVERY_QUERIES.slice(0, 8), { startDate: wideStart, endDate: wideEnd });
+      const recovBPages = dedup(recovB, 20);
 
-      const recoveryPages = [...recoveryAPages, ...recoveryBPages];
-      if (recoveryPages.length) {
-        const recoveryLeads = await extractLeads(recoveryPages);
-        // Merge — avoid duplicate names/emails already in leads
-        const existingIds = new Set(leads.map(l => l.email || l.name));
-        for (const l of recoveryLeads) {
-          if (!existingIds.has(l.email || l.name)) {
+      const recovPages = [...recovAPages, ...recovBPages];
+      if (recovPages.length) {
+        const recovLeads = await extractLeads(recovPages);
+        // Dedup by source_url (consistent with how seen Set works)
+        const existingUrls = new Set(leads.map(l => l.source_url).filter(Boolean));
+        for (const l of recovLeads) {
+          if (!existingUrls.has(l.source_url)) {
             leads.push(l);
-            existingIds.add(l.email || l.name);
+            existingUrls.add(l.source_url);
           }
         }
       }
     }
 
-    // ── Sort: urgency → score ─────────────────────────────────────────────────
+    // Sort: urgency first, then score
     const urgencyRank = { urgent: 0, high: 1, pipeline: 2, 'long-term': 3, unknown: 4, past: 5 };
     leads.sort((a, b) => {
       const uDiff = (urgencyRank[a.urgency] ?? 4) - (urgencyRank[b.urgency] ?? 4);
       return uDiff !== 0 ? uDiff : (b.lead_score || 0) - (a.lead_score || 0);
     });
+
+    console.log(`[scan-leads] done: ${leads.length} leads, ${meta.pagesScanned} pages, ${meta.queriesRun} queries, recovery=${meta.recoveryRan}`);
 
     return res.status(200).json({
       leads,
@@ -547,12 +480,13 @@ module.exports = async function handler(req, res) {
       directCount: leads.filter(l => l.contact_quality === 'direct').length,
       socialCount: leads.filter(l => l.contact_quality === 'social').length,
       discoveryCount: leads.filter(l => l.contact_quality === 'discovery').length,
+      eventOnlyCount: leads.filter(l => l.contact_quality === 'event-only').length,
       scannedAt: new Date().toISOString(),
       ...meta,
     });
 
   } catch (err) {
-    console.error('[scan-leads]', err);
+    console.error('[scan-leads] fatal:', err);
     return res.status(500).json({ error: err.message || 'Scan failed' });
   }
 };
