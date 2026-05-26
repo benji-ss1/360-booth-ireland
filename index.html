@@ -3022,23 +3022,22 @@ function lscoutAddMsg(role,html){
   return div;
 }
 
+let _lsid=0; // unique per scan — prevents getElementById finding old scan's circles
+
 function lscoutAddPlan(){
+  _lsid++;
+  const sid=_lsid;
   const layers=[
-    {id:'l1',label:'Semantic Expansion',tag:'50+ query variants across Dublin, Cork, Galway, Limerick'},
-    {id:'l2',label:'Multi-Platform Search',tag:'Scanning Eventbrite, Meetup, Dice, news, venues & more'},
-    {id:'l3',label:'Recursive Discovery',tag:'findSimilar crawl from top seed pages'},
-    {id:'l4',label:'Content Extraction',tag:'Deep-reading event pages for contact details'},
-    {id:'l5',label:'AI Intelligence',tag:'LLaMA 70B extracting organiser, company, social + scoring'},
-    {id:'l6',label:'Revenue Scoring',tag:'Urgency tiers, likelihood to buy, estimated budget'},
-    {id:'l7',label:'Prioritised Output',tag:'Sorted by urgency then lead score — ready to outreach'},
+    {id:`ls${sid}l1`,label:'Searching Irish event sources',tag:'Open web — venues, agencies, press releases, hotels'},
+    {id:`ls${sid}l2`,label:'Extracting organiser contacts',tag:'AI deep-reading pages for email, phone, company'},
+    {id:`ls${sid}l3`,label:'Scoring & prioritising',tag:'Lead quality, urgency tier, revenue potential'},
   ];
-  const planHtml=`<div style="font-weight:600;margin-bottom:8px" id="lscout-thinking" class="lscout-thinking">Lead Scout is scanning…</div><ul class="lscout-plan" id="lscout-plan">${layers.map(l=>`<li class="lscout-layer" id="${l.id}"><div class="lscout-layer-icon">◯</div><span class="lscout-layer-label">${l.label}</span><span class="lscout-layer-tag">${l.tag}</span></li>`).join('')}</ul>`;
+  const planHtml=`<div style="font-weight:600;margin-bottom:8px" id="ls${sid}thinking" class="lscout-thinking">Lead Scout is scanning…</div><ul class="lscout-plan" id="ls${sid}plan">${layers.map(l=>`<li class="lscout-layer" id="${l.id}"><div class="lscout-layer-icon">◯</div><span class="lscout-layer-label">${l.label}</span><span class="lscout-layer-tag">${l.tag}</span></li>`).join('')}</ul>`;
   return lscoutAddMsg('ai',planHtml);
 }
 
 function lscoutSetLayer(idx,state){
-  // idx: 1-7, state: 'active'|'done'
-  const el=document.getElementById('l'+idx);
+  const el=document.getElementById(`ls${_lsid}l${idx}`);
   if(!el)return;
   el.className='lscout-layer '+(state==='done'?'done':'active');
   el.querySelector('.lscout-layer-icon').textContent=state==='done'?'✓':'●';
@@ -3066,8 +3065,8 @@ async function runScan(silent=false){
   let planMsg=null;
   if(!silent) planMsg=lscoutAddPlan();
 
-  // Animate layers with timing offsets
-  const layerTimings=[0,4000,10000,18000,22000,26000,28000];
+  // Animate 3 layers with timing offsets
+  const layerTimings=[0,8000,20000];
   const layerTimers=layerTimings.map((delay,i)=>setTimeout(()=>lscoutSetLayer(i+1,'active'),delay));
 
   try{
@@ -3085,8 +3084,8 @@ async function runScan(silent=false){
     const data=await res.json();
 
     // Mark all layers done
-    for(let i=1;i<=7;i++)lscoutSetLayer(i,'done');
-    const thinkEl=document.getElementById('lscout-thinking');
+    for(let i=1;i<=3;i++)lscoutSetLayer(i,'done');
+    const thinkEl=document.getElementById(`ls${_lsid}thinking`);
     if(thinkEl){thinkEl.className='';thinkEl.textContent='Scan complete.';}
 
     // Deduplicate
@@ -3182,7 +3181,7 @@ async function runScan(silent=false){
 
   }catch(err){
     layerTimers.forEach(t=>clearTimeout(t));
-    const thinkEl=document.getElementById('lscout-thinking');
+    const thinkEl=document.getElementById(`ls${_lsid}thinking`);
     if(thinkEl){thinkEl.className='';thinkEl.style.color='var(--red)';thinkEl.textContent='Scan failed.';}
     if(!silent)lscoutAddMsg('ai',`<span style="color:var(--red)">✗ Scan failed:</span> ${esc(err.message||'Could not reach scanner API')}. Check your Vercel environment variables.`);
   }finally{
