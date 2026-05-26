@@ -746,8 +746,9 @@ select.st-input option{background:#1a1a1a}
   #main{height:calc(100vh - 56px);overflow-y:auto;padding-bottom:56px}
 
   /* ── Bottom nav bar ── */
-  #mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--sidebar-bg);border-top:1px solid var(--border);z-index:9000;align-items:stretch}
-  .mob-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text-subtle);font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;border:none;background:none;padding:6px 0;position:relative;transition:color 150ms}
+  #mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--sidebar-bg);border-top:1px solid var(--border);z-index:9000;align-items:stretch;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #mobile-nav::-webkit-scrollbar{display:none}
+  .mob-nav-btn{flex:0 0 64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text-subtle);font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;border:none;background:none;padding:6px 0;position:relative;transition:color 150ms}
   .mob-nav-btn.active{color:var(--accent)}
   .mob-nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .mob-nav-badge{position:absolute;top:6px;right:calc(50% - 16px);background:var(--accent);color:#000;font-size:8px;font-weight:800;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px}
@@ -805,7 +806,7 @@ select.st-input option{background:#1a1a1a}
      Gmail panel uses grid-template-columns:1fr 400px.
      On a 390px phone the 400px right pane destroys layout.
      Fix: collapse to single column, right pane slides in. */
-  .page[data-page="hub"]{padding:0;height:100%;overflow:hidden}
+  .page[data-page="hub"]{padding:0;height:calc(100dvh - var(--tbh) - 56px)!important;overflow:hidden}
   .hub-shell{flex-direction:column!important;height:100%}
   .ws-sidebar{display:none!important}
   .hub-main{flex:1!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;min-height:0}
@@ -830,6 +831,35 @@ select.st-input option{background:#1a1a1a}
   .lscout-bubble{max-width:100%!important;font-size:12px!important}
   .lscout-lead-card{padding:8px 10px!important}
   .lscout-sources{display:none}
+
+  /* ──────────────────────────────────
+     AI INSIGHT BARS — force stack on narrow screens */
+  #ai-insight-bar{flex-direction:column!important;gap:8px!important}
+  #ai-insight-bar button{align-self:flex-start}
+
+  /* ──────────────────────────────────
+     KANBAN / PIPELINE — scroll horizontally */
+  .kanban-board{grid-template-columns:repeat(4,220px)!important;overflow-x:auto;padding-bottom:8px}
+  .client-pipeline{grid-template-columns:repeat(4,200px)!important;overflow-x:auto;padding-bottom:8px}
+
+  /* ──────────────────────────────────
+     WEBSITE / SEO — collapse grids */
+  .seo-grid{grid-template-columns:1fr!important}
+  .ads-stat-row{grid-template-columns:1fr 1fr!important}
+  .email-type-grid{grid-template-columns:1fr!important}
+
+  /* ──────────────────────────────────
+     AI PAGE — full height minus topbar + bottom nav */
+  .page[data-page="ai"]{height:calc(100dvh - var(--tbh) - 56px)!important;overflow:hidden}
+  .ai-page-wrap{height:calc(100dvh - var(--tbh) - 56px)!important}
+
+  /* ──────────────────────────────────
+     PAGES — give scroll room above bottom nav */
+  .page[data-page="leadgen"],.page[data-page="website"],.page[data-page="overview"],.page[data-page="bookings"],.page[data-page="enquiries"],.page[data-page="invoices"]{padding-bottom:70px}
+
+  /* ──────────────────────────────────
+     MODALS — prevent double-scroll */
+  .modal-card{width:calc(100vw - 16px)!important;max-height:90dvh;border-radius:12px!important}
 }
 @media(min-width:769px){#mobile-nav{display:none}}
 </style>
@@ -948,6 +978,15 @@ select.st-input option{background:#1a1a1a}
   </button>
   <button class="mob-nav-btn" data-page="hub" onclick="navTo('hub',this);mobNavActive(this)">
     <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Hub
+  </button>
+  <button class="mob-nav-btn" data-page="leadgen" onclick="navTo('leadgen',this);mobNavActive(this)">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>Leads
+  </button>
+  <button class="mob-nav-btn" data-page="website" onclick="navTo('website',this);mobNavActive(this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>SEO
+  </button>
+  <button class="mob-nav-btn" data-page="ai" onclick="navTo('ai',this);mobNavActive(this)">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>AI
   </button>
   <button class="mob-nav-btn" data-page="settings" onclick="navTo('settings',this);mobNavActive(this)">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings
