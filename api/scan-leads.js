@@ -5,17 +5,47 @@ const EXA_BASE = 'https://api.exa.ai';
 const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
 
 const DEFAULT_QUERIES = [
-  'corporate events Ireland 2026',
-  'wedding reception events Dublin Cork Galway 2026',
-  'birthday party events Ireland 2026 venue hire',
-  'gala dinner fundraiser events Ireland 2026',
-  'business networking conference events Ireland 2026',
-  'product launch party events Dublin 2026',
+  // Corporate & Business — Irish cities
+  'corporate events Dublin Ireland 2026',
+  'business conference networking Ireland 2026',
+  'product launch event Dublin Cork 2026',
+  'company awards gala dinner Ireland 2026',
+  'tech summit conference Ireland 2026',
+  // Weddings & Social
+  'wedding reception venue hire Dublin Galway Cork 2026',
+  'wedding expo Ireland bridal fair 2026',
+  'birthday party venue hire Ireland 2026',
+  'engagement party event Dublin 2026',
+  // Charity & Fundraisers
+  'charity ball gala fundraiser Ireland 2026',
+  'fundraiser event Dublin charity night 2026',
+  'community event fair Ireland 2026',
+  // Entertainment & Nightlife
+  'nightclub party event Dublin Cork 2026',
+  'festival Ireland outdoor event 2026',
+  'music event concert venue Ireland 2026',
+  // Sports & Special Events
+  'sports awards banquet Ireland 2026',
+  'golf society dinner event Ireland 2026',
+  // Regional
+  'events Galway Limerick Waterford 2026',
+  'events Cork Kerry Kilkenny 2026',
 ];
 
 const EVENT_DOMAINS = [
-  'eventbrite.ie', 'eventbrite.com', 'ticketmaster.ie',
-  'meetup.com', 'lovin.ie', 'entertainment.ie',
+  // Ireland-specific
+  'eventbrite.ie', 'entertainment.ie', 'lovin.ie',
+  'visitdublin.com', 'discoverireland.ie', 'entertainment.ie',
+  // Major event platforms
+  'eventbrite.com', 'ticketmaster.ie', 'ticketmaster.com',
+  'meetup.com', 'universe.com', 'tickettailor.com',
+  // Music & nightlife
+  'dice.fm', 'residentadvisor.net', 'skiddle.com',
+  'songkick.com', 'bandsintown.com',
+  // B2B & conference
+  '10times.com', 'allevents.in', 'yapsody.com',
+  // Venue & local
+  'fatsoma.com', 'goldstar.com',
 ];
 
 function uid() {
@@ -49,7 +79,7 @@ async function exaSearch(query, extraDomains, exaKey) {
       body: JSON.stringify({
         query,
         type: 'auto',
-        numResults: 8,
+        numResults: 10,
         startPublishedDate: today,
         endPublishedDate: nextYear,
         includeDomains: domains,
@@ -180,7 +210,7 @@ module.exports = async function handler(req, res) {
       if (seen.has(r.url)) return false;
       seen.add(r.url);
       return true;
-    }).slice(0, 30);
+    }).slice(0, 50);
 
     if (!unique.length) {
       return res.status(200).json({ leads: [], count: 0, scannedAt: new Date().toISOString() });
@@ -189,8 +219,9 @@ module.exports = async function handler(req, res) {
     const contentMap = await exaContents(unique.map(r => r.url), EXA_KEY);
 
     const leads = [];
-    for (let i = 0; i < unique.length; i += 5) {
-      const batch = unique.slice(i, i + 5);
+    for (let i = 0; i < unique.length; i += 8) {
+
+      const batch = unique.slice(i, i + 8);
       const extracted = await Promise.all(
         batch.map(r => {
           const c = contentMap[r.url];
