@@ -2849,8 +2849,7 @@ function createInvFromBk(id){const b=DB.get('bookings').find(x=>x.id===id);if(b)
 function renderLeadGen(){
   loadScanConfig();
   loadPendingEventLeads();
-  // Restore Lead Scout chat history from localStorage
-  restoreScoutChat();
+  // Chat starts fresh — no auto-restore
   const leads=DB.get('leads'),s=gs();
   const now=new Date(),mo=now.getMonth(),yr=now.getFullYear();
   const moLeads=leads.filter(l=>{const d=new Date(l.date||l.createdAt||0);return d.getMonth()===mo&&d.getFullYear()===yr});
@@ -3017,8 +3016,6 @@ function lscoutAddMsg(role,html){
   div.innerHTML=`<div class="lscout-msg-avatar ${isUser?'user':'ai'}">${isUser?'360':'🤖'}</div><div class="lscout-bubble${isUser?' user-bubble':''}">${html}</div>`;
   chat.appendChild(div);
   chat.scrollTop=chat.scrollHeight;
-  // Persist chat to localStorage — restore on next load
-  setTimeout(saveScoutChat,100);
   return div;
 }
 
@@ -3163,20 +3160,19 @@ async function runScan(silent=false){
             ${whyRelevant?`<div style="font-size:10.5px;color:var(--text-muted);margin-top:4px;line-height:1.4;font-style:italic">"${esc(whyRelevant)}"</div>`:''}
           </div>`;
         }).join('');
-        const moreText=newLeads.length>6?`<div style="font-size:11px;color:var(--text-muted);margin-top:6px">+ ${newLeads.length-6} more added to Lead Register</div>`:'';
+        const moreText=newLeads.length>6?`<div style="font-size:11px;color:var(--text-muted);margin-top:6px">+ ${newLeads.length-6} more in Lead Register when you import</div>`:'';
         const directN=newLeads.filter(l=>l.contact_quality==='direct').length;
         const socialN=newLeads.filter(l=>l.contact_quality==='social').length;
         const discN=newLeads.filter(l=>l.contact_quality==='discovery').length;
-        const recovNote=data.recoveryRan?`<div style="font-size:10px;color:var(--accent);margin-bottom:6px">⚡ Recovery pass executed — ${esc(data.recoveryReason||'')}</div>`:'';
-        const statsLine=`<div style="font-size:10.5px;color:var(--text-muted);margin-bottom:8px">${data.pagesScanned||0} pages · ${data.queriesRun||0} queries · Direct: ${directN} · Social/web: ${socialN} · Discovery: ${discN}</div>`;
-        lscoutAddMsg('ai',`<strong style="color:#4CAF7D">✓ Found ${newLeads.length} new lead${newLeads.length===1?'':'s'}</strong> — sorted urgency → score. Added to Lead Register.${recovNote}${statsLine}${leadCardsHtml}${moreText}`);
+        const statsLine=`<div style="font-size:10.5px;color:var(--text-muted);margin-bottom:8px">${data.pagesScanned||0} pages scanned · ${data.queriesRun||0} queries · Direct: ${directN} · Social/web: ${socialN} · Discovery: ${discN}</div>`;
+        // Store pending — don't auto-import
+        window._b360PendingLeads=newLeads;
+        const importBtns=`<div style="display:flex;gap:8px;margin-top:10px">
+          <button onclick="importPendingLeads()" style="background:#4CAF7D;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">Import ${newLeads.length} lead${newLeads.length===1?'':'s'}</button>
+          <button onclick="discardPendingLeads()" style="background:rgba(255,255,255,.07);color:var(--text-muted);border:1px solid var(--border);border-radius:7px;padding:7px 14px;font-size:12px;cursor:pointer">Discard</button>
+        </div>`;
+        lscoutAddMsg('ai',`<strong style="color:#4CAF7D">✓ Found ${newLeads.length} new lead${newLeads.length===1?'':'s'}</strong> — not saved yet.${statsLine}${leadCardsHtml}${moreText}${importBtns}`);
       }
-    }
-
-    if(newLeads.length){
-      DB.set('leads',[...existing,...newLeads]);
-      logAct(`Event scan found ${newLeads.length} new lead${newLeads.length===1?'':'s'}`,'enquiry');
-      renderLeadGen();updateSbStats();
     }
 
   }catch(err){
@@ -3190,7 +3186,20 @@ async function runScan(silent=false){
   }
 }
 
-// Aliases
+function importPendingLeads(){
+  const leads=window._b360PendingLeads||[];
+  if(!leads.length)return;
+  const existing=DB.get('leads');
+  DB.set('leads',[...existing,...leads]);
+  logAct(`Imported ${leads.length} scan lead${leads.length===1?'':'s'}`,'enquiry');
+  window._b360PendingLeads=[];
+  renderLeadGen();updateSbStats();
+  lscoutAddMsg('ai',`<span style="color:#4CAF7D">✓ ${leads.length} lead${leads.length===1?'':'s'} added to Lead Register.</span>`);
+}
+function discardPendingLeads(){
+  window._b360PendingLeads=[];
+  lscoutAddMsg('ai','<span style="color:var(--text-muted)">Scan results discarded.</span>');
+}
 function scanEvents(){runScan();}
 function confirmScan(){runScan();}
 function closeScanConfirm(){}
