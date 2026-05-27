@@ -991,6 +991,8 @@ const pageMeta={
 }
 
 function goPage(name){
+  // Stop message polling when leaving messages page
+  if(!document.getElementById('page-messages')?.classList.contains('on')||name!=='messages') stopMsgPoll()
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'))
   document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'))
   document.getElementById('page-'+name).classList.add('on')
@@ -1001,7 +1003,7 @@ function goPage(name){
   if(name==='history')renderHistory()
   if(name==='leads')renderLeadsTable()
   if(name==='pipeline')renderPipeline()
-  if(name==='messages')renderMessages()
+  if(name==='messages'){ renderMessages(true); startMsgPoll() }
 }
 
 // ── AGENT STATE ──────────────────────────────────────────────
@@ -1078,11 +1080,11 @@ async function agentScan(mode, query){
   return res.json()
 }
 
-async function agentWhatsApp(message){
+async function agentWhatsApp(message, label='Manual'){
   const res=await fetch('/api/agent/whatsapp-send',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message}),
+    body:JSON.stringify({message, label}),
   })
   const data=await res.json().catch(()=>({}))
   if(!res.ok) throw new Error(data.error||`WhatsApp error ${res.status}`)
@@ -1395,42 +1397,103 @@ async function sendReportNow(){
   txt.textContent='Send Intel Report Now'; btn.disabled=false
 }
 
-// ── MESSAGES (WhatsApp thread) ───────────────────────────────
-function logMessage(body, type='sent', label='Manual'){
+// ── MESSAGES (WhatsApp thread — Phase 2 with Supabase) ───────
+let msgPollTimer = null
+let msgLastId    = 0
+
+// Local-only log (system events like "report sent" — not real WA messages)
+function logMessage(body, type='auto', label='System'){
   const msgs=DB.get(DB_MSGS,[])
-  msgs.push({id:'msg_'+Date.now(),ts:new Date().toISOString(),body,type,label})
+  msgs.push({id:'local_'+Date.now(),ts:new Date().toISOString(),body,type,label,local:true})
   if(msgs.length>300)msgs.splice(0,msgs.length-300)
   DB.set(DB_MSGS,msgs)
   if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages()
   updateBadges()
 }
 
-function renderMessages(){
-  const msgs=DB.get(DB_MSGS,[])
+async function fetchRemoteMessages(){
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal) return []
+  try{
+    const r=await fetch(`/api/agent/messages?limit=120${msgLastId?'&after='+msgLastId:''}`)
+    if(!r.ok) return []
+    const d=await r.json()
+    const msgs=d.messages||[]
+    if(msgs.length){ msgLastId=msgs[msgs.length-1].id }
+    return msgs
+  }catch{ return [] }
+}
+
+async function renderMessages(fetchNew=true){
   const feed=document.getElementById('msg-feed'); if(!feed)return
+
+  // Fetch new messages from Supabase
+  if(fetchNew){
+    const remote=await fetchRemoteMessages()
+    if(remote.length){
+      // Merge into cache — avoid duplicates by twilio_sid or id
+      const cache=DB.get(DB_MSGS,[])
+      const existIds=new Set(cache.map(m=>m.remote_id||m.id))
+      remote.forEach(m=>{
+        if(!existIds.has('r_'+m.id)){
+          cache.push({
+            id:'r_'+m.id, remote_id:'r_'+m.id, ts:m.created_at,
+            body:m.body, type:m.direction==='inbound'?'inbound':'sent',
+            label:m.label||( m.direction==='inbound'?'Reply':'Sent' ), local:false
+          })
+        }
+      })
+      cache.sort((a,b)=>new Date(a.ts)-new Date(b.ts))
+      if(cache.length>400)cache.splice(0,cache.length-400)
+      DB.set(DB_MSGS,cache)
+      updateBadges()
+    }
+  }
+
+  const msgs=DB.get(DB_MSGS,[])
   if(!msgs.length){
     feed.innerHTML=`<div class="msg-empty">
       <div style="font:600 12px var(--mono);color:var(--t4);letter-spacing:.1em">NO MESSAGES</div>
       <div style="font:400 12px var(--font);color:var(--t4);text-align:center;max-width:260px;margin-top:4px;line-height:1.6">
-        Use the compose box below, tap a Quick button, or hit the WA button on any lead in the database or pipeline.
+        Use the compose box below, tap a Quick button, or press the WA button on any lead in the database or pipeline.
       </div>
     </div>`
     return
   }
+
+  const atBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<60
   feed.innerHTML=msgs.map(m=>{
     const d=new Date(m.ts)
     const time=d.toLocaleTimeString('en-IE',{hour:'2-digit',minute:'2-digit'})+' · '+d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})
-    const isAuto=m.type==='auto'||m.type==='auto-report'||m.type==='auto-scan'
-    const cls=isAuto?'auto':'sent'
-    const lblCls=isAuto?'auto':m.label==='Lead Brief'?'brief':''
-    return `<div class="msg-bubble ${cls}">
+    if(m.type==='inbound'){
+      return `<div class="msg-bubble" style="align-self:flex-start;align-items:flex-start">
+        <span class="msg-label" style="background:rgba(255,255,255,.06);color:var(--t3)">Reply</span>
+        <div class="msg-body" style="background:var(--s2);border:1px solid var(--border);color:var(--t1);border-bottom-left-radius:3px">${esc(m.body)}</div>
+        <span class="msg-meta">${time}</span>
+      </div>`
+    }
+    if(m.type==='auto'||m.type==='system'){
+      return `<div class="msg-bubble auto">
+        <span class="msg-label auto">${esc(m.label||'System')}</span>
+        <div class="msg-body">${esc(m.body)}</div>
+        <span class="msg-meta">${time}</span>
+      </div>`
+    }
+    const lblCls=m.label==='Lead Brief'?'brief':m.label==='Intel Report'?'auto':''
+    return `<div class="msg-bubble sent">
       <span class="msg-label ${lblCls}">${esc(m.label||'Sent')}</span>
       <div class="msg-body">${esc(m.body)}</div>
       <span class="msg-meta">${time}</span>
     </div>`
   }).join('')
-  feed.scrollTop=feed.scrollHeight
+  if(atBottom||fetchNew) feed.scrollTop=feed.scrollHeight
 }
+
+function startMsgPoll(){
+  stopMsgPoll()
+  msgPollTimer=setInterval(()=>renderMessages(true),7000)
+}
+function stopMsgPoll(){ if(msgPollTimer){clearInterval(msgPollTimer);msgPollTimer=null} }
 
 async function sendMsg(){
   const ta=document.getElementById('msg-input')
@@ -1441,13 +1504,17 @@ async function sendMsg(){
   const btn=document.getElementById('msg-send-btn')
   btn.disabled=true; btn.textContent='...'
   try{
-    await agentWhatsApp(body)
-    logMessage(body,'sent','Manual')
+    await agentWhatsApp(body,'Manual')
+    // Optimistic: add to local cache immediately
+    const msgs=DB.get(DB_MSGS,[])
+    msgs.push({id:'opt_'+Date.now(),ts:new Date().toISOString(),body,type:'sent',label:'Manual',local:true})
+    DB.set(DB_MSGS,msgs)
     ta.value=''; ta.style.height='auto'
+    renderMessages(false)
     toast('Sent','success')
-  }catch(e){
-    toast('Failed: '+e.message,'error')
-  }
+    // Fetch remote after 2s to get the persisted ID
+    setTimeout(()=>renderMessages(true),2000)
+  }catch(e){ toast('Failed: '+e.message,'error') }
   btn.disabled=false; btn.textContent='Send'
 }
 
@@ -1492,8 +1559,7 @@ async function sendLeadToWhatsApp(key){
   const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
   if(isLocal){ toast('WhatsApp requires the live Vercel deployment','warn'); return }
   const body=[
-    `*Lead Brief — 360 Booth Ireland*`,
-    ``,
+    `*Lead Brief — 360 Booth Ireland*`,``,
     l.title||'Event',
     `Score: ${l.lead_score||0}/100 — ${l.urgency||''}`,
     l.event_type?`Type: ${l.event_type}`:'',
@@ -1505,18 +1571,20 @@ async function sendLeadToWhatsApp(key){
     l.url?`\nSource: ${l.url}`:'',
   ].filter(Boolean).join('\n')
   try{
-    await agentWhatsApp(body)
-    logMessage(body,'sent','Lead Brief')
+    await agentWhatsApp(body,'Lead Brief')
+    const msgs=DB.get(DB_MSGS,[])
+    msgs.push({id:'opt_'+Date.now(),ts:new Date().toISOString(),body,type:'sent',label:'Lead Brief',local:true})
+    DB.set(DB_MSGS,msgs)
+    if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages(false)
     toast('Lead sent to WhatsApp','success')
-  }catch(e){
-    toast('Failed: '+e.message,'error')
-  }
+    setTimeout(()=>{ if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages(true) },2000)
+  }catch(e){ toast('Failed: '+e.message,'error') }
 }
 
 function msgClearConfirm(){
-  if(!confirm('Clear all message history? This cannot be undone.'))return
-  DB.set(DB_MSGS,[]); renderMessages(); updateBadges()
-  toast('Message history cleared','info')
+  if(!confirm('Clear local message cache? Remote Supabase history is kept.'))return
+  DB.set(DB_MSGS,[]); msgLastId=0; renderMessages(true); updateBadges()
+  toast('Local cache cleared','info')
 }
 
 // ── WHATSAPP TEST ────────────────────────────────────────────
