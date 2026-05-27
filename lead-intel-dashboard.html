@@ -400,6 +400,37 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .ss-status-box.err{border-color:rgba(248,81,73,.3);color:var(--red);background:rgba(248,81,73,.05)}
 .ss-status-box.warn{border-color:rgba(210,153,34,.3);color:var(--warn);background:rgba(210,153,34,.05)}
 
+/* ── MESSAGES PAGE ──────────────────────────────────────────── */
+#page-messages{display:none;height:calc(100vh - var(--topbar) - 1px);flex-direction:column;overflow:hidden}
+#page-messages.on{display:flex}
+.msg-layout{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.msg-header{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.msg-header-to{display:flex;align-items:center;gap:10px}
+.msg-to-dot{width:32px;height:32px;border-radius:50%;background:var(--brand-muted);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font:700 12px var(--font);color:var(--brand)}
+.msg-to-name{font:600 13px var(--font);color:var(--t1)}
+.msg-to-sub{font:400 11px var(--font);color:var(--t3);margin-top:1px}
+.msg-feed{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:12px}
+.msg-bubble{max-width:74%;display:flex;flex-direction:column;gap:3px}
+.msg-bubble.sent{align-self:flex-end;align-items:flex-end}
+.msg-bubble.auto{align-self:center;align-items:center;max-width:92%}
+.msg-body{padding:10px 14px;border-radius:12px;font:400 13px var(--font);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.msg-bubble.sent .msg-body{background:var(--brand-muted);border:1px solid rgba(201,168,76,.28);color:var(--t1);border-bottom-right-radius:3px}
+.msg-bubble.auto .msg-body{background:var(--s2);border:1px solid var(--border);color:var(--t2);font-size:12px;border-radius:var(--r-md);text-align:left}
+.msg-label{display:inline-block;font:600 9px var(--font);letter-spacing:.09em;text-transform:uppercase;padding:1px 7px;border-radius:20px;background:var(--brand-muted);color:var(--brand);margin-bottom:2px}
+.msg-label.auto{background:rgba(63,185,80,.08);color:var(--green)}
+.msg-label.brief{background:rgba(88,166,255,.08);color:var(--blue)}
+.msg-meta{font:400 10px var(--mono);color:var(--t4)}
+.msg-quick{display:flex;gap:6px;flex-wrap:wrap;padding:0 24px 10px;flex-shrink:0}
+.msg-quick-btn{height:26px;padding:0 11px;border-radius:20px;font:500 11px var(--font);border:1px solid var(--border);background:transparent;color:var(--t3);cursor:pointer;transition:all 120ms ease}
+.msg-quick-btn:hover{border-color:rgba(201,168,76,.35);color:var(--brand);background:var(--brand-muted)}
+.msg-compose{padding:12px 24px 16px;border-top:1px solid var(--border);background:var(--bg);display:flex;gap:10px;align-items:flex-end;flex-shrink:0}
+.msg-ta{flex:1;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:11px 14px;color:var(--t1);font:400 13px var(--font);resize:none;min-height:42px;max-height:140px;line-height:1.5;transition:border-color var(--tf)}
+.msg-ta:focus{border-color:rgba(201,168,76,.4);outline:none}
+.msg-ta::placeholder{color:var(--t4)}
+.msg-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.wa-btn{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:4px;font:500 10px var(--font);background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2);color:var(--green);cursor:pointer;transition:all 120ms ease}
+.wa-btn:hover{background:rgba(63,185,80,.14);border-color:rgba(63,185,80,.4)}
+
 /* ── EMPTY STATE ────────────────────────────────────────────── */
 .empty-state{padding:48px 24px;text-align:center}
 .empty-icon{font:400 28px var(--mono);color:var(--t4);margin-bottom:12px}
@@ -502,6 +533,11 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
       <div class="sb-item" onclick="goPage('leads')" data-page="leads">
         <div class="si-dot"></div> Lead Database
         <span class="si-count" id="sb-leads-count">0</span>
+      </div>
+      <div class="sb-section-label" style="margin-top:4px">Comms</div>
+      <div class="sb-item" onclick="goPage('messages')" data-page="messages">
+        <div class="si-dot"></div> WhatsApp
+        <span class="si-count" id="sb-msgs-count">0</span>
       </div>
       <div class="sb-section-label" style="margin-top:4px">System</div>
       <div class="sb-item" onclick="goPage('settings')" data-page="settings">
@@ -798,6 +834,43 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
         </div>
       </section>
 
+      <!-- MESSAGES PAGE -->
+      <section id="page-messages" class="page">
+        <div class="msg-layout">
+
+          <div class="msg-header">
+            <div class="msg-header-to">
+              <div class="msg-to-dot">WA</div>
+              <div>
+                <div class="msg-to-name">Benji — 360 Booth</div>
+                <div class="msg-to-sub">WhatsApp · +353 852 545 229</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="msgClearConfirm()">Clear History</button>
+            </div>
+          </div>
+
+          <div class="msg-feed" id="msg-feed"></div>
+
+          <div class="msg-quick" id="msg-quick">
+            <span style="font:600 10px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--t4);line-height:26px;margin-right:2px">Quick:</span>
+            <button class="msg-quick-btn" onclick="msgQuick('intel')">Latest Intel Summary</button>
+            <button class="msg-quick-btn" onclick="msgQuick('hot')">Top Hot Leads</button>
+            <button class="msg-quick-btn" onclick="msgQuick('pipeline')">Pipeline Status</button>
+            <button class="msg-quick-btn" onclick="msgQuick('stats')">Weekly Stats</button>
+          </div>
+
+          <div class="msg-compose">
+            <textarea class="msg-ta" id="msg-input" placeholder="Type a message to send via WhatsApp..." rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,140)+'px'"></textarea>
+            <button class="btn btn-primary" id="msg-send-btn" onclick="sendMsg()" style="height:42px;padding:0 18px;flex-shrink:0">Send</button>
+          </div>
+
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -813,6 +886,7 @@ const DB_AUTH    = 'b360_intel_auth'
 const DB_SCANS   = 'b360_intel_scans'
 const DB_LEADS   = 'b360_intel_leads'
 const DB_CFG     = 'b360_intel_cfg'
+const DB_MSGS    = 'b360_intel_msgs'
 
 // ── CLOCK ────────────────────────────────────────────────────
 ;(function tick(){
@@ -847,9 +921,10 @@ function saveScansAndLeads(scan){
 }
 
 function updateBadges(){
-  const sc=DB.get(DB_SCANS).length; const lc=DB.get(DB_LEADS).length
+  const sc=DB.get(DB_SCANS).length; const lc=DB.get(DB_LEADS).length; const mc=DB.get(DB_MSGS,[]).length
   ;['sb-history-count'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=sc })
   ;['sb-leads-count'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=lc })
+  const mb=document.getElementById('sb-msgs-count'); if(mb)mb.textContent=mc
   const ssc=document.getElementById('ss-scan-count'); if(ssc)ssc.textContent=sc
   const slc=document.getElementById('ss-lead-count'); if(slc)slc.textContent=lc
   const st=document.getElementById('ss-storage')
@@ -911,6 +986,7 @@ const pageMeta={
   pipeline:{title:'Pipeline',          badge:'CRM'},
   history: {title:'Scan History',      badge:'LOG'},
   leads:   {title:'Lead Database',     badge:'CRM'},
+  messages:{title:'WhatsApp',          badge:'COMMS'},
   settings:{title:'Settings',          badge:'CONFIG'},
 }
 
@@ -925,6 +1001,7 @@ function goPage(name){
   if(name==='history')renderHistory()
   if(name==='leads')renderLeadsTable()
   if(name==='pipeline')renderPipeline()
+  if(name==='messages')renderMessages()
 }
 
 // ── AGENT STATE ──────────────────────────────────────────────
@@ -1100,6 +1177,7 @@ function pipeCard(l,currentStage){
     ${contact?`<div class="pc-contact">${esc(contact.slice(0,36))}</div>`:''}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
       <span class="badge badge-${(l.urgency||'cool').toLowerCase()}" style="font-size:9px">${esc(l.event_type||'')}</span>
+      <button class="wa-btn" onclick="sendLeadToWhatsApp('${esc(l._key)}')">WA</button>
     </div>
     <div class="pc-move-btns">
       <button class="pc-move-btn" ${!canBack?'disabled':''} onclick="moveLeadStage('${esc(l._key)}','${PIPE_STAGES[stageIdx-1]}')">← ${canBack?PIPE_STAGES[stageIdx-1]:''}</button>
@@ -1194,6 +1272,7 @@ function renderLeadsTable(){
       </select></td>
       <td><span style="font:400 10px var(--mono);color:var(--t4)">${new Date(l.firstSeen||0).toLocaleDateString('en-IE')}</span></td>
       <td>${l.url?`<a class="src-link" href="${esc(l.url)}" target="_blank" rel="noopener">View</a>`:''}</td>
+      <td><button class="wa-btn" onclick="sendLeadToWhatsApp('${esc(l._key)}')">WA</button></td>
     </tr>`
   }).join('')
 }
@@ -1298,6 +1377,7 @@ async function sendReportNow(){
       statusBox.className='ss-status-box ok show'
       statusBox.textContent=`Report sent. Found ${data.hot||0} hot and ${data.warm||0} warm leads across ${data.eventsScored||0} events.`
       toast('Intel report sent to both emails','success')
+      logMessage(`*Jarvis Intel Report Sent*\n\nEvents scored: ${data.eventsScored||0}\nHot leads: ${data.hot||0}\nWarm leads: ${data.warm||0}\nReport emailed to both addresses.`,'auto','Intel Report')
     } else if(data.message){
       statusBox.className='ss-status-box warn show'
       statusBox.textContent=data.message
@@ -1313,6 +1393,130 @@ async function sendReportNow(){
     statusBox.textContent='Could not reach the server. Make sure the project is deployed on Vercel.'
   }
   txt.textContent='Send Intel Report Now'; btn.disabled=false
+}
+
+// ── MESSAGES (WhatsApp thread) ───────────────────────────────
+function logMessage(body, type='sent', label='Manual'){
+  const msgs=DB.get(DB_MSGS,[])
+  msgs.push({id:'msg_'+Date.now(),ts:new Date().toISOString(),body,type,label})
+  if(msgs.length>300)msgs.splice(0,msgs.length-300)
+  DB.set(DB_MSGS,msgs)
+  if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages()
+  updateBadges()
+}
+
+function renderMessages(){
+  const msgs=DB.get(DB_MSGS,[])
+  const feed=document.getElementById('msg-feed'); if(!feed)return
+  if(!msgs.length){
+    feed.innerHTML=`<div class="msg-empty">
+      <div style="font:600 12px var(--mono);color:var(--t4);letter-spacing:.1em">NO MESSAGES</div>
+      <div style="font:400 12px var(--font);color:var(--t4);text-align:center;max-width:260px;margin-top:4px;line-height:1.6">
+        Use the compose box below, tap a Quick button, or hit the WA button on any lead in the database or pipeline.
+      </div>
+    </div>`
+    return
+  }
+  feed.innerHTML=msgs.map(m=>{
+    const d=new Date(m.ts)
+    const time=d.toLocaleTimeString('en-IE',{hour:'2-digit',minute:'2-digit'})+' · '+d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})
+    const isAuto=m.type==='auto'||m.type==='auto-report'||m.type==='auto-scan'
+    const cls=isAuto?'auto':'sent'
+    const lblCls=isAuto?'auto':m.label==='Lead Brief'?'brief':''
+    return `<div class="msg-bubble ${cls}">
+      <span class="msg-label ${lblCls}">${esc(m.label||'Sent')}</span>
+      <div class="msg-body">${esc(m.body)}</div>
+      <span class="msg-meta">${time}</span>
+    </div>`
+  }).join('')
+  feed.scrollTop=feed.scrollHeight
+}
+
+async function sendMsg(){
+  const ta=document.getElementById('msg-input')
+  const body=(ta?.value||'').trim()
+  if(!body){ toast('Enter a message','info'); return }
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal){ toast('WhatsApp requires the live Vercel deployment','warn'); return }
+  const btn=document.getElementById('msg-send-btn')
+  btn.disabled=true; btn.textContent='...'
+  try{
+    await agentWhatsApp(body)
+    logMessage(body,'sent','Manual')
+    ta.value=''; ta.style.height='auto'
+    toast('Sent','success')
+  }catch(e){
+    toast('Failed: '+e.message,'error')
+  }
+  btn.disabled=false; btn.textContent='Send'
+}
+
+function msgQuick(type){
+  const leads=DB.get(DB_LEADS,[])
+  let body=''
+  if(type==='intel'){
+    const scans=DB.get(DB_SCANS,[])
+    const last=scans[0]
+    if(!last){ toast('No scans yet — run a scan first','info'); return }
+    const hot=leads.filter(l=>l.lead_score>=80).length
+    const warm=leads.filter(l=>l.lead_score>=55&&l.lead_score<80).length
+    body=`*Jarvis Intel Summary — 360 Booth Ireland*\n\nLast scan: ${new Date(last.ts).toLocaleDateString('en-IE')}\nEvents scored: ${last.total||0}\nHot leads: ${hot}\nWarm leads: ${warm}\nAvg score: ${last.avgScore||0}/100\n\nOpen your dashboard to review and follow up.`
+  } else if(type==='hot'){
+    const hot=leads.filter(l=>l.lead_score>=80).sort((a,b)=>b.lead_score-a.lead_score).slice(0,4)
+    if(!hot.length){ toast('No hot leads in database yet','info'); return }
+    body=`*Hot Leads — 360 Booth Ireland*\n\n`+hot.map((l,i)=>[
+      `${i+1}. ${l.title||l.domain} — ${l.lead_score}/100`,
+      l.organizer?`   Organiser: ${l.organizer}`:'',
+      (l.email||l.email_inferred)?`   Email: ${l.email||l.email_inferred}`:'',
+      l.phone?`   Phone: ${l.phone}`:'',
+      l.action?`   Action: ${l.action}`:'',
+    ].filter(Boolean).join('\n')).join('\n\n')
+  } else if(type==='pipeline'){
+    const counts={}
+    leads.forEach(l=>{ const s=l.status||'New'; counts[s]=(counts[s]||0)+1 })
+    body=`*Pipeline — 360 Booth Ireland*\n\n`+['New','Contacted','Meeting','Won','Lost'].map(s=>`${s}: ${counts[s]||0} lead${counts[s]!==1?'s':''}`).join('\n')
+  } else if(type==='stats'){
+    const scans=DB.get(DB_SCANS,[])
+    const total=leads.length; const hot=leads.filter(l=>l.lead_score>=80).length
+    const won=leads.filter(l=>l.status==='Won').length
+    body=`*Stats — 360 Booth Ireland*\n\nTotal leads: ${total}\nHot: ${hot}\nWon: ${won}\nTotal scans run: ${scans.length}\nDatabase last updated: ${scans[0]?new Date(scans[0].ts).toLocaleDateString('en-IE'):'Never'}`
+  }
+  const ta=document.getElementById('msg-input')
+  if(ta){ ta.value=body; ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,140)+'px'; ta.focus() }
+}
+
+async function sendLeadToWhatsApp(key){
+  const leads=DB.get(DB_LEADS,[])
+  const l=leads.find(x=>x._key===key)
+  if(!l){ toast('Lead not found','info'); return }
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal){ toast('WhatsApp requires the live Vercel deployment','warn'); return }
+  const body=[
+    `*Lead Brief — 360 Booth Ireland*`,
+    ``,
+    l.title||'Event',
+    `Score: ${l.lead_score||0}/100 — ${l.urgency||''}`,
+    l.event_type?`Type: ${l.event_type}`:'',
+    l.attendees_tier?`Attendees: ${l.attendees_tier}`:'',
+    l.organizer?`Organiser: ${l.organizer}`:'',
+    (l.email||l.email_inferred)?`Email: ${l.email||l.email_inferred}`:'',
+    l.phone?`Phone: ${l.phone}`:'',
+    l.action?`\nAction: ${l.action}`:'',
+    l.url?`\nSource: ${l.url}`:'',
+  ].filter(Boolean).join('\n')
+  try{
+    await agentWhatsApp(body)
+    logMessage(body,'sent','Lead Brief')
+    toast('Lead sent to WhatsApp','success')
+  }catch(e){
+    toast('Failed: '+e.message,'error')
+  }
+}
+
+function msgClearConfirm(){
+  if(!confirm('Clear all message history? This cannot be undone.'))return
+  DB.set(DB_MSGS,[]); renderMessages(); updateBadges()
+  toast('Message history cleared','info')
 }
 
 // ── WHATSAPP TEST ────────────────────────────────────────────
@@ -1351,6 +1555,7 @@ async function sendTestWhatsApp(){
   const sb=document.getElementById('wa-send-status'); if(sb)sb.className='ss-status-box'
   try{
     await agentWhatsApp(msg)
+    logMessage(msg,'sent','Test')
     if(sb){ sb.className='ss-status-box ok show'; sb.textContent='WhatsApp message sent.' }
     toast('WhatsApp sent','success')
   }catch(e){
