@@ -1,7 +1,6 @@
 {
   "rewrites": [
-    { "source": "/",    "destination": "/lead-intel-dashboard.html" },
-    { "source": "/hub", "destination": "/index.html" }
+    { "source": "/hub", "destination": "/hub.html" }
   ],
   "functions": {
     "api/scan-leads.js":            { "maxDuration": 60 },
