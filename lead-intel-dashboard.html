@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>360 Booth — Lead Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+/* ── TOKENS ─────────────────────────────────────────────────── */
+:root{
+  --brand:#C9A84C; --brand-h:#B8963E; --brand-muted:rgba(201,168,76,.10); --brand-glow:rgba(201,168,76,.22);
+  --sidebar:#0F1A10; --sidebar-border:rgba(255,255,255,.07); --sidebar-text:rgba(255,255,255,.50);
+  --sidebar-text-active:#F0F6FC; --sidebar-active:rgba(201,168,76,.13); --sidebar-w:240px;
+  --bg:#0D1117; --s1:#161B22; --s2:#1C2128; --s3:#21262D;
+  --border:rgba(255,255,255,.08); --border-s:rgba(255,255,255,.15);
+  --t1:#F0F6FC; --t2:#8B949E; --t3:#6E7681; --t4:#484F58;
+  --green:#3FB950; --red:#F85149; --warn:#D29922; --blue:#58A6FF;
+  --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px;
+  --topbar:56px; --tf:150ms ease; --ts:280ms ease;
+  --font:'DM Sans',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;font-size:14px}
+body{font-family:var(--font);background:var(--bg);color:var(--t1);height:100%;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+input,textarea,select{font-family:inherit;outline:none;border:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-s);border-radius:2px}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── BUTTONS ────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding:0 14px;border-radius:var(--r-md);font:500 13px var(--font);
+  border:1px solid transparent;cursor:pointer;transition:all var(--tf);white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.btn-primary{background:var(--brand);color:#0D1117;border-color:var(--brand)}
+.btn-primary:hover{background:var(--brand-h)}
+.btn-secondary{background:var(--s2);color:var(--t1);border-color:var(--border-s)}
+.btn-secondary:hover{background:var(--s3)}
+.btn-ghost{background:transparent;color:var(--t2);border-color:transparent}
+.btn-ghost:hover{background:var(--s2);color:var(--t1)}
+.btn-outline{background:transparent;color:var(--brand);border-color:rgba(201,168,76,.35)}
+.btn-outline:hover{background:var(--brand-muted)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{opacity:.88}
+.btn-sm{height:28px;padding:0 10px;font-size:12px;border-radius:var(--r-sm)}
+.btn-xs{height:24px;padding:0 8px;font-size:11px;border-radius:var(--r-sm)}
+
+/* ── PILL FILTER GROUPS ─────────────────────────────────────── */
+.pill-group{display:flex;gap:4px;flex-wrap:wrap}
+.pill{height:28px;padding:0 12px;border-radius:20px;font:500 12px var(--font);
+  border:1px solid var(--border);background:transparent;color:var(--t3);cursor:pointer;transition:all 120ms ease}
+.pill:hover{border-color:var(--border-s);color:var(--t2)}
+.pill.active{background:var(--brand-muted);border-color:rgba(201,168,76,.4);color:var(--brand)}
+.pill.active-green{background:rgba(63,185,80,.10);border-color:rgba(63,185,80,.3);color:var(--green)}
+.pill.active-red{background:rgba(248,81,73,.10);border-color:rgba(248,81,73,.3);color:var(--red)}
+.pill.active-warn{background:rgba(210,153,34,.10);border-color:rgba(210,153,34,.3);color:var(--warn)}
+
+/* ── BADGES ─────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;
+  font:600 11px var(--font);letter-spacing:.03em;text-transform:uppercase}
+.badge-hot{background:rgba(248,81,73,.12);color:var(--red)}
+.badge-warm{background:rgba(210,153,34,.12);color:var(--warn)}
+.badge-cool{background:rgba(88,166,255,.12);color:var(--blue)}
+.badge-new{background:rgba(201,168,76,.12);color:var(--brand)}
+.badge-contacted{background:rgba(88,166,255,.12);color:var(--blue)}
+.badge-meeting{background:rgba(201,168,76,.12);color:var(--brand)}
+.badge-won{background:rgba(63,185,80,.12);color:var(--green)}
+.badge-lost{background:rgba(248,81,73,.10);color:var(--t3)}
+
+/* ── CARDS ──────────────────────────────────────────────────── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg)}
+.card:hover{border-color:var(--border-s)}
+
+/* ── INPUTS ─────────────────────────────────────────────────── */
+.field{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:0 12px;height:36px;font:400 13px var(--font);color:var(--t1);
+  transition:border-color var(--tf)}
+.field:focus{border-color:rgba(201,168,76,.5)}
+.field::placeholder{color:var(--t4)}
+textarea.field{height:auto;padding:10px 12px;resize:vertical}
+
+/* ── SEGMENT CONTROL ────────────────────────────────────────── */
+.seg{display:inline-flex;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);padding:3px;gap:2px}
+.seg-btn{height:28px;padding:0 14px;border-radius:var(--r-sm);font:500 12px var(--font);
+  color:var(--t3);background:transparent;border:none;cursor:pointer;transition:all 120ms ease}
+.seg-btn:hover{color:var(--t1)}
+.seg-btn.active{background:var(--s3);color:var(--t1)}
+.seg-btn.active-brand{background:var(--brand-muted);color:var(--brand)}
+
+/* ── SIDEBAR COUNT BADGE ────────────────────────────────────── */
+.si-count{font:600 10px var(--mono);background:var(--s3);color:var(--t3);
+  padding:1px 6px;border-radius:20px;margin-left:auto}
+
+/* ── LOGIN ──────────────────────────────────────────────────── */
+#login-screen{position:fixed;inset:0;z-index:9000;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;flex-direction:column}
+.login-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:600px;height:600px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(201,168,76,.06) 0%,transparent 65%);
+  animation:glowP 5s ease infinite}
+@keyframes glowP{0%,100%{opacity:1}50%{opacity:.5}}
+.login-card{position:relative;z-index:2;background:var(--s1);
+  border:1px solid var(--border-s);border-radius:var(--r-xl);
+  padding:40px 36px;width:400px;box-shadow:0 24px 64px rgba(0,0,0,.7)}
+.arc{width:52px;height:52px;border-radius:50%;margin:0 auto 20px;position:relative;
+  background:radial-gradient(circle,rgba(201,168,76,.25) 0%,transparent 65%);
+  animation:arcP 2.8s ease infinite}
+.arc::before{content:'';position:absolute;inset:4px;border-radius:50%;
+  border:1.5px solid rgba(201,168,76,.5);animation:arcP 2.8s ease infinite reverse}
+.arc::after{content:'';position:absolute;inset:12px;border-radius:50%;
+  background:rgba(201,168,76,.15);box-shadow:0 0 10px var(--brand-glow)}
+@keyframes arcP{0%,100%{box-shadow:0 0 10px var(--brand-glow)}50%{box-shadow:0 0 22px var(--brand-glow),0 0 40px rgba(201,168,76,.1)}}
+.login-brand{text-align:center;margin-bottom:24px}
+.login-brand-name{font:700 14px var(--font);letter-spacing:.18em;text-transform:uppercase;color:var(--brand)}
+.login-brand-sub{font:400 11px var(--font);color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+.login-divider{width:32px;height:1px;background:rgba(201,168,76,.2);margin:8px auto 0}
+.login-title{text-align:center;font:600 18px var(--font);margin-bottom:3px}
+.login-sub{text-align:center;font:400 12px var(--font);color:var(--t2);margin-bottom:22px}
+.lf-label{font:600 10px var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:5px}
+.lf-input{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:12px 14px;color:var(--t1);font:400 13px var(--font);transition:border-color var(--tf)}
+.lf-input:focus{border-color:rgba(201,168,76,.45)}
+.lf-input::placeholder{color:var(--t4)}
+.lf-btn{width:100%;padding:13px;border-radius:var(--r-md);background:var(--brand);
+  color:#0D1117;font:700 13px var(--font);letter-spacing:.06em;
+  margin-top:12px;transition:opacity var(--tf)}
+.lf-btn:hover{opacity:.88}
+.lf-error{font:400 11px var(--font);color:var(--red);text-align:center;min-height:16px;margin-top:6px}
+
+/* ── BOOT ───────────────────────────────────────────────────── */
+#boot-overlay{position:fixed;inset:0;z-index:9500;background:var(--bg);
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:0}
+#boot-overlay.on{display:flex}
+.boot-arc{width:72px;height:72px;border-radius:50%;margin-bottom:28px;position:relative;
+  background:radial-gradient(circle,rgba(201,168,76,.3) 0%,transparent 65%);
+  animation:arcP 1.2s ease infinite}
+.boot-arc::before{content:'';position:absolute;inset:5px;border-radius:50%;
+  border:2px solid rgba(201,168,76,.6);animation:arcP 1.2s ease infinite reverse}
+.boot-lines{display:flex;flex-direction:column;gap:10px;width:340px;margin-bottom:24px}
+.boot-line{display:flex;align-items:center;gap:10px;opacity:0;transition:opacity 300ms ease}
+.boot-line.on{opacity:1}
+.bl-dot{width:6px;height:6px;border-radius:50%;background:var(--brand);flex-shrink:0}
+.bl-dot.done{background:var(--green)}
+.bl-text{font:500 11px var(--mono);color:var(--t2);letter-spacing:.06em}
+.boot-progress{width:340px;height:2px;background:var(--s2);border-radius:2px;overflow:hidden}
+.boot-fill{height:100%;background:var(--brand);border-radius:2px;width:0;transition:width 380ms ease}
+
+/* ── APP SHELL ──────────────────────────────────────────────── */
+#app{display:none;height:100vh;flex-direction:row}
+#app.on{display:flex}
+#sidebar{width:var(--sidebar-w);background:var(--sidebar);border-right:1px solid var(--sidebar-border);
+  display:flex;flex-direction:column;flex-shrink:0;position:relative;z-index:40}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── SIDEBAR ────────────────────────────────────────────────── */
+.sb-logo{padding:16px 18px 14px;border-bottom:1px solid var(--sidebar-border);
+  display:flex;align-items:center;gap:10px}
+.sb-mark{width:28px;height:28px;border-radius:6px;background:var(--brand-muted);
+  border:1px solid rgba(201,168,76,.25);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center}
+.sb-mark-inner{width:10px;height:10px;border-radius:2px;background:var(--brand)}
+.sb-brand-name{font:700 13px var(--font);color:var(--sidebar-text-active);letter-spacing:-.01em}
+.sb-brand-sub{font:400 10px var(--font);color:var(--sidebar-text);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
+.sb-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sb-section-label{font:600 10px var(--font);letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.25);padding:8px 8px 4px;margin-top:4px}
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r-md);
+  cursor:pointer;transition:all var(--tf);color:var(--sidebar-text);font:500 13px var(--font)}
+.sb-item:hover{background:rgba(255,255,255,.05);color:var(--sidebar-text-active)}
+.sb-item.active{background:var(--sidebar-active);color:var(--brand)}
+.sb-item.active .si-dot{background:var(--brand)}
+.si-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0}
+.sb-footer{padding:12px 14px;border-top:1px solid var(--sidebar-border);
+  display:flex;align-items:center;justify-content:space-between}
+.sb-status{display:flex;align-items:center;gap:6px}
+.sb-status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(63,185,80,.5)}
+.sb-clock{font:400 11px var(--mono);color:var(--t4)}
+.sb-logout{font:500 11px var(--font);color:var(--t4);cursor:pointer;letter-spacing:.04em;
+  text-transform:uppercase;transition:color var(--tf)}
+.sb-logout:hover{color:var(--red)}
+
+/* ── TOPBAR ─────────────────────────────────────────────────── */
+#topbar{height:var(--topbar);padding:0 20px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-title{font:600 16px var(--font);color:var(--t1)}
+.tb-tag{font:600 10px var(--mono);color:var(--brand);background:var(--brand-muted);
+  border:1px solid rgba(201,168,76,.25);padding:2px 8px;border-radius:20px;letter-spacing:.06em}
+.tb-right{display:flex;align-items:center;gap:16px;font:400 11px var(--mono);color:var(--t4)}
+.tb-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+
+/* ── CONTENT / PAGES ────────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.on{display:block}
+
+/* ── SECTION HEADER ─────────────────────────────────────────── */
+.section-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px}
+.section-title{font:600 20px var(--font);color:var(--t1)}
+.section-sub{font:400 13px var(--font);color:var(--t3);margin-top:2px}
+.section-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+/* ── KPI CARDS ──────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px}
+.kpi-label{font:500 11px var(--font);color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.kpi-val{font:700 28px var(--mono);color:var(--t1);line-height:1}
+.kpi-val.gold{color:var(--brand)}
+.kpi-val.green{color:var(--green)}
+.kpi-val.red{color:var(--red)}
+.kpi-val.sm{font-size:18px}
+
+/* ── AGENT PAGE ─────────────────────────────────────────────── */
+#a-idle,#a-scan,#a-results{display:none}
+#a-idle.on,#a-scan.on,#a-results.on{display:block}
+.a-intro{margin-bottom:28px}
+.a-sys-id{font:500 11px var(--mono);color:var(--t4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.a-title{font:700 36px var(--font);color:var(--t1);line-height:1.15;margin-bottom:6px}
+.a-title em{font-style:normal;color:var(--brand)}
+.a-sub{font:400 14px var(--font);color:var(--t3)}
+.jarvis-greeting{font:500 14px var(--font);color:var(--brand);margin-bottom:14px;min-height:20px;transition:opacity .3s}
+
+.prompt-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:16px}
+.prompt-card:focus-within{border-color:rgba(201,168,76,.3)}
+.prompt-row{display:flex;gap:10px;align-items:flex-end}
+.prompt-ta{flex:1;background:transparent;border:none;color:var(--t1);font:400 14px var(--font);
+  resize:none;min-height:44px;line-height:1.5}
+.prompt-ta:focus{outline:none}
+.prompt-ta::placeholder{color:var(--t4)}
+
+.prompt-or{font:400 12px var(--font);color:var(--t4);text-align:center;padding:8px 0}
+.monitor-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  height:44px;border-radius:var(--r-lg);background:var(--s2);border:1px solid var(--border);
+  color:var(--t2);font:500 13px var(--font);transition:all var(--tf)}
+.monitor-btn:hover{border-color:rgba(201,168,76,.3);color:var(--brand);background:var(--brand-muted)}
+
+.mon-stat-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-top:16px}
+.mst{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.mst:last-child{border-bottom:none}
+.mst-l{font:400 12px var(--font);color:var(--t3)}
+.mst-v{font:500 12px var(--mono);color:var(--t2)}
+.mst-v.gold{color:var(--brand)}
+.live-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);
+  margin-right:5px;box-shadow:0 0 5px rgba(63,185,80,.5)}
+
+/* scan steps */
+#a-scan{padding:20px 0}
+.scan-hdr{font:700 12px var(--mono);color:var(--brand);letter-spacing:.12em;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.cursor{width:8px;height:14px;background:var(--brand);animation:blink .9s step-end infinite;border-radius:1px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);opacity:.35;transition:opacity .3s}
+.step.on{opacity:1}
+.step-ico{font:700 11px var(--mono);color:var(--brand);flex-shrink:0;margin-top:1px}
+.step-main{font:500 12px var(--mono);color:var(--t1);letter-spacing:.04em}
+.step-sub{font:400 11px var(--mono);color:var(--t3);margin-top:3px}
+.prog-wrap{margin-top:20px}
+.prog-row{display:flex;justify-content:space-between;font:400 11px var(--mono);color:var(--t3);margin-bottom:6px}
+.prog-track{height:3px;background:var(--s2);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--brand);border-radius:2px;width:0;transition:width .4s ease}
+#scan-err-box{margin-top:14px;padding:10px 14px;border-radius:var(--r-md);background:rgba(248,81,73,.08);
+  border:1px solid rgba(248,81,73,.2);font:400 12px var(--font);color:var(--red);display:none}
+
+/* results */
+.res-eyebrow{font:700 10px var(--mono);color:var(--brand);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+.res-headline{font:600 22px var(--font);color:var(--t1);margin-bottom:4px}
+.res-meta{display:flex;gap:12px;font:400 11px var(--mono);color:var(--t4);margin-bottom:20px;flex-wrap:wrap}
+.events-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:20px}
+.ecard{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);
+  overflow:hidden;animation:fadeUp .25s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.ecard-img{width:100%;height:140px;overflow:hidden;cursor:zoom-in}
+.ecard-img img{width:100%;height:100%;object-fit:cover;transition:transform .3s ease}
+.ecard-img:hover img{transform:scale(1.04)}
+.ecard-body{padding:14px}
+.ecard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ecard-num{font:600 10px var(--mono);color:var(--t4);letter-spacing:.06em}
+.ecard-title{font:600 14px var(--font);color:var(--t1);line-height:1.35;margin-bottom:4px}
+.ecard-domain{display:flex;align-items:center;gap:5px;font:400 11px var(--font);color:var(--t3);margin-bottom:8px}
+.ddot{width:4px;height:4px;border-radius:50%;background:var(--brand)}
+.type-chip{display:inline-block;font:500 10px var(--font);color:var(--brand);
+  background:var(--brand-muted);border:1px solid rgba(201,168,76,.2);
+  padding:2px 8px;border-radius:20px;letter-spacing:.04em;margin-bottom:10px}
+.score-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.score-lbl{font:600 10px var(--mono);color:var(--t4);letter-spacing:.06em;white-space:nowrap}
+.score-track{flex:1;height:3px;background:var(--s2);border-radius:2px;overflow:hidden}
+.score-fill{height:100%;border-radius:2px}
+.score-num{font:700 13px var(--mono);flex-shrink:0;min-width:24px;text-align:right}
+.ecard-insight{font:400 11px var(--font);color:var(--t3);font-style:italic;margin-bottom:6px;line-height:1.45}
+.ecard-action{font:500 11px var(--font);color:var(--brand);margin-bottom:8px}
+.contact-sec{padding:12px 14px;background:var(--s2);border-top:1px solid var(--border)}
+.contact-ttl{font:700 9px var(--mono);color:var(--t4);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+.contact-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.c-ico{font-size:11px;width:16px;flex-shrink:0;color:var(--t3)}
+.c-val{font:400 12px var(--font);color:var(--t2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-val.est{color:var(--warn)}
+.c-val.none{color:var(--t4)}
+.ctag{font:600 9px var(--font);padding:1px 5px;border-radius:3px;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0}
+.ctag-found{background:rgba(63,185,80,.12);color:var(--green)}
+.ctag-est{background:rgba(210,153,34,.12);color:var(--warn)}
+.copy-btn{font:600 9px var(--font);padding:2px 6px;border-radius:3px;
+  background:var(--s3);color:var(--t3);transition:all var(--tf);letter-spacing:.04em;flex-shrink:0}
+.copy-btn:hover{background:var(--brand-muted);color:var(--brand)}
+.copy-btn.copied{background:rgba(63,185,80,.12);color:var(--green)}
+.ecard-foot{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.att-tier{font:400 10px var(--mono);color:var(--t4)}
+.src-link{font:600 11px var(--font);color:var(--brand);letter-spacing:.04em}
+.src-link:hover{opacity:.8}
+
+/* ── PIPELINE PAGE ──────────────────────────────────────────── */
+.pipeline-board{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;min-height:60vh}
+.pipe-col{min-width:240px;width:240px;flex-shrink:0;display:flex;flex-direction:column;gap:8px}
+.pipe-col-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md)}
+.pipe-col-title{font:600 12px var(--font);color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
+.pipe-col-count{font:700 12px var(--mono);color:var(--t4)}
+.pipe-col.col-won .pipe-col-hdr{border-color:rgba(63,185,80,.2)}
+.pipe-col.col-won .pipe-col-title{color:var(--green)}
+.pipe-col.col-lost .pipe-col-hdr{border-color:rgba(248,81,73,.15)}
+.pipe-col.col-lost .pipe-col-title{color:var(--t4)}
+.pipe-cards{display:flex;flex-direction:column;gap:8px;flex:1}
+.pipe-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:12px;cursor:pointer;transition:all var(--tf);animation:fadeUp .2s ease both}
+.pipe-card:hover{border-color:var(--border-s);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.pc-title{font:500 12px var(--font);color:var(--t1);line-height:1.3;margin-bottom:6px}
+.pc-domain{font:400 10px var(--font);color:var(--t4);margin-bottom:8px}
+.pc-score{font:700 20px var(--mono);text-align:right}
+.pc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.pc-contact{font:400 10px var(--font);color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.pc-move-btns{display:flex;gap:3px;margin-top:8px}
+.pc-move-btn{flex:1;height:24px;border-radius:var(--r-sm);font:500 10px var(--font);
+  background:var(--s2);color:var(--t3);border:1px solid var(--border);
+  transition:all 100ms ease}
+.pc-move-btn:hover{background:var(--brand-muted);color:var(--brand);border-color:rgba(201,168,76,.3)}
+.pc-move-btn:disabled{opacity:.3;cursor:not-allowed}
+.pipe-empty{padding:20px;text-align:center;font:400 11px var(--font);color:var(--t4);
+  border:1px dashed var(--border);border-radius:var(--r-md)}
+
+/* ── HISTORY PAGE ───────────────────────────────────────────── */
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-item{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:16px;cursor:pointer;transition:all var(--tf)}
+.history-item:hover{border-color:var(--border-s)}
+.hi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.hi-mode{font:700 10px var(--mono);color:var(--brand);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.hi-query{font:500 13px var(--font);color:var(--t1)}
+.hi-ts{font:400 11px var(--mono);color:var(--t4);white-space:nowrap}
+.hi-stats{display:flex;gap:16px}
+.hi-stat{font:400 12px var(--font);color:var(--t3)}
+.hs-v{font:700 12px var(--mono)}
+.hs-v.gold{color:var(--brand)}
+.hs-v.green{color:var(--green)}
+.hi-preview{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.hi-tag{font:400 10px var(--font);color:var(--t3);background:var(--s2);
+  padding:2px 8px;border-radius:20px;border:1px solid var(--border)}
+
+/* ── LEADS PAGE ─────────────────────────────────────────────── */
+.leads-toolbar{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.leads-toolbar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.leads-table-wrap{overflow-x:auto}
+.leads-table{width:100%;border-collapse:collapse}
+.leads-table th{padding:8px 12px;text-align:left;font:600 10px var(--font);
+  color:var(--t4);letter-spacing:.06em;text-transform:uppercase;
+  border-bottom:1px solid var(--border);white-space:nowrap}
+.leads-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.leads-table tr:hover td{background:var(--s2)}
+.ltd-title{font:500 13px var(--font);color:var(--t1);max-width:200px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ltd-org{font:400 11px var(--font);color:var(--t3);margin-top:2px}
+.ltd-email a{font:400 11px var(--font);color:var(--blue)}
+.ltd-email.est a{color:var(--warn)}
+.ltd-phone a{font:400 11px var(--mono);color:var(--t2)}
+.status-select{background:var(--s2);border:1px solid var(--border);color:var(--t2);
+  font:500 11px var(--font);padding:3px 8px;border-radius:var(--r-sm);cursor:pointer}
+.status-select:focus{outline:none;border-color:rgba(201,168,76,.4)}
+
+/* ── SETTINGS PAGE ──────────────────────────────────────────── */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px}
+.ss-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.ss-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.ss-hdr-dot{width:5px;height:5px;border-radius:50%;background:var(--brand);flex-shrink:0}
+.ss-hdr-title{font:600 13px var(--font);color:var(--t1)}
+.ss-body{padding:18px}
+.ss-field{margin-bottom:14px}
+.ss-label{font:600 10px var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:5px}
+.ss-hint{font:400 11px var(--font);color:var(--t4);margin-top:4px;line-height:1.5}
+.ss-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.ss-info-row{display:flex;justify-content:space-between;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--border)}
+.ss-info-row:last-child{border-bottom:none}
+.ss-info-lbl{font:400 12px var(--font);color:var(--t3)}
+.ss-info-val{font:500 12px var(--mono);color:var(--brand)}
+.ss-status-box{padding:10px 12px;border-radius:var(--r-md);font:400 12px var(--font);
+  border:1px solid var(--border);color:var(--t2);display:none;line-height:1.5;margin-bottom:10px}
+.ss-status-box.show{display:block}
+.ss-status-box.ok{border-color:rgba(63,185,80,.3);color:var(--green);background:rgba(63,185,80,.05)}
+.ss-status-box.err{border-color:rgba(248,81,73,.3);color:var(--red);background:rgba(248,81,73,.05)}
+.ss-status-box.warn{border-color:rgba(210,153,34,.3);color:var(--warn);background:rgba(210,153,34,.05)}
+
+/* ── EMPTY STATE ────────────────────────────────────────────── */
+.empty-state{padding:48px 24px;text-align:center}
+.empty-icon{font:400 28px var(--mono);color:var(--t4);margin-bottom:12px}
+.empty-title{font:600 15px var(--font);color:var(--t2);margin-bottom:4px}
+.empty-sub{font:400 13px var(--font);color:var(--t4)}
+
+/* ── LIGHTBOX ───────────────────────────────────────────────── */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9900;
+  align-items:center;justify-content:center;cursor:zoom-out;flex-direction:column;gap:12px}
+#lightbox.on{display:flex}
+#lb-img{max-width:88vw;max-height:82vh;object-fit:contain;border:1px solid var(--border-s)}
+#lb-caption{font:400 11px var(--mono);color:var(--t3);max-width:600px;text-align:center}
+
+/* ── TOASTS ─────────────────────────────────────────────────── */
+#toasts{position:fixed;bottom:20px;right:20px;z-index:9800;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r-md);
+  font:500 12px var(--font);animation:slideIn .2s ease;min-width:240px;
+  background:var(--s1);border:1px solid var(--border)}
+@keyframes slideIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+.toast.success{border-color:rgba(63,185,80,.3)}
+.toast.error{border-color:rgba(248,81,73,.3);color:var(--red)}
+.toast.info{border-color:rgba(201,168,76,.2)}
+.toast-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.toast.success .toast-dot{background:var(--green)}
+.toast.error .toast-dot{background:var(--red)}
+.toast.info .toast-dot{background:var(--brand)}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────── */
+@media(max-width:700px){
+  #sidebar{display:none}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .events-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="toasts"></div>
+<div id="lightbox" onclick="closeLb()"><img id="lb-img" alt=""><div id="lb-caption"></div></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-glow"></div>
+  <div class="login-card">
+    <div class="arc"></div>
+    <div class="login-brand">
+      <div class="login-brand-name">360 Booth Ireland</div>
+      <div class="login-brand-sub">Lead Intelligence System</div>
+      <div class="login-divider"></div>
+    </div>
+    <div class="login-title">Access System</div>
+    <div class="login-sub">Enter your access code to continue</div>
+    <div style="margin-top:4px">
+      <label class="lf-label">Access Code</label>
+      <input class="lf-input" type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password">
+      <div class="lf-error" id="login-err"></div>
+      <button class="lf-btn" onclick="doLogin()">Initialise System</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOOT -->
+<div id="boot-overlay">
+  <div class="boot-arc"></div>
+  <div class="boot-lines">
+    <div class="boot-line" id="bl1"><div class="bl-dot"></div><div class="bl-text">CONNECTING TO EXA INTELLIGENCE NETWORK...</div></div>
+    <div class="boot-line" id="bl2"><div class="bl-dot"></div><div class="bl-text">LOADING LEAD DATABASE...</div></div>
+    <div class="boot-line" id="bl3"><div class="bl-dot"></div><div class="bl-text">CALIBRATING SCORING ENGINE...</div></div>
+    <div class="boot-line" id="bl4"><div class="bl-dot"></div><div class="bl-text">INITIALISING GROQ AI — LLAMA 3.3 70B...</div></div>
+    <div class="boot-line" id="bl5"><div class="bl-dot"></div><div class="bl-text">ALL SYSTEMS OPERATIONAL.</div></div>
+  </div>
+  <div class="boot-progress"><div class="boot-fill" id="boot-fill"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-mark"><div class="sb-mark-inner"></div></div>
+      <div>
+        <div class="sb-brand-name">360 Booth</div>
+        <div class="sb-brand-sub">Intelligence OS</div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section-label">Intelligence</div>
+      <div class="sb-item active" onclick="goPage('agent')" data-page="agent">
+        <div class="si-dot"></div> Agent
+      </div>
+      <div class="sb-item" onclick="goPage('pipeline')" data-page="pipeline">
+        <div class="si-dot"></div> Pipeline
+      </div>
+      <div class="sb-item" onclick="goPage('history')" data-page="history">
+        <div class="si-dot"></div> Scan History
+        <span class="si-count" id="sb-history-count">0</span>
+      </div>
+      <div class="sb-section-label" style="margin-top:4px">Data</div>
+      <div class="sb-item" onclick="goPage('leads')" data-page="leads">
+        <div class="si-dot"></div> Lead Database
+        <span class="si-count" id="sb-leads-count">0</span>
+      </div>
+      <div class="sb-section-label" style="margin-top:4px">System</div>
+      <div class="sb-item" onclick="goPage('settings')" data-page="settings">
+        <div class="si-dot"></div> Settings
+      </div>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-status">
+        <div class="sb-status-dot"></div>
+        <span class="sb-clock" id="sb-clock">--:--:--</span>
+      </div>
+      <span class="sb-logout" onclick="doLogout()">Sign Out</span>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <header id="topbar">
+      <div class="tb-left">
+        <div class="tb-title" id="tb-title">Intelligence Agent</div>
+        <div class="tb-tag" id="tb-badge">JARVIS</div>
+      </div>
+      <div class="tb-right">
+        <div class="tb-dot"></div>
+        <span>B2B Event Intelligence — Ireland</span>
+        <span id="tb-clock">--:--:--</span>
+      </div>
+    </header>
+
+    <div id="content">
+
+      <!-- AGENT PAGE -->
+      <section id="page-agent" class="page on">
+        <div id="a-idle" class="on">
+          <div class="a-intro">
+            <div class="a-sys-id">System v2.0 · B2B Lead Discovery · Ireland</div>
+            <h1 class="a-title">B2B Event<br><em>Intelligence</em></h1>
+            <div class="a-sub">Autonomous lead discovery for 360 Booth Ireland</div>
+          </div>
+          <div class="jarvis-greeting" id="greeting"></div>
+          <div class="prompt-card">
+            <div class="prompt-row">
+              <textarea class="prompt-ta" id="prompt-ta" rows="2"
+                placeholder="Find corporate gala dinners and awards ceremonies in Dublin, June–September 2026…"></textarea>
+              <button class="btn btn-primary" onclick="runPrompt()">Search</button>
+            </div>
+          </div>
+          <div class="prompt-or">or</div>
+          <button class="monitor-btn" onclick="runMonitor()">Scan Latest Monitor Run</button>
+          <div class="mon-stat-card">
+            <div class="mst"><div class="mst-l">Monitor</div><div class="mst-v gold">B2B Event Intelligence Ireland</div></div>
+            <div class="mst"><div class="mst-l">Frequency</div><div class="mst-v" id="mon-freq-display">Every week</div></div>
+            <div class="mst"><div class="mst-l">Last Run</div><div class="mst-v">May 26, 2026</div></div>
+            <div class="mst"><div class="mst-l">Status</div><div class="mst-v gold"><span class="live-dot"></span>Active</div></div>
+          </div>
+        </div>
+
+        <div id="a-scan">
+          <div class="scan-hdr">Neural Processing Active <div class="cursor"></div></div>
+          <div class="step" id="s1"><div class="step-ico">[1]</div><div><div class="step-main">Establishing connection to Exa network</div><div class="step-sub" id="s1d">api.exa.ai</div></div></div>
+          <div class="step" id="s2"><div class="step-ico">[2]</div><div><div class="step-main" id="s2m">Fetching intelligence data</div><div class="step-sub" id="s2d">Preparing...</div></div></div>
+          <div class="step" id="s3"><div class="step-ico">[3]</div><div><div class="step-main">Extracting page content and contact intel</div><div class="step-sub" id="s3d">Fetching event pages...</div></div></div>
+          <div class="step" id="s4"><div class="step-ico">[4]</div><div><div class="step-main">Groq AI — Lead scoring and contact extraction</div><div class="step-sub" id="s4d">LLaMA 3.3 70B analysing...</div></div></div>
+          <div id="scan-err-box"></div>
+          <div class="prog-wrap">
+            <div class="prog-row"><span id="prog-lbl">Initialising...</span><span id="prog-pct">0%</span></div>
+            <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+          </div>
+        </div>
+
+        <div id="a-results">
+          <div class="res-eyebrow" id="res-eyebrow">Intelligence Report</div>
+          <div class="res-headline" id="res-headline">—</div>
+          <div class="res-meta" id="res-meta"></div>
+          <div class="kpi-grid" id="res-kpis"></div>
+          <div class="events-grid" id="events-grid"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="goAgentIdle()">New Search</button>
+            <button class="btn btn-ghost" onclick="runMonitor()">Rescan Monitor</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PIPELINE PAGE -->
+      <section id="page-pipeline" class="page">
+        <div class="section-hdr">
+          <div>
+            <div class="section-title">Pipeline</div>
+            <div class="section-sub">Track every lead from discovery to booking</div>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-ghost btn-sm" onclick="goPage('leads')">View as Table</button>
+          </div>
+        </div>
+        <div class="pipeline-board" id="pipeline-board"></div>
+      </section>
+
+      <!-- HISTORY PAGE -->
+      <section id="page-history" class="page">
+        <div class="section-hdr">
+          <div>
+            <div class="section-title">Scan History</div>
+            <div class="section-sub">Every search and monitor run — stored automatically</div>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-ghost btn-sm" onclick="clearHistory()">Clear All</button>
+          </div>
+        </div>
+        <div id="history-list-wrap"></div>
+      </section>
+
+      <!-- LEADS PAGE -->
+      <section id="page-leads" class="page">
+        <div class="section-hdr">
+          <div>
+            <div class="section-title">Lead Database</div>
+            <div class="section-sub">All extracted leads — deduplicated across every scan</div>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-outline btn-sm" onclick="exportLeads()">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="leads-toolbar">
+          <div class="leads-toolbar-row">
+            <input class="field" type="text" id="leads-search" placeholder="Search by event, organiser, email..." oninput="renderLeadsTable()" style="flex:1;min-width:200px">
+          </div>
+          <div class="leads-toolbar-row" style="gap:16px">
+            <div>
+              <div style="font:600 9px var(--font);color:var(--t4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Urgency</div>
+              <div class="pill-group" id="pill-urgency">
+                <button class="pill active" data-val="" onclick="setPillFilter('urgency','',this)">All</button>
+                <button class="pill" data-val="Hot" onclick="setPillFilter('urgency','Hot',this)">Hot</button>
+                <button class="pill" data-val="Warm" onclick="setPillFilter('urgency','Warm',this)">Warm</button>
+                <button class="pill" data-val="Cool" onclick="setPillFilter('urgency','Cool',this)">Cool</button>
+              </div>
+            </div>
+            <div>
+              <div style="font:600 9px var(--font);color:var(--t4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Status</div>
+              <div class="pill-group" id="pill-status">
+                <button class="pill active" data-val="" onclick="setPillFilter('status','',this)">All</button>
+                <button class="pill" data-val="New" onclick="setPillFilter('status','New',this)">New</button>
+                <button class="pill" data-val="Contacted" onclick="setPillFilter('status','Contacted',this)">Contacted</button>
+                <button class="pill" data-val="Meeting" onclick="setPillFilter('status','Meeting',this)">Meeting</button>
+                <button class="pill" data-val="Won" onclick="setPillFilter('status','Won',this)">Won</button>
+                <button class="pill" data-val="Lost" onclick="setPillFilter('status','Lost',this)">Lost</button>
+              </div>
+            </div>
+            <div>
+              <div style="font:600 9px var(--font);color:var(--t4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">Contact</div>
+              <div class="pill-group" id="pill-contact">
+                <button class="pill active" data-val="" onclick="setPillFilter('contact','',this)">All</button>
+                <button class="pill" data-val="email" onclick="setPillFilter('contact','email',this)">Has Email</button>
+                <button class="pill" data-val="phone" onclick="setPillFilter('contact','phone',this)">Has Phone</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="leads-table-wrap">
+          <table class="leads-table">
+            <thead>
+              <tr>
+                <th>Event</th><th>Organiser</th><th>Contact</th>
+                <th>Score</th><th>Type</th><th>Status</th><th>Seen</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="leads-tbody"></tbody>
+          </table>
+        </div>
+        <div id="leads-empty" class="empty-state" style="display:none">
+          <div class="empty-icon">—</div>
+          <div class="empty-title">No leads yet</div>
+          <div class="empty-sub">Run a scan from the Agent page to populate your lead database</div>
+        </div>
+      </section>
+
+      <!-- SETTINGS PAGE -->
+      <section id="page-settings" class="page">
+        <div class="section-hdr">
+          <div>
+            <div class="section-title">Settings</div>
+            <div class="section-sub">System configuration and delivery preferences</div>
+          </div>
+        </div>
+        <div class="settings-grid">
+
+          <div class="ss-card">
+            <div class="ss-hdr"><div class="ss-hdr-dot"></div><div class="ss-hdr-title">Email Notifications</div></div>
+            <div class="ss-body">
+              <div class="ss-field">
+                <label class="ss-label">Primary Email</label>
+                <input class="field" type="email" id="s-email1" placeholder="benj.sanusi@gmail.com" style="width:100%">
+              </div>
+              <div class="ss-field">
+                <label class="ss-label">Business Email</label>
+                <input class="field" type="email" id="s-email2" placeholder="info@360boothireland.ie" style="width:100%">
+              </div>
+              <div class="ss-row">
+                <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ss-card">
+            <div class="ss-hdr"><div class="ss-hdr-dot"></div><div class="ss-hdr-title">Send Report Now</div></div>
+            <div class="ss-body">
+              <div class="ss-hint" style="margin-bottom:14px">Jarvis will scan the latest monitor run, score all leads, and send a full HTML report to both emails immediately.</div>
+              <div class="ss-status-box" id="send-report-status"></div>
+              <button class="btn btn-outline" id="send-report-btn" onclick="sendReportNow()" style="width:100%;height:40px">
+                <span id="send-report-btn-text">Send Intel Report Now</span>
+              </button>
+              <div class="ss-hint" style="margin-top:8px">Sends to: <span style="color:var(--brand)" id="report-email-display">benj.sanusi@gmail.com + info@360boothireland.ie</span></div>
+            </div>
+          </div>
+
+          <div class="ss-card">
+            <div class="ss-hdr"><div class="ss-hdr-dot"></div><div class="ss-hdr-title">Auto-Run Schedule</div></div>
+            <div class="ss-body">
+              <div class="ss-field">
+                <label class="ss-label">Scan Frequency</label>
+                <div class="seg" id="schedule-seg" style="margin-top:4px">
+                  <button class="seg-btn active-brand" data-val="weekly" onclick="setSchedule('weekly',this)">Weekly</button>
+                  <button class="seg-btn" data-val="2x" onclick="setSchedule('2x',this)">2× Week</button>
+                  <button class="seg-btn" data-val="3x" onclick="setSchedule('3x',this)">3× Week</button>
+                </div>
+                <div class="ss-hint" style="margin-top:8px" id="schedule-hint">Current: Every Monday at 8am UTC</div>
+              </div>
+              <div class="ss-info-row"><span class="ss-info-lbl">Monitor</span><span class="ss-info-val">B2B Event Intelligence Ireland</span></div>
+              <div class="ss-info-row"><span class="ss-info-lbl">Status</span><span class="ss-info-val" style="color:var(--green)">Active</span></div>
+              <div class="ss-info-row"><span class="ss-info-lbl">Next Run</span><span class="ss-info-val" id="next-run-display" style="color:var(--brand)">—</span></div>
+              <div class="ss-info-row"><span class="ss-info-lbl">Run After</span><span class="ss-info-val" id="next-run2-display" style="color:var(--t3)">—</span></div>
+            </div>
+          </div>
+
+          <div class="ss-card">
+            <div class="ss-hdr"><div class="ss-hdr-dot"></div><div class="ss-hdr-title">WhatsApp Alerts</div></div>
+            <div class="ss-body">
+              <div class="ss-field">
+                <label class="ss-label">Your WhatsApp Number</label>
+                <input class="field" type="tel" id="s-whatsapp" placeholder="+353 87 123 4567" style="width:100%">
+                <div class="ss-hint">You'll receive a WhatsApp notification every time an intel report is sent.</div>
+              </div>
+              <div class="ss-row">
+                <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save</button>
+              </div>
+              <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+                <label class="ss-label" style="margin-bottom:8px">Send Test Message</label>
+                <textarea class="field" id="wa-test-msg" rows="3" style="width:100%;resize:none;padding:10px 12px" placeholder="Type a message or pick a lead to summarise..."></textarea>
+                <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                  <button class="btn btn-outline btn-sm" onclick="previewLeadSummary()">Summarise Latest Hot Lead</button>
+                  <button class="btn btn-primary btn-sm" id="wa-send-btn" onclick="sendTestWhatsApp()">Send to WhatsApp</button>
+                </div>
+                <div class="ss-status-box" id="wa-send-status" style="margin-top:10px"></div>
+              </div>
+              <div class="ss-hint" style="margin-top:10px;color:var(--warn)" id="wa-status-hint">
+                Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM in Vercel env vars.
+              </div>
+            </div>
+          </div>
+
+          <div class="ss-card">
+            <div class="ss-hdr"><div class="ss-hdr-dot"></div><div class="ss-hdr-title">Access Code</div></div>
+            <div class="ss-body">
+              <div class="ss-field">
+                <label class="ss-label">Current Code</label>
+                <input class="field" type="password" id="s-pw-current" placeholder="Current code" style="width:100%">
+              </div>
+              <div class="ss-field">
+                <label class="ss-label">New Code</label>
+                <input class="field" type="password" id="s-pw-new" placeholder="New code (4+ chars)" style="width:100%">
+              </div>
+              <div class="ss-row">
+                <button class="btn btn-primary btn-sm" onclick="changePassword()">Update Code</button>
+              </div>
+              <div class="ss-hint" style="margin-top:8px">Default: <span style="font-family:var(--mono);color:var(--brand)">360booth</span></div>
+            </div>
+          </div>
+
+          <div class="ss-card" style="border-color:rgba(248,81,73,.15)">
+            <div class="ss-hdr" style="background:rgba(248,81,73,.04)"><div class="ss-hdr-dot" style="background:var(--red)"></div><div class="ss-hdr-title">Data Management</div></div>
+            <div class="ss-body">
+              <div class="ss-info-row"><span class="ss-info-lbl">Total Scans</span><span class="ss-info-val" id="ss-scan-count">0</span></div>
+              <div class="ss-info-row"><span class="ss-info-lbl">Total Leads</span><span class="ss-info-val" id="ss-lead-count">0</span></div>
+              <div class="ss-info-row"><span class="ss-info-lbl">Storage Used</span><span class="ss-info-val" id="ss-storage">0 KB</span></div>
+              <div class="ss-row" style="margin-top:14px">
+                <button class="btn btn-danger btn-sm" onclick="clearAllData()">Clear All Data</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────
+// API keys live in Vercel env vars — never in frontend code.
+// All Exa + Groq calls go through /api/agent/scan (server-side proxy).
+const MONITOR_ID = '01ksht4r08s1gdkmr33qw3b6j0'
+const OWNER_NAME = 'Benji'
+const DEFAULT_PW = '360booth'
+const DB_AUTH    = 'b360_intel_auth'
+const DB_SCANS   = 'b360_intel_scans'
+const DB_LEADS   = 'b360_intel_leads'
+const DB_CFG     = 'b360_intel_cfg'
+
+// ── CLOCK ────────────────────────────────────────────────────
+;(function tick(){
+  const t=new Date().toLocaleTimeString('en-IE',{hour12:false})
+  ;['sb-clock','tb-clock'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=t })
+  setTimeout(tick,1000)
+})()
+
+// ── DATA LAYER ───────────────────────────────────────────────
+const DB={
+  get:(k,def=[])=>{ try{return JSON.parse(localStorage.getItem(k))??def}catch{return def} },
+  set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),
+  cfg:()=>DB.get(DB_CFG,{pw:DEFAULT_PW,email1:'benj.sanusi@gmail.com',email2:'info@360boothireland.ie',schedule:'weekly',whatsapp:''}),
+}
+
+function saveScansAndLeads(scan){
+  const scans=DB.get(DB_SCANS); scans.unshift(scan)
+  if(scans.length>50)scans.length=50
+  DB.set(DB_SCANS,scans)
+  const leads=DB.get(DB_LEADS); const idx={}
+  leads.forEach((l,i)=>{ idx[l._key]=i })
+  scan.events.forEach(e=>{
+    const key=e.url?btoa(e.url).slice(0,20):btoa(e.title||'x').slice(0,20)
+    if(idx[key]!==undefined){
+      if(e.lead_score>leads[idx[key]].lead_score)
+        leads[idx[key]]={...leads[idx[key]],...e,_key:key,firstSeen:leads[idx[key]].firstSeen,status:leads[idx[key]].status||'New'}
+    } else {
+      leads.push({...e,_key:key,firstSeen:scan.ts,status:'New'})
+    }
+  })
+  DB.set(DB_LEADS,leads); updateBadges()
+}
+
+function updateBadges(){
+  const sc=DB.get(DB_SCANS).length; const lc=DB.get(DB_LEADS).length
+  ;['sb-history-count'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=sc })
+  ;['sb-leads-count'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=lc })
+  const ssc=document.getElementById('ss-scan-count'); if(ssc)ssc.textContent=sc
+  const slc=document.getElementById('ss-lead-count'); if(slc)slc.textContent=lc
+  const st=document.getElementById('ss-storage')
+  if(st){ const b=new Blob([JSON.stringify(localStorage)]).size; st.textContent=b>1024?Math.round(b/1024)+' KB':b+' B' }
+}
+
+// ── AUTH ─────────────────────────────────────────────────────
+function checkAuth(){
+  const a=DB.get(DB_AUTH,null)
+  if(a&&a.authed&&(Date.now()-a.ts<24*60*60*1000)){ showApp(); return }
+  document.getElementById('login-screen').style.display='flex'
+}
+
+function doLogin(){
+  const pw=document.getElementById('login-pw').value
+  const err=document.getElementById('login-err')
+  const cfg=DB.cfg()
+  if(pw===(cfg.pw||DEFAULT_PW)){
+    document.getElementById('login-screen').style.display='none'
+    runBoot()
+  } else {
+    err.textContent='Incorrect access code.'
+    document.getElementById('login-pw').value=''
+    document.getElementById('login-pw').focus()
+    setTimeout(()=>err.textContent='',3000)
+  }
+}
+document.getElementById('login-pw').addEventListener('keydown',e=>{ if(e.key==='Enter')doLogin() })
+
+async function runBoot(){
+  const overlay=document.getElementById('boot-overlay'); overlay.classList.add('on')
+  const steps=['bl1','bl2','bl3','bl4','bl5']; const fill=document.getElementById('boot-fill')
+  for(let i=0;i<steps.length;i++){
+    await sleep(i===4?600:380)
+    const el=document.getElementById(steps[i]); el.classList.add('on')
+    fill.style.width=((i+1)/steps.length*100)+'%'
+    if(i===steps.length-1){ el.querySelector('.bl-dot').classList.add('done'); el.style.color='var(--green)' }
+  }
+  await sleep(700); overlay.classList.remove('on'); showApp()
+}
+
+function showApp(){
+  DB.set(DB_AUTH,{authed:true,ts:Date.now()})
+  document.getElementById('login-screen').style.display='none'
+  document.getElementById('app').classList.add('on')
+  loadSettingsForm(); updateBadges(); updateNextRunDisplay()
+  // greeting
+  const h=new Date().getHours()
+  const gr=h<12?'Good morning':h<17?'Good afternoon':'Good evening'
+  const el=document.getElementById('greeting')
+  if(el)el.textContent=`${gr}, ${OWNER_NAME}. Ready to find your next booking.`
+}
+
+function doLogout(){ DB.set(DB_AUTH,{authed:false,ts:0}); location.reload() }
+
+// ── NAVIGATION ───────────────────────────────────────────────
+const pageMeta={
+  agent:   {title:'Intelligence Agent',badge:'JARVIS'},
+  pipeline:{title:'Pipeline',          badge:'CRM'},
+  history: {title:'Scan History',      badge:'LOG'},
+  leads:   {title:'Lead Database',     badge:'CRM'},
+  settings:{title:'Settings',          badge:'CONFIG'},
+}
+
+function goPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'))
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'))
+  document.getElementById('page-'+name).classList.add('on')
+  const nav=document.querySelector(`[data-page="${name}"]`); if(nav)nav.classList.add('active')
+  const m=pageMeta[name]||{}
+  const tt=document.getElementById('tb-title'); if(tt)tt.textContent=m.title||name
+  const tb=document.getElementById('tb-badge'); if(tb)tb.textContent=m.badge||''
+  if(name==='history')renderHistory()
+  if(name==='leads')renderLeadsTable()
+  if(name==='pipeline')renderPipeline()
+}
+
+// ── AGENT STATE ──────────────────────────────────────────────
+function agentShow(state){
+  ;['idle','scan','results'].forEach(s=>{
+    const el=document.getElementById('a-'+s); if(el)el.classList.toggle('on',s===state)
+  })
+}
+function goAgentIdle(){ agentShow('idle') }
+
+function stepOn(id,sub){ const el=document.getElementById(id); if(el)el.classList.add('on'); if(sub){ const s=document.getElementById(id+'d'); if(s)s.textContent=sub } }
+function setProgress(pct,lbl){
+  const f=document.getElementById('prog-fill'); if(f)f.style.width=pct+'%'
+  const l=document.getElementById('prog-lbl'); if(l)l.textContent=lbl||''
+  const p=document.getElementById('prog-pct'); if(p)p.textContent=pct+'%'
+}
+function showScanErr(msg){ const b=document.getElementById('scan-err-box'); if(b){b.style.display='block';b.textContent=msg} }
+
+async function runPrompt(){
+  const ta=document.getElementById('prompt-ta'); const q=(ta?.value||'').trim()
+  if(!q){ toast('Enter a search query','info'); return }
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal){ toast('Scan requires the live Vercel deployment — open your Vercel URL','warn'); return }
+  agentShow('scan');setProgress(0,'Connecting...')
+  ;['s1','s2','s3','s4'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('on')})
+  const errBox=document.getElementById('scan-err-box'); if(errBox)errBox.style.display='none'
+  try{
+    stepOn('s1','agent/scan — search'); setProgress(15,'Fetching search results...')
+    const data=await agentScan('search',q)
+    const scored=data.events||[]
+    if(!scored.length) throw new Error(data.message||'No results returned. Try a different query.')
+    stepOn('s2','Contacts enriched'); setProgress(55,'Enriched')
+    stepOn('s3','Contacts extracted'); setProgress(75,'Extracted')
+    stepOn('s4','LLaMA 3.3 70B scored '+scored.length+' events'); setProgress(100,'Complete')
+    await sleep(300)
+    const scan={id:'scan_'+Date.now(),ts:new Date().toISOString(),mode:'search',query:q,events:scored,
+      hot:scored.filter(e=>e.lead_score>=80).length,total:scored.length,
+      avgScore:scored.length?Math.round(scored.reduce((s,e)=>s+e.lead_score,0)/scored.length):0}
+    saveScansAndLeads(scan); agentShow('results'); renderResults(scored,'search',q)
+  }catch(e){ showScanErr(e.message); setProgress(0,'Failed') }
+}
+
+async function runMonitor(){
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal){ toast('Scan requires the live Vercel deployment — open your Vercel URL','warn'); return }
+  agentShow('scan'); setProgress(0,'Connecting...')
+  ;['s1','s2','s3','s4'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.remove('on')})
+  const errBox=document.getElementById('scan-err-box'); if(errBox)errBox.style.display='none'
+  try{
+    stepOn('s1','monitors/'+MONITOR_ID+'/runs'); setProgress(15,'Fetching monitor run...')
+    const data=await agentScan('monitor')
+    const scored=data.events||[]
+    if(!scored.length) throw new Error(data.message||'Latest monitor run has no results.')
+    stepOn('s2','Monitor returned '+scored.length+' events'); setProgress(50,'Fetching text...')
+    stepOn('s3','Contacts enriched'); setProgress(70,'Enriched')
+    stepOn('s4','LLaMA 3.3 70B scored '+scored.length+' events'); setProgress(100,'Complete')
+    await sleep(300)
+    const scan={id:'scan_'+Date.now(),ts:new Date().toISOString(),mode:'monitor',query:'Monitor Run',events:scored,
+      hot:scored.filter(e=>e.lead_score>=80).length,total:scored.length,
+      avgScore:scored.length?Math.round(scored.reduce((s,e)=>s+e.lead_score,0)/scored.length):0}
+    saveScansAndLeads(scan); agentShow('results'); renderResults(scored,'monitor','Monitor Run')
+  }catch(e){ showScanErr(e.message); setProgress(0,'Failed') }
+}
+
+// ── SERVER-SIDE PROXIES ──────────────────────────────────────
+// All Exa + Groq calls go through /api/agent/scan so keys stay server-side.
+async function agentScan(mode, query){
+  const res=await fetch('/api/agent/scan',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({mode, query:query||''}),
+  })
+  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||`Scan error ${res.status}`) }
+  return res.json()
+}
+
+async function agentWhatsApp(message){
+  const res=await fetch('/api/agent/whatsapp-send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message}),
+  })
+  const data=await res.json().catch(()=>({}))
+  if(!res.ok) throw new Error(data.error||`WhatsApp error ${res.status}`)
+  return data
+}
+
+// ── RENDER RESULTS ───────────────────────────────────────────
+function renderResults(events,mode,query){
+  const sorted=[...events].sort((a,b)=>b.lead_score-a.lead_score)
+  const avg=events.length?Math.round(events.reduce((s,e)=>s+e.lead_score,0)/events.length):0
+  const hot=events.filter(e=>e.lead_score>=80).length
+  const now=new Date()
+  document.getElementById('res-eyebrow').textContent='Intelligence Report'
+  document.getElementById('res-headline').textContent=`${events.length} Events Analysed — ${hot} High-Value Lead${hot!==1?'s':''}`
+  document.getElementById('res-meta').innerHTML=
+    `<span>${mode==='search'?`Query: "${(query||'').slice(0,50)}"` : 'Monitor: B2B Event Intelligence Ireland'}</span>`+
+    `<span>${now.toLocaleDateString('en-IE')} ${now.toLocaleTimeString('en-IE',{hour12:false})}</span>`+
+    `<span>LLaMA 3.3 70B</span>`
+  document.getElementById('res-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Events Found</div><div class="kpi-val">${events.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Hot Leads</div><div class="kpi-val green">${hot}</div></div>
+    <div class="kpi"><div class="kpi-label">Avg Score</div><div class="kpi-val gold">${avg}</div></div>
+    <div class="kpi"><div class="kpi-label">Top Type</div><div class="kpi-val sm">${sorted[0]?.event_type||'—'}</div></div>`
+
+  document.getElementById('events-grid').innerHTML=sorted.filter(e=>e.urgency!=='Skip').map((e,i)=>{
+    const sc=e.lead_score
+    const fc=sc>=80?'var(--green)':sc>=55?'var(--warn)':'var(--blue)'
+    const urg=e.urgency||'Cool'
+    return `<div class="ecard" style="animation-delay:${i*55}ms">
+      ${e.image?`<div class="ecard-img" onclick="openLb('${esc(e.image)}','${esc(e.title)}')" title="Expand image"><img src="${esc(e.image)}" loading="lazy" alt=""></div>`:''}
+      <div class="ecard-body">
+        <div class="ecard-top"><div class="ecard-num">Lead ${String(i+1).padStart(2,'0')}</div><span class="badge badge-${urg.toLowerCase()}">${urg}</span></div>
+        <div class="ecard-title">${esc(e.title)}</div>
+        <div class="ecard-domain"><div class="ddot"></div>${esc(e.domain||'—')}</div>
+        <div class="type-chip">${esc(e.event_type)}</div>
+        <div class="score-row"><div class="score-lbl">Score</div><div class="score-track"><div class="score-fill" style="width:${sc}%;background:linear-gradient(90deg,${fc},${fc}88)"></div></div><div class="score-num" style="color:${fc}">${sc}</div></div>
+        ${e.relevance?`<div class="ecard-insight">${esc(e.relevance)}</div>`:''}
+        ${e.action?`<div class="ecard-action">→ ${esc(e.action)}</div>`:''}
+      </div>
+      <div class="contact-sec">
+        <div class="contact-ttl">Contact Intelligence</div>
+        ${e.organizer?`<div class="contact-row"><div class="c-ico">Org</div><div class="c-val">${esc(e.organizer)}</div></div>`:''}
+        ${e.email?`<div class="contact-row"><div class="c-ico">@</div><div class="c-val"><a href="mailto:${esc(e.email)}">${esc(e.email)}</a></div><span class="ctag ctag-found">Found</span><button class="copy-btn" onclick="cp(this,'${esc(e.email)}')">Copy</button></div>`
+          :e.email_inferred?`<div class="contact-row"><div class="c-ico">@</div><div class="c-val est">${esc(e.email_inferred)}</div><span class="ctag ctag-est">Est.</span><button class="copy-btn" onclick="cp(this,'${esc(e.email_inferred)}')">Copy</button></div>`
+          :`<div class="contact-row"><div class="c-ico">@</div><div class="c-val none">Email not found</div></div>`}
+        ${e.phone?`<div class="contact-row"><div class="c-ico">Ph</div><div class="c-val"><a href="tel:${esc(e.phone.replace(/\s/g,''))}">${esc(e.phone)}</a></div><span class="ctag ctag-found">Found</span><button class="copy-btn" onclick="cp(this,'${esc(e.phone)}')">Copy</button></div>`:''}
+        ${e.contact_hint&&!e.email&&!e.phone?`<div class="contact-row"><div class="c-ico">?</div><div class="c-val none" style="white-space:normal;font-size:10px">${esc(e.contact_hint)}</div></div>`:''}
+      </div>
+      <div class="ecard-foot">
+        <div class="att-tier">${e.attendees_tier!=='Unknown'?esc(e.attendees_tier)+' attendees':''}</div>
+        ${e.url?`<a class="src-link" href="${esc(e.url)}" target="_blank" rel="noopener">View Source</a>`:''}
+      </div>
+    </div>`
+  }).join('')
+}
+
+// ── PIPELINE ─────────────────────────────────────────────────
+const PIPE_STAGES=['New','Contacted','Meeting','Won','Lost']
+const PIPE_LABELS={'New':'New Lead','Contacted':'Contacted','Meeting':'Meeting Booked','Won':'Won','Lost':'Lost'}
+
+function renderPipeline(){
+  const leads=DB.get(DB_LEADS)
+  const board=document.getElementById('pipeline-board'); if(!board)return
+  board.innerHTML=PIPE_STAGES.map(stage=>{
+    const cards=leads.filter(l=>(l.status||'New')===stage)
+    const stageClass=stage==='Won'?'col-won':stage==='Lost'?'col-lost':''
+    return `<div class="pipe-col ${stageClass}">
+      <div class="pipe-col-hdr">
+        <span class="pipe-col-title">${PIPE_LABELS[stage]}</span>
+        <span class="pipe-col-count">${cards.length}</span>
+      </div>
+      <div class="pipe-cards" id="pcol-${stage}">
+        ${cards.length?cards.sort((a,b)=>b.lead_score-a.lead_score).map(l=>pipeCard(l,stage)).join('')
+          :`<div class="pipe-empty">No leads</div>`}
+      </div>
+    </div>`
+  }).join('')
+}
+
+function pipeCard(l,currentStage){
+  const sc=l.lead_score||0
+  const fc=sc>=80?'var(--green)':sc>=55?'var(--warn)':'var(--blue)'
+  const contact=l.email||l.email_inferred||l.phone||''
+  const stageIdx=PIPE_STAGES.indexOf(currentStage)
+  const canBack=stageIdx>0; const canFwd=stageIdx<PIPE_STAGES.length-1
+  return `<div class="pipe-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <div class="pc-title">${esc((l.title||'').slice(0,60))}</div>
+      <div class="pc-score" style="color:${fc};flex-shrink:0">${sc}</div>
+    </div>
+    <div class="pc-domain">${esc(l.domain||'')}</div>
+    ${contact?`<div class="pc-contact">${esc(contact.slice(0,36))}</div>`:''}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+      <span class="badge badge-${(l.urgency||'cool').toLowerCase()}" style="font-size:9px">${esc(l.event_type||'')}</span>
+    </div>
+    <div class="pc-move-btns">
+      <button class="pc-move-btn" ${!canBack?'disabled':''} onclick="moveLeadStage('${esc(l._key)}','${PIPE_STAGES[stageIdx-1]}')">← ${canBack?PIPE_STAGES[stageIdx-1]:''}</button>
+      <button class="pc-move-btn" ${!canFwd?'disabled':''} onclick="moveLeadStage('${esc(l._key)}','${PIPE_STAGES[stageIdx+1]}')"> ${canFwd?PIPE_STAGES[stageIdx+1]:''} →</button>
+    </div>
+  </div>`
+}
+
+function moveLeadStage(key,newStage){
+  const leads=DB.get(DB_LEADS)
+  const l=leads.find(x=>x._key===key); if(!l)return
+  l.status=newStage; DB.set(DB_LEADS,leads)
+  renderPipeline(); updateBadges()
+  toast(`Moved to ${PIPE_LABELS[newStage]}`,'info')
+}
+
+// ── HISTORY ──────────────────────────────────────────────────
+function renderHistory(){
+  const scans=DB.get(DB_SCANS); const wrap=document.getElementById('history-list-wrap')
+  if(!scans.length){ wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">—</div><div class="empty-title">No scans yet</div><div class="empty-sub">Run a search from the Agent page</div></div>`; return }
+  wrap.innerHTML='<div class="history-list">'+scans.map(s=>{
+    const d=new Date(s.ts)
+    const hotEvents=(s.events||[]).filter(e=>e.lead_score>=80).slice(0,3)
+    return `<div class="history-item" onclick="loadScanInAgent('${s.id}')">
+      <div class="hi-top">
+        <div>
+          <div class="hi-mode">${s.mode==='search'?'Custom Search':'Monitor Scan'}</div>
+          <div class="hi-query">${esc(s.query||'Monitor run')}</div>
+        </div>
+        <div class="hi-ts">${d.toLocaleDateString('en-IE')} ${d.toLocaleTimeString('en-IE',{hour12:false})}</div>
+      </div>
+      <div class="hi-stats">
+        <div class="hi-stat">Events: <span class="hs-v gold">${s.total||0}</span></div>
+        <div class="hi-stat">Hot: <span class="hs-v green">${s.hot||0}</span></div>
+        <div class="hi-stat">Avg: <span class="hs-v gold">${s.avgScore||0}</span></div>
+      </div>
+      ${hotEvents.length?`<div class="hi-preview">${hotEvents.map(e=>`<div class="hi-tag">${esc((e.title||'').slice(0,34))}</div>`).join('')}</div>`:''}
+    </div>`
+  }).join('')+'</div>'
+}
+
+function loadScanInAgent(scanId){
+  const scan=DB.get(DB_SCANS).find(s=>s.id===scanId); if(!scan)return
+  goPage('agent'); renderResults(scan.events,scan.mode,scan.query); agentShow('results')
+  document.getElementById('res-eyebrow').textContent='Loaded from History'
+}
+
+function clearHistory(){
+  if(!confirm('Clear all scan history?'))return
+  DB.set(DB_SCANS,[]); renderHistory(); updateBadges(); toast('History cleared','info')
+}
+
+// ── LEADS TABLE ──────────────────────────────────────────────
+let leadsFilter={urgency:'',status:'',contact:''}
+
+function setPillFilter(type,val,btn){
+  leadsFilter[type]=val
+  const group=document.getElementById('pill-'+type)
+  if(group)group.querySelectorAll('.pill').forEach(b=>b.classList.remove('active','active-green','active-red','active-warn'))
+  if(btn)btn.classList.add('active')
+  renderLeadsTable()
+}
+
+function renderLeadsTable(){
+  const leads=DB.get(DB_LEADS)
+  const q=(document.getElementById('leads-search')?.value||'').toLowerCase()
+  const emp=document.getElementById('leads-empty'); const tbody=document.getElementById('leads-tbody')
+  let filtered=leads.filter(l=>{
+    if(q&&!((l.title||'')+(l.organizer||'')+(l.email||l.email_inferred||'')+(l.domain||'')).toLowerCase().includes(q))return false
+    if(leadsFilter.urgency&&l.urgency!==leadsFilter.urgency)return false
+    if(leadsFilter.status&&(l.status||'New')!==leadsFilter.status)return false
+    if(leadsFilter.contact==='email'&&!l.email&&!l.email_inferred)return false
+    if(leadsFilter.contact==='phone'&&!l.phone)return false
+    return true
+  }).sort((a,b)=>b.lead_score-a.lead_score)
+  if(emp)emp.style.display=filtered.length?'none':'block'
+  if(!tbody)return
+  const sc=s=>s>=80?'var(--green)':s>=55?'var(--warn)':'var(--blue)'
+  tbody.innerHTML=filtered.map(l=>{
+    const status=l.status||'New'; const email=l.email||l.email_inferred||''
+    return `<tr>
+      <td><div class="ltd-title" title="${esc(l.title)}">${esc((l.title||'').slice(0,40))}</div><div class="ltd-org">${esc(l.domain||'')}</div></td>
+      <td><div style="font:400 12px var(--font);color:var(--t2)">${esc(l.organizer||'—')}</div></td>
+      <td>
+        ${email?`<div class="ltd-email ${l.email?'':'est'}"><a href="mailto:${esc(email)}">${esc(email.slice(0,28))}</a><button class="copy-btn" onclick="cp(this,'${esc(email)}')" style="padding:1px 5px;margin-left:4px">Copy</button></div>`:'<div style="font:400 10px var(--font);color:var(--t4)">No email</div>'}
+        ${l.phone?`<div class="ltd-phone"><a href="tel:${esc(l.phone.replace(/\s/g,''))}">${esc(l.phone)}</a></div>`:''}
+      </td>
+      <td><span style="font:700 13px var(--mono);color:${sc(l.lead_score)}">${l.lead_score}</span></td>
+      <td><span class="badge badge-${(l.urgency||'cool').toLowerCase()}">${esc(l.event_type||'')}</span></td>
+      <td><select class="status-select" onchange="updateLeadStatus('${l._key}',this.value)">
+        ${['New','Contacted','Meeting','Won','Lost'].map(s=>`<option value="${s}"${status===s?' selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td><span style="font:400 10px var(--mono);color:var(--t4)">${new Date(l.firstSeen||0).toLocaleDateString('en-IE')}</span></td>
+      <td>${l.url?`<a class="src-link" href="${esc(l.url)}" target="_blank" rel="noopener">View</a>`:''}</td>
+    </tr>`
+  }).join('')
+}
+
+function updateLeadStatus(key,status){
+  const leads=DB.get(DB_LEADS); const l=leads.find(x=>x._key===key); if(l)l.status=status
+  DB.set(DB_LEADS,leads); toast('Status → '+status,'info')
+}
+
+function exportLeads(){
+  const leads=DB.get(DB_LEADS); if(!leads.length){toast('No leads to export','info');return}
+  const headers=['Title','Organizer','Email','Phone','Score','Type','Urgency','Status','URL','First Seen']
+  const rows=leads.map(l=>[l.title,l.organizer,l.email||l.email_inferred||'',l.phone||'',l.lead_score,l.event_type,l.urgency,l.status||'New',l.url,l.firstSeen].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','))
+  const csv=[headers.join(','),...rows].join('\n')
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv)
+  a.download=`360-booth-leads-${new Date().toISOString().slice(0,10)}.csv`; a.click()
+  toast('CSV exported','success')
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────
+const SCHEDULE_HINTS={
+  weekly:'Every Monday at 8am UTC — vercel.json: "0 8 * * 1"',
+  '2x':'Monday + Thursday at 8am — add "0 8 * * 4" cron in vercel.json',
+  '3x':'Mon, Wed, Fri at 8am — add "0 8 * * 1,3,5" cron in vercel.json',
+}
+
+function setSchedule(val,btn){
+  document.querySelectorAll('#schedule-seg .seg-btn').forEach(b=>b.classList.remove('active-brand'))
+  if(btn)btn.classList.add('active-brand')
+  const hint=document.getElementById('schedule-hint')
+  if(hint)hint.textContent=SCHEDULE_HINTS[val]||''
+  const cfg=DB.cfg(); cfg.schedule=val; DB.set(DB_CFG,cfg)
+  const disp=document.getElementById('mon-freq-display')
+  if(disp)disp.textContent={weekly:'Every week','2x':'Twice a week','3x':'Three times a week'}[val]||''
+  toast('Schedule preference saved. Update vercel.json to activate.','info')
+  updateNextRunDisplay()
+}
+
+function loadSettingsForm(){
+  const cfg=DB.cfg()
+  const e1=document.getElementById('s-email1'); if(e1)e1.value=cfg.email1||''
+  const e2=document.getElementById('s-email2'); if(e2)e2.value=cfg.email2||''
+  const wa=document.getElementById('s-whatsapp'); if(wa)wa.value=cfg.whatsapp||''
+  const disp=document.getElementById('report-email-display')
+  if(disp)disp.textContent=(cfg.email1||'')+(cfg.email2?' + '+cfg.email2:'')
+  // restore schedule seg
+  const saved=cfg.schedule||'weekly'
+  document.querySelectorAll('#schedule-seg .seg-btn').forEach(b=>{
+    b.classList.remove('active-brand')
+    if(b.dataset.val===saved)b.classList.add('active-brand')
+  })
+  const hint=document.getElementById('schedule-hint'); if(hint)hint.textContent=SCHEDULE_HINTS[saved]||''
+}
+
+function saveSettings(){
+  const cfg=DB.cfg()
+  const e1=document.getElementById('s-email1')?.value||''; if(e1)cfg.email1=e1
+  const e2=document.getElementById('s-email2')?.value||''; if(e2)cfg.email2=e2
+  const wa=document.getElementById('s-whatsapp')?.value||''; cfg.whatsapp=wa
+  DB.set(DB_CFG,cfg)
+  const disp=document.getElementById('report-email-display'); if(disp)disp.textContent=(cfg.email1||'')+(cfg.email2?' + '+cfg.email2:'')
+  toast('Settings saved','success')
+}
+
+function changePassword(){
+  const cur=document.getElementById('s-pw-current')?.value||''
+  const nw=document.getElementById('s-pw-new')?.value||''
+  const cfg=DB.cfg()
+  if(cur!==(cfg.pw||DEFAULT_PW)){toast('Current code incorrect','error');return}
+  if(!nw||nw.length<4){toast('New code must be at least 4 characters','error');return}
+  cfg.pw=nw; DB.set(DB_CFG,cfg)
+  document.getElementById('s-pw-current').value=''
+  document.getElementById('s-pw-new').value=''
+  toast('Access code updated','success')
+}
+
+function clearAllData(){
+  if(!confirm('Delete ALL scans and leads? This cannot be undone.'))return
+  ;[DB_SCANS,DB_LEADS].forEach(k=>localStorage.removeItem(k))
+  updateBadges(); toast('All data cleared','info')
+}
+
+// ── EMAIL DELIVERY ───────────────────────────────────────────
+async function sendReportNow(){
+  const btn=document.getElementById('send-report-btn')
+  const txt=document.getElementById('send-report-btn-text')
+  const statusBox=document.getElementById('send-report-status')
+  btn.disabled=true; txt.textContent='Scanning and preparing report...'
+  statusBox.className='ss-status-box'; statusBox.style.display='none'
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal){
+    statusBox.className='ss-status-box warn show'
+    statusBox.textContent='Email delivery only works on the live Vercel deployment. Deploy first, then use this button from your Vercel URL.'
+    txt.textContent='Send Intel Report Now'; btn.disabled=false; return
+  }
+  try{
+    const res=await fetch('/api/deliver-leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({manual:true})})
+    const data=await res.json().catch(()=>({}))
+    if(res.ok&&data.success){
+      statusBox.className='ss-status-box ok show'
+      statusBox.textContent=`Report sent. Found ${data.hot||0} hot and ${data.warm||0} warm leads across ${data.eventsScored||0} events.`
+      toast('Intel report sent to both emails','success')
+    } else if(data.message){
+      statusBox.className='ss-status-box warn show'
+      statusBox.textContent=data.message
+    } else {
+      const msg=data.error||`Server error (${res.status})`
+      statusBox.className='ss-status-box err show'
+      statusBox.textContent=msg.toLowerCase().includes('resend')
+        ?'Resend API key not configured. Go to Vercel → Settings → Environment Variables → add RESEND_API_KEY.'
+        :`Error: ${msg}`
+    }
+  }catch(e){
+    statusBox.className='ss-status-box err show'
+    statusBox.textContent='Could not reach the server. Make sure the project is deployed on Vercel.'
+  }
+  txt.textContent='Send Intel Report Now'; btn.disabled=false
+}
+
+// ── WHATSAPP TEST ────────────────────────────────────────────
+function previewLeadSummary(){
+  const leads=DB.get(DB_LEADS,[])
+  const hot=leads.filter(l=>l.urgency==='Hot'||l.lead_score>=80).sort((a,b)=>b.lead_score-a.lead_score)
+  const lead=hot[0]||leads[0]
+  if(!lead){ toast('No leads in database yet','info'); return }
+  const msg=[
+    `*Lead Intel — 360 Booth Ireland*`,
+    ``,
+    `${lead.title||'Event'}`,
+    `Score: ${lead.lead_score||0}/100 — ${lead.urgency||''}`,
+    lead.event_type?`Type: ${lead.event_type}`:'',
+    lead.attendees_tier?`Attendees: ${lead.attendees_tier}`:'',
+    lead.organizer?`Organiser: ${lead.organizer}`:'',
+    lead.email?`Email: ${lead.email}`:(lead.email_inferred?`Email (inferred): ${lead.email_inferred}`:''),
+    lead.phone?`Phone: ${lead.phone}`:'',
+    lead.action?`Action: ${lead.action}`:'',
+    lead.url?`Source: ${lead.url}`:'',
+  ].filter(Boolean).join('\n')
+  const ta=document.getElementById('wa-test-msg'); if(ta)ta.value=msg
+}
+
+async function sendTestWhatsApp(){
+  const ta=document.getElementById('wa-test-msg')
+  const msg=(ta?.value||'').trim()
+  if(!msg){ toast('Enter a message to send','info'); return }
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal){
+    const sb=document.getElementById('wa-send-status')
+    if(sb){ sb.className='ss-status-box warn show'; sb.textContent='WhatsApp only works on the live Vercel deployment.' }
+    return
+  }
+  const btn=document.getElementById('wa-send-btn'); btn.disabled=true; btn.textContent='Sending...'
+  const sb=document.getElementById('wa-send-status'); if(sb)sb.className='ss-status-box'
+  try{
+    await agentWhatsApp(msg)
+    if(sb){ sb.className='ss-status-box ok show'; sb.textContent='WhatsApp message sent.' }
+    toast('WhatsApp sent','success')
+  }catch(e){
+    if(sb){ sb.className='ss-status-box err show'; sb.textContent=e.message }
+  }
+  btn.disabled=false; btn.textContent='Send to WhatsApp'
+}
+
+// ── SCHEDULE NEXT RUNS ───────────────────────────────────────
+function calcNextRuns(schedule){
+  const now=new Date()
+  const runs=[]
+  // Each schedule maps to a set of UTC weekdays (1=Mon, 4=Thu, etc.)
+  const dayMap={weekly:[1],'2x':[1,4],'3x':[1,3,5]}
+  const days=dayMap[schedule]||[1]
+  // Find next two run dates
+  for(let offset=1;offset<=14&&runs.length<2;offset++){
+    const d=new Date(now); d.setUTCDate(d.getUTCDate()+offset); d.setUTCHours(8,0,0,0)
+    if(days.includes(d.getUTCDay())) runs.push(d)
+  }
+  return runs
+}
+
+function updateNextRunDisplay(){
+  const cfg=DB.cfg(); const sched=cfg.schedule||'weekly'
+  const runs=calcNextRuns(sched)
+  const fmt=d=>d.toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})+' @ 8:00 UTC'
+  const el1=document.getElementById('next-run-display')
+  const el2=document.getElementById('next-run2-display')
+  if(el1)el1.textContent=runs[0]?fmt(runs[0]):'—'
+  if(el2)el2.textContent=runs[1]?fmt(runs[1]):'—'
+}
+
+// ── LIGHTBOX ─────────────────────────────────────────────────
+function openLb(src,title){ document.getElementById('lb-img').src=src; document.getElementById('lb-caption').textContent=title||''; document.getElementById('lightbox').classList.add('on') }
+function closeLb(){ document.getElementById('lightbox').classList.remove('on') }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeLb() })
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg,type='info'){
+  const t=document.getElementById('toasts'); const d=document.createElement('div')
+  d.className=`toast ${type}`
+  d.innerHTML=`<div class="toast-dot"></div><div>${esc(msg)}</div>`
+  t.appendChild(d); setTimeout(()=>d.remove(),3500)
+}
+
+// ── UTILS ────────────────────────────────────────────────────
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function safeDomain(url){try{return new URL(url).hostname.replace(/^www\./,'')}catch{return ''}}
+function cp(btn,val){navigator.clipboard.writeText(val).then(()=>{const t=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=t,2000)}).catch(()=>{})}
+
+// ── INIT ─────────────────────────────────────────────────────
+checkAuth()
+</script>
+</body>
+</html>

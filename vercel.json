@@ -1,11 +1,22 @@
 {
   "functions": {
-    "api/scan-leads.js": { "maxDuration": 60 }
+    "api/scan-leads.js":          { "maxDuration": 60 },
+    "api/deliver-leads.js":       { "maxDuration": 90 },
+    "api/agent/scan.js":          { "maxDuration": 60 },
+    "api/agent/whatsapp-send.js": { "maxDuration": 15 }
   },
   "crons": [
     {
       "path": "/api/auto-scan",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/deliver-leads",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/deliver-leads",
+      "schedule": "0 8 * * 4"
     }
   ]
 }
