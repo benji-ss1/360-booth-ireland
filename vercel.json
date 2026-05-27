@@ -1,4 +1,8 @@
 {
+  "rewrites": [
+    { "source": "/",    "destination": "/lead-intel-dashboard.html" },
+    { "source": "/hub", "destination": "/index.html" }
+  ],
   "functions": {
     "api/scan-leads.js":          { "maxDuration": 60 },
     "api/deliver-leads.js":       { "maxDuration": 90 },
@@ -12,11 +16,7 @@
     },
     {
       "path": "/api/deliver-leads",
-      "schedule": "0 8 * * 1"
-    },
-    {
-      "path": "/api/deliver-leads",
-      "schedule": "0 8 * * 4"
+      "schedule": "0 8 * * 1-5"
     }
   ]
 }

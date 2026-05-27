@@ -1,5 +1,6 @@
-// 360 Booth Ireland — Weekly Lead Intelligence Email Delivery
-// Triggered by Vercel Cron (see vercel.json) every Monday 08:00 UTC.
+// 360 Booth Ireland — Lead Intelligence Email Delivery
+// Triggered by Vercel Cron (Mon–Fri 08:00 UTC) — checks DELIVERY_SCHEDULE env var to decide
+// whether to actually run today. Manual POST { manual: true } always runs.
 // Fetches the latest Exa monitor run → scores with Groq → emails digest to both addresses.
 //
 // Required env vars:
@@ -296,12 +297,30 @@ module.exports = async function handler(req, res) {
   }
 
   // Auth — Vercel cron sends CRON_SECRET, manual triggers send the same header
-  const cronSecret  = process.env.CRON_SECRET;
-  const authHeader  = (req.headers.authorization || '').replace('Bearer ', '').trim();
+  const cronSecret    = process.env.CRON_SECRET;
+  const authHeader    = (req.headers.authorization || '').replace('Bearer ', '').trim();
   const manualTrigger = req.body?.manual === true;
+  const isCronCall    = cronSecret ? authHeader === cronSecret : !manualTrigger;
 
   if (cronSecret && authHeader !== cronSecret && !manualTrigger) {
     return res.status(401).json({ error: 'Unauthorised. Set Authorization: Bearer <CRON_SECRET> header.' });
+  }
+
+  // Schedule gate — cron fires Mon–Fri but we only deliver on configured days
+  if (isCronCall && !manualTrigger) {
+    const DELIVERY_DAYS = {
+      weekly: [1],
+      '2x':   [1, 4],
+      '3x':   [1, 3, 5],
+      '4x':   [1, 2, 4, 5],
+      '5x':   [1, 2, 3, 4, 5],
+    };
+    const schedule = (process.env.DELIVERY_SCHEDULE || 'weekly').toLowerCase();
+    const allowedDays = DELIVERY_DAYS[schedule] || DELIVERY_DAYS.weekly;
+    const todayUTC = new Date().getUTCDay(); // 0=Sun … 6=Sat
+    if (!allowedDays.includes(todayUTC)) {
+      return res.status(200).json({ message: `Schedule is "${schedule}" — today (day ${todayUTC}) is not a delivery day. Skipped.` });
+    }
   }
 
   const EXA_KEY    = process.env.EXA_API_KEY;

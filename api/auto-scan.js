@@ -7,17 +7,39 @@ const EXA_BASE = 'https://api.exa.ai';
 const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
 
 const DEFAULT_QUERIES = [
-  'corporate events Ireland 2026',
-  'wedding reception events Dublin Cork Galway 2026',
-  'birthday party events Ireland 2026 venue hire',
-  'gala dinner fundraiser events Ireland 2026',
-  'business networking conference events Ireland 2026',
-  'product launch party events Dublin 2026',
+  // Corporate & Awards
+  'corporate awards ceremony gala dinner Ireland 2026',
+  'company end of year party Dublin Cork Galway 2026',
+  'corporate awards night black tie Ireland 2026',
+  'business awards gala ceremony Dublin 2026',
+  // Conferences & Summits
+  'tech conference summit Dublin Ireland 2026 evening reception',
+  'industry conference gala dinner Ireland 2026',
+  'professional association annual dinner awards Ireland 2026',
+  'business summit conference networking Dublin 2026',
+  // Weddings
+  'wedding reception venue hire Dublin Cork Galway 2026',
+  'luxury wedding reception Ireland 2026',
+  'wedding entertainment hire Ireland 2026',
+  // Product Launches & Brand Events
+  'product launch event party Dublin Ireland 2026',
+  'brand activation launch party Ireland 2026',
+  'company milestone anniversary celebration Ireland 2026',
+  // Charity & Galas
+  'charity gala ball fundraiser dinner Ireland 2026',
+  'black tie charity ball auction dinner Ireland 2026',
+  // Sports & Social Clubs
+  'golf club annual dinner dance awards Ireland 2026',
+  'sports club gala dinner awards night Ireland 2026',
+  // Venue & Hospitality
+  'hotel ballroom gala event hire Dublin Cork 2026',
+  'premium event venue hire celebration Ireland 2026',
 ];
 
 const EVENT_DOMAINS = [
   'eventbrite.ie', 'eventbrite.com', 'ticketmaster.ie',
   'meetup.com', 'lovin.ie', 'entertainment.ie',
+  'irishvenues.com', 'weddingsonline.ie', 'confex.com',
 ];
 
 // ── Supabase REST helpers ──────────────────────────────────────────────────

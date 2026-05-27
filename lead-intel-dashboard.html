@@ -725,8 +725,10 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
                 <label class="ss-label">Scan Frequency</label>
                 <div class="seg" id="schedule-seg" style="margin-top:4px">
                   <button class="seg-btn active-brand" data-val="weekly" onclick="setSchedule('weekly',this)">Weekly</button>
-                  <button class="seg-btn" data-val="2x" onclick="setSchedule('2x',this)">2× Week</button>
-                  <button class="seg-btn" data-val="3x" onclick="setSchedule('3x',this)">3× Week</button>
+                  <button class="seg-btn" data-val="2x" onclick="setSchedule('2x',this)">2×</button>
+                  <button class="seg-btn" data-val="3x" onclick="setSchedule('3x',this)">3×</button>
+                  <button class="seg-btn" data-val="4x" onclick="setSchedule('4x',this)">4×</button>
+                  <button class="seg-btn" data-val="5x" onclick="setSchedule('5x',this)">5×</button>
                 </div>
                 <div class="ss-hint" style="margin-top:8px" id="schedule-hint">Current: Every Monday at 8am UTC</div>
               </div>
@@ -1213,9 +1215,11 @@ function exportLeads(){
 
 // ── SETTINGS ─────────────────────────────────────────────────
 const SCHEDULE_HINTS={
-  weekly:'Every Monday at 8am UTC — vercel.json: "0 8 * * 1"',
-  '2x':'Monday + Thursday at 8am — add "0 8 * * 4" cron in vercel.json',
-  '3x':'Mon, Wed, Fri at 8am — add "0 8 * * 1,3,5" cron in vercel.json',
+  weekly:'Monday at 8am UTC — set DELIVERY_SCHEDULE=weekly in Vercel env vars',
+  '2x':  'Mon + Thu at 8am — set DELIVERY_SCHEDULE=2x in Vercel env vars',
+  '3x':  'Mon, Wed, Fri at 8am — set DELIVERY_SCHEDULE=3x in Vercel env vars',
+  '4x':  'Mon, Tue, Thu, Fri at 8am — set DELIVERY_SCHEDULE=4x in Vercel env vars',
+  '5x':  'Every weekday at 8am — set DELIVERY_SCHEDULE=5x in Vercel env vars',
 }
 
 function setSchedule(val,btn){
@@ -1225,7 +1229,7 @@ function setSchedule(val,btn){
   if(hint)hint.textContent=SCHEDULE_HINTS[val]||''
   const cfg=DB.cfg(); cfg.schedule=val; DB.set(DB_CFG,cfg)
   const disp=document.getElementById('mon-freq-display')
-  if(disp)disp.textContent={weekly:'Every week','2x':'Twice a week','3x':'Three times a week'}[val]||''
+  if(disp)disp.textContent={weekly:'Every week','2x':'Twice a week','3x':'Three times a week','4x':'Four times a week','5x':'Every weekday'}[val]||''
   toast('Schedule preference saved. Update vercel.json to activate.','info')
   updateNextRunDisplay()
 }
@@ -1359,8 +1363,8 @@ async function sendTestWhatsApp(){
 function calcNextRuns(schedule){
   const now=new Date()
   const runs=[]
-  // Each schedule maps to a set of UTC weekdays (1=Mon, 4=Thu, etc.)
-  const dayMap={weekly:[1],'2x':[1,4],'3x':[1,3,5]}
+  // Each schedule maps to a set of UTC weekdays (1=Mon … 5=Fri)
+  const dayMap={weekly:[1],'2x':[1,4],'3x':[1,3,5],'4x':[1,2,4,5],'5x':[1,2,3,4,5]}
   const days=dayMap[schedule]||[1]
   // Find next two run dates
   for(let offset=1;offset<=14&&runs.length<2;offset++){

@@ -14,6 +14,7 @@ const MONITOR_ID = '01ksht4r08s1gdkmr33qw3b6j0';
 const EVENT_DOMAINS = [
   'eventbrite.ie','eventbrite.com','ticketmaster.ie',
   'meetup.com','lovin.ie','entertainment.ie',
+  'irishvenues.com','weddingsonline.ie','confex.com',
 ];
 
 function safeDomain(url){
@@ -28,9 +29,9 @@ async function exaSearch(query, exaKey){
       method: 'POST', signal: ctrl.signal,
       headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query, numResults: 8, type: 'auto', useAutoprompt: true,
+        query, numResults: 15, type: 'auto', useAutoprompt: true,
         includeDomains: EVENT_DOMAINS,
-        contents: { text: { maxCharacters: 1500 } },
+        contents: { text: { maxCharacters: 1200 } },
       }),
     });
     clearTimeout(timer);
@@ -60,7 +61,7 @@ async function exaMonitorRuns(exaKey){
 }
 
 async function exaContents(events, exaKey){
-  const urls = events.map(e => e.url).filter(Boolean).slice(0, 8);
+  const urls = events.map(e => e.url).filter(Boolean).slice(0, 18);
   if (!urls.length) return events;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 25000);
@@ -103,7 +104,7 @@ async function enrichPhones(events, exaKey){
 }
 
 async function groqAnalyse(events, groqKey){
-  const list = events.slice(0, 12).map((e, i) => ({
+  const list = events.slice(0, 20).map((e, i) => ({
     i: i + 1, title: e.title, domain: e.domain,
     text: (e.text || '').slice(0, 2000),
   }));
@@ -139,7 +140,7 @@ Events: ${JSON.stringify(list, null, 2)}`,
   const gd = await res.json(); let parsed;
   try{ parsed = JSON.parse(gd.choices[0].message.content) }catch{ throw new Error('Failed to parse Groq response') }
   const ai = parsed.events || [];
-  return events.slice(0, 12).map((e, i) => {
+  return events.slice(0, 20).map((e, i) => {
     const a = ai.find(x => x.i === i + 1) || {};
     const score = Math.max(0, Math.min(100, a.lead_score || 0));
     const urgency = score >= 80 ? 'Hot' : score >= 55 ? 'Warm' : score >= 25 ? 'Cool' : 'Skip';
