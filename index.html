@@ -2445,56 +2445,179 @@ function loadNextScanDate(){
   }
 }
 
-// ── JARVIS VOICE ENGINE ──────────────────────────────────────
+// ── JARVIS VOICE ENGINE (ElevenLabs + browser fallback) ──────
 let jarvisVoiceEnabled = false
 let jarvisVoiceReady   = false
 let preferredVoice     = null
+let _audioCtx          = null
+let _currentAudio      = null
 
 function initVoice(){
+  // Browser voice as fallback
   if(!('speechSynthesis' in window)) return
   function pickVoice(){
     const voices=speechSynthesis.getVoices()
-    // Prefer a deep, clear en-GB or en-US voice for "robotic" feel
     preferredVoice = voices.find(v=>/Google UK English Male/i.test(v.name))
       || voices.find(v=>/Daniel|Oliver|Arthur/i.test(v.name))
       || voices.find(v=>v.lang==='en-GB'&&!v.localService)
       || voices.find(v=>v.lang==='en-US'&&!v.localService)
-      || voices.find(v=>v.lang.startsWith('en'))
-      || null
+      || voices.find(v=>v.lang.startsWith('en')) || null
     jarvisVoiceReady = true
   }
   if(speechSynthesis.getVoices().length) pickVoice()
   else speechSynthesis.addEventListener('voiceschanged', pickVoice, {once:true})
 }
 
-function jarvisSpeak(text, opts={}){
-  if(!jarvisVoiceEnabled || !('speechSynthesis' in window)) return
+async function jarvisSpeak(text, opts={}){
+  if(!jarvisVoiceEnabled) return
+  const clean=text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/[#>\[\]]/g,'')
+    .replace(/https?:\/\/\S+/g,'').replace(/\n+/g,'. ').trim().slice(0,450)
+  if(!clean) return
+
+  // Try ElevenLabs via server proxy first (only on live deployment)
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(!isLocal){
+    try{
+      if(_currentAudio){ _currentAudio.pause(); _currentAudio=null }
+      const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:clean})})
+      if(r.ok){
+        const blob=await r.blob()
+        const url=URL.createObjectURL(blob)
+        _currentAudio=new Audio(url)
+        _currentAudio.volume=opts.volume??0.92
+        _currentAudio.play()
+        _currentAudio.onended=()=>URL.revokeObjectURL(url)
+        // Animate the GIF/holo when speaking
+        document.getElementById('jarvis-holo')?.classList.add('active')
+        _currentAudio.onended=()=>{ URL.revokeObjectURL(url); document.getElementById('jarvis-holo')?.classList.remove('active') }
+        return
+      }
+    }catch(e){ /* fall through to browser voice */ }
+  }
+
+  // Browser fallback
+  if(!('speechSynthesis' in window)) return
   speechSynthesis.cancel()
-  const clean = text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/[#>]/g,'').replace(/\n+/g,' ').slice(0,500)
-  const u = new SpeechSynthesisUtterance(clean)
-  if(preferredVoice) u.voice = preferredVoice
-  u.rate  = opts.rate  ?? 0.88
-  u.pitch = opts.pitch ?? 0.75
-  u.volume= opts.volume?? 0.92
+  const u=new SpeechSynthesisUtterance(clean)
+  if(preferredVoice) u.voice=preferredVoice
+  u.rate=opts.rate??0.88; u.pitch=opts.pitch??0.75; u.volume=opts.volume??0.92
+  document.getElementById('jarvis-holo')?.classList.add('active')
+  u.onend=()=>document.getElementById('jarvis-holo')?.classList.remove('active')
   speechSynthesis.speak(u)
 }
 
 function toggleVoice(){
-  jarvisVoiceEnabled = !jarvisVoiceEnabled
+  jarvisVoiceEnabled=!jarvisVoiceEnabled
   const btn=document.getElementById('voice-toggle-btn')
   const onIco=document.getElementById('voice-icon-on')
   const offIco=document.getElementById('voice-icon-off')
-  if(btn){ btn.classList.toggle('voice-active', jarvisVoiceEnabled) }
-  if(onIco)  onIco.style.display  = jarvisVoiceEnabled ? 'block' : 'none'
-  if(offIco) offIco.style.display = jarvisVoiceEnabled ? 'none'  : 'block'
-  sessionStorage.setItem('jarvisVoice', jarvisVoiceEnabled ? '1' : '0')
+  if(btn) btn.classList.toggle('voice-active',jarvisVoiceEnabled)
+  if(onIco)  onIco.style.display =jarvisVoiceEnabled?'block':'none'
+  if(offIco) offIco.style.display=jarvisVoiceEnabled?'none':'block'
+  sessionStorage.setItem('jarvisVoice',jarvisVoiceEnabled?'1':'0')
   if(jarvisVoiceEnabled){
-    jarvisSpeak(`Voice enabled. I'm Jarvis, your intelligence officer for 360 Booth Ireland.`, {pitch:0.7,rate:0.85})
-    toast('Jarvis voice ON','success')
+    jarvisSpeak(`Online. I'm Jarvis, your intelligence officer for 360 Booth Ireland. All systems ready.`,{pitch:0.7,rate:0.88})
+    toast('Jarvis voice ON — say "Hey Jarvis" to activate','success')
+    startWakeWord()
   } else {
+    if(_currentAudio){ _currentAudio.pause(); _currentAudio=null }
     speechSynthesis.cancel()
+    stopWakeWord()
     toast('Jarvis voice OFF','info')
   }
+}
+
+// ── WAKE WORD ENGINE — "Hey Jarvis" ──────────────────────────
+let _wakeRecog    = null
+let _commandRecog = null
+let _wakeActive   = false
+
+function startWakeWord(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition
+  if(!SR){ toast('Wake word requires Chrome','warn'); return }
+  _wakeRecog=new SR()
+  _wakeRecog.continuous=true; _wakeRecog.interimResults=true; _wakeRecog.lang='en-IE'
+  _wakeRecog.onresult=e=>{
+    const t=Array.from(e.results).map(r=>r[0].transcript).join(' ').toLowerCase()
+    if(!_wakeActive && /\bjarvis\b/.test(t)){
+      _wakeActive=true
+      jarvisSpeak('Yes, Benji. How can I help?',{rate:0.9})
+      toast('🎙 Jarvis listening…','info')
+      // Activate the GIF
+      document.getElementById('jarvis-holo')?.classList.add('active')
+      document.getElementById('overview-holo')?.classList.add('active')
+      setTimeout(listenForCommand, 1200)
+    }
+  }
+  _wakeRecog.onerror=()=>{}
+  _wakeRecog.onend=()=>{ if(jarvisVoiceEnabled) setTimeout(()=>_wakeRecog?.start(),500) }
+  try{ _wakeRecog.start() }catch(e){}
+}
+
+function stopWakeWord(){
+  try{ _wakeRecog?.stop(); _commandRecog?.stop() }catch(e){}
+  _wakeRecog=null; _commandRecog=null; _wakeActive=false
+}
+
+function listenForCommand(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition
+  if(!SR) return
+  _commandRecog=new SR()
+  _commandRecog.lang='en-IE'; _commandRecog.interimResults=false
+  _commandRecog.onresult=async e=>{
+    const cmd=e.results[0][0].transcript.trim()
+    document.getElementById('jarvis-holo')?.classList.remove('active')
+    document.getElementById('overview-holo')?.classList.remove('active')
+    _wakeActive=false
+    await handleVoiceCommand(cmd)
+  }
+  _commandRecog.onerror=()=>{ _wakeActive=false }
+  _commandRecog.onend=()=>{ _wakeActive=false }
+  try{ _commandRecog.start() }catch(e){ _wakeActive=false }
+}
+
+async function handleVoiceCommand(cmd){
+  if(!cmd) return
+  const lower=cmd.toLowerCase()
+  toast(`Jarvis heard: "${cmd}"`, 'info')
+
+  // Local commands (instant, no API)
+  if(/hot leads?|best leads?/i.test(lower)){
+    const hot=DB.get(DB_LEADS).filter(l=>l.lead_score>=80)
+    if(!hot.length){ jarvisSpeak('No hot leads right now. I suggest running a scan.'); return }
+    jarvisSpeak(`You have ${hot.length} hot lead${hot.length>1?'s':''}. Top one is ${hot[0].title||hot[0].organizer||'an event organiser'} with a score of ${hot[0].lead_score} out of 100.`)
+    goPage('leads'); return
+  }
+  if(/run.*(scan|search)|scan now|find leads/i.test(lower)){
+    jarvisSpeak('Running a scan now. I will notify you when it is complete.')
+    runAutoScanNow(); return
+  }
+  if(/pipeline|status|summary/i.test(lower)){
+    const leads=DB.get(DB_LEADS)
+    const hot=leads.filter(l=>l.lead_score>=80).length
+    const warm=leads.filter(l=>l.lead_score>=55&&l.lead_score<80).length
+    jarvisSpeak(`Pipeline status: ${hot} hot leads, ${warm} warm leads, ${leads.length} total. Estimated pipeline value is €${(hot*1200).toLocaleString()}.`)
+    goPage('overview'); return
+  }
+  if(/send.*whatsapp|whatsapp.*message/i.test(lower)){
+    jarvisSpeak('Opening WhatsApp. You can send your message from there.')
+    goPage('messages'); return
+  }
+  if(/open.*settings|settings/i.test(lower)){
+    jarvisSpeak('Opening settings.'); goPage('settings'); return
+  }
+  if(/go to|open|show/i.test(lower)){
+    const pages=['overview','agent','leads','pipeline','history','messages','chat','settings']
+    const found=pages.find(p=>lower.includes(p))
+    if(found){ jarvisSpeak(`Opening ${found}.`); goPage(found); return }
+  }
+
+  // AI command — send to Groq chat with context
+  const input=document.getElementById('chat-input')
+  if(input){ input.value=cmd; goPage('chat') }
+  jarvisSpeak('Let me think about that.')
+  sendChat()
 }
 
 // ── CHAT FILE UPLOAD ─────────────────────────────────────────
