@@ -210,6 +210,10 @@ function mapToLead(e, scanRunId) {
     date: today,
     notes: parts.join(' | '),
     lead_score: computeLeadScore(e),
+    event_name: e.event_name || '',
+    event_date: e.event_date || '',
+    venue: e.venue || '',
+    event_type: e.event_type || '',
     imported: false,
     scan_run_id: scanRunId,
     scan_run_at: new Date().toISOString(),
@@ -217,24 +221,47 @@ function mapToLead(e, scanRunId) {
 }
 
 // ── WhatsApp alert after scan ─────────────────────────────────────────────
-async function sendWhatsAppAlert(leads, sid, token, from, to) {
-  if (!sid || !token || !from || !to || !leads.length) return;
+async function sendWhatsAppAlert(leads, hotLeads, warnLeads, sid, token, from, to, scannedAt) {
+  if (!sid || !token || !from || !to) return;
   try {
-    const withContact = leads.filter(l => l.email || l.phone).slice(0, 3);
+    const dublinTime = new Date(scannedAt).toLocaleString('en-IE', {
+      timeZone: 'Europe/Dublin', weekday: 'short', day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit',
+    });
     const lines = [
-      '*Jarvis Auto-Scan — 360 Booth Ireland*',
+      '*⚡ Jarvis Auto-Scan — 360 Booth Ireland*',
+      dublinTime + ' Dublin',
       '',
-      `${leads.length} new lead${leads.length !== 1 ? 's' : ''} found and saved to your database.`,
+      `🔴 ${hotLeads.length} hot  🟡 ${warnLeads.length} warm  📊 ${leads.length} total found`,
     ];
-    if (withContact.length) {
-      lines.push('', 'Top contacts found:');
-      withContact.forEach((l, i) => {
-        lines.push(`${i + 1}. ${l.name || 'Event Lead'}`);
-        if (l.email) lines.push(`   ${l.email}`);
-        if (l.phone) lines.push(`   ${l.phone}`);
+
+    if (hotLeads.length) {
+      lines.push('', '━━━━━━━━━━━━━━━━━━━━', '🔥 *HOT LEADS — Contact Now*');
+      hotLeads.slice(0, 3).forEach((l, i) => {
+        lines.push('');
+        lines.push(`${i + 1}. *${l.event_name || l.name}*`);
+        lines.push(`   Score: ${l.lead_score}/100`);
+        if (l.event_date) lines.push(`   📅 ${l.event_date}`);
+        if (l.venue) lines.push(`   📍 ${l.venue}`);
+        if (l.name && l.event_name) lines.push(`   Organiser: ${l.name}`);
+        if (l.email) lines.push(`   ✉ ${l.email}`);
+        if (l.phone) lines.push(`   📞 ${l.phone}`);
       });
+    } else if (warnLeads.length) {
+      lines.push('', '━━━━━━━━━━━━━━━━━━━━', '🟡 *Warm Leads*');
+      warnLeads.slice(0, 2).forEach((l, i) => {
+        lines.push('');
+        lines.push(`${i + 1}. *${l.event_name || l.name}* — ${l.lead_score}/100`);
+        if (l.email) lines.push(`   ✉ ${l.email}`);
+        if (l.phone) lines.push(`   📞 ${l.phone}`);
+      });
+    } else if (!leads.length) {
+      lines.push('', 'No leads with contact info found this run.');
     }
-    lines.push('', 'Open your dashboard to review and score them.');
+
+    lines.push('', '━━━━━━━━━━━━━━━━━━━━');
+    lines.push('🔗 https://360-booth-ireland.vercel.app');
+
     const body = lines.join('\n').slice(0, 1600);
     const url = `${TWILIO_BASE}/Accounts/${sid}/Messages.json`;
     const params = new URLSearchParams({ To: to, From: from, Body: body });
@@ -257,46 +284,137 @@ const TO_ADDRESSES = ['benj.sanusi@gmail.com'];
 const FROM_ADDRESS = 'Jarvis 360 Booth <onboarding@resend.dev>';
 
 async function sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt, resendKey) {
-  const scoreColour = s => s >= 80 ? '#FF4465' : s >= 55 ? '#F0A500' : '#00D4FF';
-  const card = l => `
-    <div style="background:#0C1520;border:1px solid rgba(0,212,255,${l.lead_score>=80?'.3':'.07'});border-radius:10px;padding:16px 18px;margin-bottom:12px;">
-      <div style="font-size:13px;font-weight:700;color:#D6EDFF;margin-bottom:6px;">${l.name||l.notes?.split(' | ')[0]||'Event Lead'}</div>
-      ${l.email?`<div style="font-size:12px;color:#7EB8D8;">✉ ${l.email}</div>`:''}
-      ${l.phone?`<div style="font-size:12px;color:#7EB8D8;">📞 ${l.phone}</div>`:''}
-      ${l.notes?`<div style="font-size:11px;color:#2E4A62;margin-top:6px;">${l.notes.slice(0,120)}</div>`:''}
-      <div style="font-size:20px;font-weight:800;color:${scoreColour(l.lead_score||0)};margin-top:8px;font-family:monospace;">${l.lead_score||0}<span style="font-size:11px;color:#2E4A62;font-weight:400;">/100</span></div>
-    </div>`;
+  const dublinDate = new Date(scannedAt).toLocaleString('en-IE', {
+    timeZone: 'Europe/Dublin', weekday: 'long', day: 'numeric', month: 'long',
+    hour: '2-digit', minute: '2-digit',
+  });
 
-  const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px 16px;background:#060A0E;font-family:'Inter',-apple-system,sans-serif;max-width:600px;margin:0 auto;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <div style="font-size:20px;font-weight:800;color:#00D4FF;letter-spacing:1px;">JARVIS AUTO-SCAN REPORT</div>
-      <div style="font-size:12px;color:#7EB8D8;margin-top:4px;">360 Booth Ireland · ${new Date(scannedAt).toLocaleString('en-IE',{timeZone:'Europe/Dublin',weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} Dublin</div>
-    </div>
-    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:100px;background:#0C1520;border:1px solid rgba(255,68,101,.2);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:24px;font-weight:800;color:#FF4465;font-family:monospace;">${hotLeads.length}</div>
-        <div style="font-size:10px;color:#7EB8D8;letter-spacing:.8px;">HOT LEADS</div>
-      </div>
-      <div style="flex:1;min-width:100px;background:#0C1520;border:1px solid rgba(240,165,0,.2);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:24px;font-weight:800;color:#F0A500;font-family:monospace;">${warnLeads.length}</div>
-        <div style="font-size:10px;color:#7EB8D8;letter-spacing:.8px;">WARM LEADS</div>
-      </div>
-      <div style="flex:1;min-width:100px;background:#0C1520;border:1px solid rgba(0,212,255,.15);border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:24px;font-weight:800;color:#00D4FF;font-family:monospace;">${leads.length}</div>
-        <div style="font-size:10px;color:#7EB8D8;letter-spacing:.8px;">TOTAL FOUND</div>
-      </div>
-    </div>
-    ${hotLeads.length ? `<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#FF4465;text-transform:uppercase;margin-bottom:10px;">🔴 Hot Leads — Contact First</div>${hotLeads.slice(0,5).map(card).join('')}` : ''}
-    ${warnLeads.length ? `<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#F0A500;text-transform:uppercase;margin-bottom:10px;margin-top:16px;">🟡 Warm Leads</div>${warnLeads.slice(0,4).map(card).join('')}` : ''}
-    ${leads.length === 0 ? '<div style="text-align:center;padding:32px;color:#2E4A62;font-size:14px;">No leads with contact info found this run.</div>' : ''}
-    <div style="margin-top:24px;padding-top:14px;border-top:1px solid rgba(0,212,255,.07);text-align:center;font-size:11px;color:#2E4A62;">
-      Powered by Jarvis × 360 Booth Intelligence · Exa · Groq LLaMA 3.3 70B<br>Open <a href="https://360-booth-ireland.vercel.app" style="color:#00D4FF;">your dashboard</a> to review all leads.
-    </div>
-  </body></html>`;
+  const scoreColor = s => s >= 80 ? '#FF4465' : s >= 55 ? '#D29922' : '#58A6FF';
+  const scoreBg    = s => s >= 80 ? 'rgba(255,68,101,.08)' : s >= 55 ? 'rgba(210,153,34,.08)' : 'rgba(88,166,255,.08)';
+  const scoreBdr   = s => s >= 80 ? 'rgba(255,68,101,.3)' : s >= 55 ? 'rgba(210,153,34,.3)' : 'rgba(88,166,255,.15)';
+  const urgency    = s => s >= 80 ? '🔴 HOT' : s >= 55 ? '🟡 WARM' : '🔵 COOL';
+
+  const leadCard = l => {
+    const sc = l.lead_score || 0;
+    return `
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;border-radius:10px;border:1px solid ${scoreBdr(sc)};background:${scoreBg(sc)}">
+<tr><td style="padding:16px 18px">
+  <table width="100%" cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="font-size:13px;font-weight:700;color:#E8F0FC;padding-bottom:6px">${l.event_name || l.name || 'Event Lead'}</td>
+    <td align="right" style="vertical-align:top">
+      <span style="background:${scoreBg(sc)};border:1px solid ${scoreBdr(sc)};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:${scoreColor(sc)};font-family:monospace;white-space:nowrap">${urgency(sc)} · ${sc}/100</span>
+    </td>
+  </tr>
+  </table>
+  ${l.name && l.event_name ? `<div style="font-size:12px;color:#8B949E;margin-bottom:6px">Organiser: ${l.name}</div>` : ''}
+  ${l.event_date ? `<div style="font-size:12px;color:#8B949E;margin-bottom:3px">📅 ${l.event_date}</div>` : ''}
+  ${l.venue ? `<div style="font-size:12px;color:#8B949E;margin-bottom:3px">📍 ${l.venue}</div>` : ''}
+  ${l.email ? `<div style="margin-top:8px"><a href="mailto:${l.email}" style="font-size:12px;color:#C9A84C;text-decoration:none;font-weight:600">✉ ${l.email}</a></div>` : ''}
+  ${l.phone ? `<div style="margin-top:4px"><a href="tel:${l.phone}" style="font-size:12px;color:#C9A84C;text-decoration:none;font-weight:600">📞 ${l.phone}</a></div>` : ''}
+</td></tr>
+</table>`;
+  };
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Jarvis Auto-Scan Report</title>
+</head>
+<body style="margin:0;padding:0;background-color:#07090E;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" bgcolor="#07090E" style="background-color:#07090E">
+<tr><td align="center" style="padding:32px 16px">
+
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+
+  <!-- Header bar -->
+  <tr><td bgcolor="#C9A84C" style="background-color:#C9A84C;padding:3px 0;border-radius:12px 12px 0 0"></td></tr>
+
+  <!-- Title block -->
+  <tr><td bgcolor="#060A14" style="background-color:#060A14;padding:28px 28px 24px;border-left:1px solid rgba(201,168,76,.15);border-right:1px solid rgba(201,168,76,.15)">
+    <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td>
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin-bottom:8px">360 Booth Ireland · Jarvis Intelligence</div>
+        <div style="font-size:24px;font-weight:800;color:#F0F6FC;letter-spacing:-0.5px;line-height:1.2">Auto-Scan Report</div>
+        <div style="font-size:12px;color:#6E7681;margin-top:6px">${dublinDate} · Dublin</div>
+      </td>
+      <td align="right" valign="top">
+        <div style="width:52px;height:52px;border-radius:50%;background:rgba(201,168,76,.1);border:1.5px solid rgba(201,168,76,.35);text-align:center;line-height:52px;font-size:22px">⚡</div>
+      </td>
+    </tr>
+    </table>
+  </td></tr>
+
+  <!-- KPI row -->
+  <tr><td bgcolor="#0A0F1A" style="background-color:#0A0F1A;padding:0;border-left:1px solid rgba(201,168,76,.1);border-right:1px solid rgba(201,168,76,.1)">
+    <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td width="33%" bgcolor="#0A0F1A" style="background:#0A0F1A;padding:20px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.05)">
+        <div style="font-size:36px;font-weight:800;color:#FF4465;font-family:monospace;line-height:1">${hotLeads.length}</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#6E7681;text-transform:uppercase;margin-top:6px">Hot Leads</div>
+      </td>
+      <td width="33%" bgcolor="#0A0F1A" style="background:#0A0F1A;padding:20px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.05)">
+        <div style="font-size:36px;font-weight:800;color:#D29922;font-family:monospace;line-height:1">${warnLeads.length}</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#6E7681;text-transform:uppercase;margin-top:6px">Warm Leads</div>
+      </td>
+      <td width="33%" bgcolor="#0A0F1A" style="background:#0A0F1A;padding:20px 12px;text-align:center">
+        <div style="font-size:36px;font-weight:800;color:#58A6FF;font-family:monospace;line-height:1">${leads.length}</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#6E7681;text-transform:uppercase;margin-top:6px">Total Found</div>
+      </td>
+    </tr>
+    </table>
+  </td></tr>
+
+  <!-- Leads body -->
+  <tr><td bgcolor="#0D1117" style="background-color:#0D1117;padding:24px 28px;border-left:1px solid rgba(255,255,255,.05);border-right:1px solid rgba(255,255,255,.05)">
+
+    ${hotLeads.length ? `
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#FF4465;text-transform:uppercase;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,68,101,.15)">🔴 Hot Leads — Contact These First</div>
+    ${hotLeads.slice(0, 5).map(leadCard).join('')}
+    ` : ''}
+
+    ${warnLeads.length ? `
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#D29922;text-transform:uppercase;margin-top:${hotLeads.length ? '20px' : '0'};margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(210,153,34,.15)">🟡 Warm Leads</div>
+    ${warnLeads.slice(0, 4).map(leadCard).join('')}
+    ` : ''}
+
+    ${leads.length === 0 ? `
+    <table width="100%" cellpadding="0" cellspacing="0">
+    <tr><td bgcolor="#111622" style="background:#111622;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:32px;text-align:center">
+      <div style="font-size:24px;margin-bottom:12px">🔍</div>
+      <div style="font-size:14px;color:#484F58">No leads with contact info found this run.<br>The scanner ran successfully.</div>
+    </td></tr>
+    </table>
+    ` : ''}
+
+  </td></tr>
+
+  <!-- CTA -->
+  <tr><td bgcolor="#060A14" style="background-color:#060A14;padding:24px 28px;text-align:center;border-left:1px solid rgba(201,168,76,.1);border-right:1px solid rgba(201,168,76,.1)">
+    <a href="https://360-booth-ireland.vercel.app" style="display:inline-block;background:#C9A84C;color:#07090E;font-size:13px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:8px;letter-spacing:.3px">Open Dashboard →</a>
+    <div style="font-size:11px;color:#484F58;margin-top:16px">360-booth-ireland.vercel.app</div>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td bgcolor="#06090D" style="background-color:#06090D;padding:16px 28px;text-align:center;border:1px solid rgba(255,255,255,.04);border-top:none;border-radius:0 0 12px 12px">
+    <div style="font-size:10px;color:#30363D;letter-spacing:.5px">Powered by Jarvis × 360 Booth Intelligence · Exa · Groq LLaMA 3.3 70B</div>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
 
   const subject = hotLeads.length > 0
-    ? `🔴 ${hotLeads.length} hot lead${hotLeads.length > 1 ? 's' : ''} — Jarvis Auto-Scan ${new Date().toLocaleDateString('en-IE',{timeZone:'Europe/Dublin'})}`
-    : `📊 Jarvis Auto-Scan — ${leads.length} leads found`;
+    ? `🔴 ${hotLeads.length} hot lead${hotLeads.length > 1 ? 's' : ''} — Jarvis · ${new Date(scannedAt).toLocaleDateString('en-IE',{timeZone:'Europe/Dublin',day:'numeric',month:'short'})}`
+    : leads.length > 0
+    ? `📊 ${leads.length} lead${leads.length > 1 ? 's' : ''} found — Jarvis Auto-Scan`
+    : `⚡ Jarvis Auto-Scan ran — 0 leads with contact info`;
 
   for (const to of TO_ADDRESSES) {
     await fetch(RESEND_BASE, {
@@ -430,11 +548,12 @@ module.exports = async function handler(req, res) {
 
     // Send WhatsApp alert (non-blocking — non-fatal)
     sendWhatsAppAlert(
-      leads,
+      leads, hotLeads, warnLeads,
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN,
       process.env.TWILIO_WHATSAPP_FROM,
-      process.env.TWILIO_WHATSAPP_TO
+      process.env.TWILIO_WHATSAPP_TO,
+      scannedAt
     );
 
     // Send email report via Resend (always — so you know the cron actually ran)
@@ -456,6 +575,8 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       success: true,
       leadsFound: leads.length,
+      hotCount: hotLeads.length,
+      warnCount: warnLeads.length,
       scanRunId,
       scannedAt: now,
       nextRun,

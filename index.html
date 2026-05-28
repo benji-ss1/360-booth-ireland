@@ -1976,16 +1976,44 @@ async function runAutoScanNow(){
   const btn=document.getElementById('run-scan-btn')
   const txt=document.getElementById('run-scan-btn-text')
   const statusBox=document.getElementById('run-scan-status')
-  btn.disabled=true; txt.textContent='Scanning... (this takes ~30s)'
+  btn.disabled=true; txt.textContent='Scanning… (this takes ~30s)'
   statusBox.className='ss-status-box'; statusBox.style.display='none'
   try{
     const res=await fetch('/api/auto-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dashboard_trigger:true})})
     const data=await res.json().catch(()=>({}))
     if(res.ok&&data.success){
+      const hot=data.hotCount||0, warm=data.warnCount||0, total=data.leadsFound||0
       statusBox.className='ss-status-box ok show'
-      statusBox.textContent=`Scan complete — ${data.leadsFound||0} leads found and saved. Email + WhatsApp report sent.`
-      toast(`Auto-scan done: ${data.leadsFound||0} leads found`,'success')
-      syncServerLeads()
+      statusBox.textContent=`Scan complete — ${total} leads found (${hot} hot, ${warm} warm). Email + WhatsApp sent.`
+      toast(`Auto-scan done: ${hot} hot · ${warm} warm · ${total} total`,'success')
+
+      // Add scan record to local history
+      const scanRecord={
+        id: data.scanRunId||('auto_'+Date.now()),
+        ts: data.scannedAt||new Date().toISOString(),
+        mode:'auto-scan',
+        query:'Auto-Scan (Exa + Groq)',
+        total,
+        hot,
+        warn: warm,
+        source:'auto',
+        events:[]
+      }
+      const scans=DB.get(DB_SCANS)
+      scans.unshift(scanRecord)
+      if(scans.length>50)scans.length=50
+      DB.set(DB_SCANS,scans)
+
+      // Log to WhatsApp thread so it appears in Comms
+      const waMsg=`*⚡ Auto-Scan Complete*\n\n🔴 ${hot} hot  🟡 ${warm} warm  📊 ${total} total\n\nLeads saved to database. Email + WhatsApp report sent.\n\n🔗 https://360-booth-ireland.vercel.app`
+      logMessage(waMsg,'auto','Auto-Scan')
+
+      // Pull new server leads into local DB then re-render everything
+      await syncServerLeads()
+      renderOverview()
+      renderHistory()
+      if(document.getElementById('page-leads')?.classList.contains('active'))renderLeadsTable()
+      updateBadges()
     } else {
       statusBox.className='ss-status-box err show'
       statusBox.textContent=`Error: ${data.error||data.message||'Scan failed ('+res.status+')'}`
