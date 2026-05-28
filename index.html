@@ -10,12 +10,13 @@
 /* ── TOKENS ─────────────────────────────────────────────────── */
 :root{
   --brand:#C9A84C; --brand-h:#B8963E; --brand-muted:rgba(201,168,76,.10); --brand-glow:rgba(201,168,76,.22);
-  --sidebar:#0F1A10; --sidebar-border:rgba(255,255,255,.07); --sidebar-text:rgba(255,255,255,.50);
-  --sidebar-text-active:#F0F6FC; --sidebar-active:rgba(201,168,76,.13); --sidebar-w:240px;
-  --bg:#0D1117; --s1:#161B22; --s2:#1C2128; --s3:#21262D;
-  --border:rgba(255,255,255,.08); --border-s:rgba(255,255,255,.15);
-  --t1:#F0F6FC; --t2:#8B949E; --t3:#6E7681; --t4:#484F58;
+  --sidebar:#06090F; --sidebar-border:rgba(88,166,255,.08); --sidebar-text:rgba(255,255,255,.45);
+  --sidebar-text-active:#F0F6FC; --sidebar-active:rgba(201,168,76,.12); --sidebar-w:240px;
+  --bg:#07090E; --s1:#0D1017; --s2:#111622; --s3:#171E2C;
+  --border:rgba(255,255,255,.07); --border-s:rgba(255,255,255,.14);
+  --t1:#E8F0FC; --t2:#8B949E; --t3:#6E7681; --t4:#484F58;
   --green:#3FB950; --red:#F85149; --warn:#D29922; --blue:#58A6FF;
+  --cyan:#38BDF8; --blue-dim:rgba(88,166,255,.10); --blue-glow:rgba(88,166,255,.25);
   --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px;
   --topbar:56px; --tf:150ms ease; --ts:280ms ease;
   --font:'DM Sans',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
@@ -458,11 +459,129 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .toast.error .toast-dot{background:var(--red)}
 .toast.info .toast-dot{background:var(--brand)}
 
+/* ── JARVIS HOLOGRAM ─────────────────────────────────────────── */
+.jarvis-holo{width:160px;height:160px;margin:0 auto 20px;position:relative;flex-shrink:0}
+.jarvis-holo-ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(88,166,255,.3);animation:holoR 9s linear infinite}
+.jarvis-holo-ring:nth-child(2){border-color:rgba(201,168,76,.22);animation-duration:13s;animation-direction:reverse;inset:14px}
+.jarvis-holo-ring:nth-child(3){border-color:rgba(56,189,248,.15);animation-duration:5.5s;inset:28px}
+.jarvis-holo-core{position:absolute;inset:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle,rgba(88,166,255,.18) 0%,rgba(201,168,76,.08) 55%,transparent 75%);
+  animation:holoP 3.5s ease infinite}
+.jarvis-holo-label{font:700 22px var(--mono);color:rgba(88,166,255,.85);letter-spacing:-.02em}
+.jarvis-holo-scan{position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none}
+.jarvis-holo-scan::after{content:'';position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(88,166,255,.6),transparent);
+  animation:holoScan 2.2s ease-in-out infinite;top:50%;box-shadow:0 0 8px rgba(88,166,255,.4)}
+.jarvis-holo.active .jarvis-holo-core{background:radial-gradient(circle,rgba(88,166,255,.45) 0%,rgba(201,168,76,.15) 55%,transparent 75%)}
+.jarvis-holo.active .jarvis-holo-ring{border-color:rgba(88,166,255,.7);animation-duration:3s}
+.jarvis-holo.active .jarvis-holo-label{color:rgba(88,166,255,1);text-shadow:0 0 12px rgba(88,166,255,.7)}
+@keyframes holoR{from{transform:rotateZ(0deg)}to{transform:rotateZ(360deg)}}
+@keyframes holoP{0%,100%{box-shadow:0 0 18px rgba(88,166,255,.18),inset 0 0 12px rgba(88,166,255,.05)}50%{box-shadow:0 0 32px rgba(88,166,255,.35),inset 0 0 20px rgba(88,166,255,.1)}}
+@keyframes holoScan{0%{top:0%;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
+
+/* ── BOOT PARTICLES ──────────────────────────────────────────── */
+#boot-canvas{position:absolute;inset:0;pointer-events:none}
+.boot-greeting{font:600 13px var(--mono);color:var(--blue);letter-spacing:.18em;text-transform:uppercase;margin-bottom:18px;text-shadow:0 0 12px rgba(88,166,255,.5)}
+
+/* ── MOBILE HAMBURGER ────────────────────────────────────────── */
+#hamburger{display:none;flex-direction:column;justify-content:center;gap:4px;width:32px;height:32px;
+  background:transparent;border:none;cursor:pointer;padding:4px;border-radius:var(--r-sm)}
+#hamburger span{display:block;height:1.5px;background:var(--t2);border-radius:1px;transition:all .2s ease}
+#hamburger:hover span{background:var(--t1)}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:39;backdrop-filter:blur(2px)}
+
+/* ── MESSAGES PAGE — WA REDESIGN ─────────────────────────────── */
+.msg-header{background:linear-gradient(135deg,#0d2818 0%,#0a1f14 100%);border-bottom:1px solid rgba(63,185,80,.12)}
+.msg-to-dot{background:rgba(63,185,80,.15);border:1px solid rgba(63,185,80,.3);color:var(--green)}
+.msg-feed{background:var(--bg)}
+.wa-incoming .msg-body{background:#1e2d24;border:1px solid rgba(63,185,80,.12);color:var(--t1);border-bottom-left-radius:3px}
+.wa-outgoing .msg-body{background:#1a3d2b;border:1px solid rgba(63,185,80,.2);color:var(--t1);border-bottom-right-radius:3px}
+.wa-outgoing{align-self:flex-end;align-items:flex-end}
+.wa-incoming{align-self:flex-start;align-items:flex-start}
+.wa-system .msg-body{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--t3);font-size:11px}
+.msg-compose{background:linear-gradient(180deg,var(--bg) 0%,#07090e 100%);border-top:1px solid rgba(63,185,80,.1)}
+.msg-ta{border-color:rgba(63,185,80,.18)}
+.msg-ta:focus{border-color:rgba(63,185,80,.4)}
+
+/* ── AI CHAT PAGE ────────────────────────────────────────────── */
+#page-chat{display:none;height:calc(100vh - var(--topbar) - 1px);flex-direction:row;overflow:hidden}
+#page-chat.on{display:flex}
+.chat-history{width:210px;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;
+  background:var(--s1);transition:width .25s ease,opacity .25s ease;overflow:hidden}
+.chat-history.collapsed{width:0;opacity:0;pointer-events:none}
+.chat-history-hdr{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-history-title{font:600 10px var(--mono);color:var(--t4);letter-spacing:.1em;text-transform:uppercase}
+.chat-history-list{flex:1;overflow-y:auto;padding:6px}
+.chi{padding:8px 10px;border-radius:var(--r-md);cursor:pointer;transition:background var(--tf);border:1px solid transparent}
+.chi:hover{background:var(--s2)}
+.chi.active{background:var(--blue-dim);border-color:rgba(88,166,255,.18)}
+.chi-q{font:500 11px var(--font);color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+.chi-ts{font:400 9px var(--mono);color:var(--t4)}
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.chat-toolbar{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--s1)}
+.chat-feed{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.chat-bubble{display:flex;flex-direction:column;max-width:80%;gap:3px}
+.chat-bubble.user{align-self:flex-end;align-items:flex-end}
+.chat-bubble.jarvis{align-self:flex-start;align-items:flex-start}
+.chat-role-tag{font:600 9px var(--mono);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
+.chat-bubble.user .chat-role-tag{color:var(--brand)}
+.chat-bubble.jarvis .chat-role-tag{color:var(--blue)}
+.chat-body{padding:12px 16px;border-radius:14px;font:400 13px var(--font);line-height:1.65;word-break:break-word;white-space:pre-wrap}
+.chat-bubble.user .chat-body{background:var(--brand-muted);border:1px solid rgba(201,168,76,.22);color:var(--t1);border-bottom-right-radius:3px}
+.chat-bubble.jarvis .chat-body{background:var(--s2);border:1px solid rgba(88,166,255,.12);color:var(--t1);border-bottom-left-radius:3px;box-shadow:0 2px 12px rgba(88,166,255,.04)}
+.chat-body strong,.chat-body b{color:var(--blue);font-weight:600}
+.chat-ts{font:400 9px var(--mono);color:var(--t4)}
+.chat-sources{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.chat-src{font:400 10px var(--font);color:var(--blue);background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.15);padding:2px 8px;border-radius:20px;text-decoration:none;transition:all var(--tf)}
+.chat-src:hover{background:rgba(88,166,255,.14);text-decoration:none}
+.chat-thinking{display:flex;align-items:center;gap:5px;padding:8px 0;align-self:flex-start}
+.chat-think-dot{width:5px;height:5px;border-radius:50%;background:var(--blue);animation:thinkP 1.2s ease infinite}
+.chat-think-dot:nth-child(2){animation-delay:.25s}
+.chat-think-dot:nth-child(3){animation-delay:.5s}
+@keyframes thinkP{0%,100%{opacity:.18;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
+.chat-compose{padding:10px 16px 14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--bg)}
+.chat-ta{flex:1;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 14px;color:var(--t1);font:400 13px var(--font);resize:none;min-height:40px;max-height:120px;line-height:1.5;transition:border-color var(--tf)}
+.chat-ta:focus{border-color:rgba(88,166,255,.4);outline:none}
+.chat-ta::placeholder{color:var(--t4)}
+.chat-chips{padding:6px 16px 2px;display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;overflow-x:auto}
+.chat-chip{height:25px;padding:0 11px;border-radius:20px;font:500 11px var(--font);border:1px solid var(--border);background:transparent;color:var(--t3);cursor:pointer;transition:all 120ms ease;white-space:nowrap;flex-shrink:0}
+.chat-chip:hover{border-color:rgba(88,166,255,.3);color:var(--blue);background:var(--blue-dim)}
+.chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.chat-empty-icon{width:52px;height:52px;border-radius:50%;background:var(--blue-dim);border:1px solid rgba(88,166,255,.2);display:flex;align-items:center;justify-content:center;font:700 18px var(--mono);color:var(--blue);margin-bottom:6px}
+.chat-empty-title{font:600 16px var(--font);color:var(--t2)}
+.chat-empty-sub{font:400 12px var(--font);color:var(--t4);text-align:center;max-width:260px;line-height:1.65}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────── */
-@media(max-width:700px){
-  #sidebar{display:none}
+@media(max-width:768px){
+  :root{--sidebar-w:240px}
+  #sidebar{position:fixed;left:calc(-1 * var(--sidebar-w));z-index:50;height:100vh;top:0;transition:left .28s cubic-bezier(.4,0,.2,1)}
+  #sidebar.mobile-open{left:0;box-shadow:4px 0 24px rgba(0,0,0,.5)}
+  #sidebar-overlay.on{display:block}
+  #hamburger{display:flex}
+  #app{flex-direction:column}
+  #main{width:100%}
+  #topbar{padding:0 14px}
+  .tb-right{display:none}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .events-grid{grid-template-columns:1fr}
+  .settings-grid{grid-template-columns:1fr}
+  .pipeline-board{min-height:auto}
+  .pipe-col{min-width:200px;width:200px}
+  .leads-table thead{display:none}
+  .leads-table tbody tr{display:block;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:8px;padding:10px 12px}
+  .leads-table td{display:flex;align-items:center;gap:6px;padding:4px 0;border:none;font-size:12px}
+  .leads-table td::before{content:attr(data-label);font:600 10px var(--font);color:var(--t4);text-transform:uppercase;letter-spacing:.06em;min-width:60px;flex-shrink:0}
+  .section-hdr{flex-direction:column;gap:8px}
+  .section-actions{width:100%}
+  .chat-history{display:none}
+  #page-chat{flex-direction:column}
+  .chat-compose{padding:8px 12px 12px}
+}
+@media(max-width:480px){
+  #content{padding:14px}
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi{padding:12px}
+  .kpi-val{font-size:22px}
+  .a-title{font-size:28px}
 }
 </style>
 </head>
@@ -493,17 +612,22 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 </div>
 
 <!-- BOOT -->
-<div id="boot-overlay">
-  <div class="boot-arc"></div>
-  <div class="boot-lines">
+<div id="boot-overlay" style="position:relative;overflow:hidden">
+  <canvas id="boot-canvas"></canvas>
+  <div class="boot-arc" style="position:relative;z-index:2"></div>
+  <div class="boot-greeting" id="boot-greeting" style="position:relative;z-index:2;opacity:0;transition:opacity .5s ease">JARVIS v2.1 — INITIALISING...</div>
+  <div class="boot-lines" style="position:relative;z-index:2">
     <div class="boot-line" id="bl1"><div class="bl-dot"></div><div class="bl-text">CONNECTING TO EXA INTELLIGENCE NETWORK...</div></div>
     <div class="boot-line" id="bl2"><div class="bl-dot"></div><div class="bl-text">LOADING LEAD DATABASE...</div></div>
-    <div class="boot-line" id="bl3"><div class="bl-dot"></div><div class="bl-text">CALIBRATING SCORING ENGINE...</div></div>
-    <div class="boot-line" id="bl4"><div class="bl-dot"></div><div class="bl-text">INITIALISING GROQ AI — LLAMA 3.3 70B...</div></div>
-    <div class="boot-line" id="bl5"><div class="bl-dot"></div><div class="bl-text">ALL SYSTEMS OPERATIONAL.</div></div>
+    <div class="boot-line" id="bl3"><div class="bl-dot"></div><div class="bl-text">CALIBRATING GROQ AI — LLAMA 3.3 70B...</div></div>
+    <div class="boot-line" id="bl4"><div class="bl-dot"></div><div class="bl-text">SCANNING IRELAND B2B INTELLIGENCE GRID...</div></div>
+    <div class="boot-line" id="bl5"><div class="bl-dot"></div><div class="bl-text">ALL SYSTEMS ONLINE. WELCOME BACK, BENJI.</div></div>
   </div>
-  <div class="boot-progress"><div class="boot-fill" id="boot-fill"></div></div>
+  <div class="boot-progress" style="position:relative;z-index:2"><div class="boot-fill" id="boot-fill"></div></div>
 </div>
+
+<!-- SIDEBAR MOBILE OVERLAY -->
+<div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
 <!-- APP -->
 <div id="app">
@@ -539,6 +663,9 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
         <div class="si-dot"></div> WhatsApp
         <span class="si-count" id="sb-msgs-count">0</span>
       </div>
+      <div class="sb-item" onclick="goPage('chat')" data-page="chat" style="color:rgba(88,166,255,.7)">
+        <div class="si-dot" style="background:rgba(88,166,255,.4)"></div> AI Chat
+      </div>
       <div class="sb-section-label" style="margin-top:4px">System</div>
       <div class="sb-item" onclick="goPage('settings')" data-page="settings">
         <div class="si-dot"></div> Settings
@@ -557,6 +684,9 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
   <div id="main">
     <header id="topbar">
       <div class="tb-left">
+        <button id="hamburger" onclick="toggleMobileSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
         <div class="tb-title" id="tb-title">Intelligence Agent</div>
         <div class="tb-tag" id="tb-badge">JARVIS</div>
       </div>
@@ -572,12 +702,21 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
       <!-- AGENT PAGE -->
       <section id="page-agent" class="page on">
         <div id="a-idle" class="on">
-          <div class="a-intro">
-            <div class="a-sys-id">System v2.0 · B2B Lead Discovery · Ireland</div>
-            <h1 class="a-title">B2B Event<br><em>Intelligence</em></h1>
-            <div class="a-sub">Autonomous lead discovery for 360 Booth Ireland</div>
+          <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+            <div class="a-intro" style="flex:1;min-width:220px">
+              <div class="a-sys-id">System v2.1 · B2B Lead Discovery · Ireland</div>
+              <h1 class="a-title">B2B Event<br><em>Intelligence</em></h1>
+              <div class="a-sub">Autonomous lead discovery for 360 Booth Ireland</div>
+              <div class="jarvis-greeting" id="greeting"></div>
+            </div>
+            <div id="jarvis-holo" class="jarvis-holo" style="flex-shrink:0">
+              <div class="jarvis-holo-ring"></div>
+              <div class="jarvis-holo-ring"></div>
+              <div class="jarvis-holo-ring"></div>
+              <div class="jarvis-holo-scan"></div>
+              <div class="jarvis-holo-core"><span class="jarvis-holo-label">J</span></div>
+            </div>
           </div>
-          <div class="jarvis-greeting" id="greeting"></div>
           <div class="prompt-card">
             <div class="prompt-row">
               <textarea class="prompt-ta" id="prompt-ta" rows="2"
@@ -758,7 +897,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
             <div class="ss-hdr"><div class="ss-hdr-dot"></div><div class="ss-hdr-title">Auto-Run Schedule</div></div>
             <div class="ss-body">
               <div class="ss-field">
-                <label class="ss-label">Scan Frequency</label>
+                <label class="ss-label">Delivery Frequency</label>
                 <div class="seg" id="schedule-seg" style="margin-top:4px">
                   <button class="seg-btn active-brand" data-val="weekly" onclick="setSchedule('weekly',this)">Weekly</button>
                   <button class="seg-btn" data-val="2x" onclick="setSchedule('2x',this)">2×</button>
@@ -766,11 +905,19 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
                   <button class="seg-btn" data-val="4x" onclick="setSchedule('4x',this)">4×</button>
                   <button class="seg-btn" data-val="5x" onclick="setSchedule('5x',this)">5×</button>
                 </div>
-                <div class="ss-hint" style="margin-top:8px" id="schedule-hint">Current: Every Monday at 8am UTC</div>
+                <div class="ss-hint" style="margin-top:8px" id="schedule-hint">Every Monday at 8am UTC — set DELIVERY_SCHEDULE=weekly in Vercel</div>
+              </div>
+              <div class="ss-field" style="margin-top:12px">
+                <label class="ss-label">Set Next Auto-Scan Date &amp; Time</label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">
+                  <input type="datetime-local" id="next-scan-dt" class="field" style="flex:1;min-width:180px">
+                  <button class="btn btn-outline btn-sm" onclick="saveNextScanDate()">Set Date</button>
+                </div>
+                <div class="ss-hint" style="margin-top:6px" id="next-scan-hint">Override the cron schedule — Jarvis will skip runs until this date/time is reached.</div>
               </div>
               <div class="ss-info-row"><span class="ss-info-lbl">Monitor</span><span class="ss-info-val">B2B Event Intelligence Ireland</span></div>
               <div class="ss-info-row"><span class="ss-info-lbl">Status</span><span class="ss-info-val" style="color:var(--green)">Active</span></div>
-              <div class="ss-info-row"><span class="ss-info-lbl">Next Run</span><span class="ss-info-val" id="next-run-display" style="color:var(--brand)">—</span></div>
+              <div class="ss-info-row"><span class="ss-info-lbl">Next Delivery</span><span class="ss-info-val" id="next-run-display" style="color:var(--brand)">—</span></div>
               <div class="ss-info-row"><span class="ss-info-lbl">Run After</span><span class="ss-info-val" id="next-run2-display" style="color:var(--t3)">—</span></div>
             </div>
           </div>
@@ -840,14 +987,18 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 
           <div class="msg-header">
             <div class="msg-header-to">
-              <div class="msg-to-dot">WA</div>
+              <div class="msg-to-dot" style="font-size:13px;font-weight:700">WA</div>
               <div>
-                <div class="msg-to-name">Benji — 360 Booth</div>
-                <div class="msg-to-sub">WhatsApp · +353 852 545 229</div>
+                <div class="msg-to-name">Benji Sanusi</div>
+                <div class="msg-to-sub" style="display:flex;align-items:center;gap:5px">
+                  <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 5px rgba(63,185,80,.6)"></span>
+                  Online · +353 852 545 229
+                </div>
               </div>
             </div>
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-ghost btn-sm" onclick="msgClearConfirm()">Clear History</button>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font:500 11px var(--font);color:var(--t4)">via Twilio Sandbox</span>
+              <button class="btn btn-ghost btn-sm" onclick="msgClearConfirm()">Clear</button>
             </div>
           </div>
 
@@ -868,6 +1019,48 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
             <button class="btn btn-primary" id="msg-send-btn" onclick="sendMsg()" style="height:42px;padding:0 18px;flex-shrink:0">Send</button>
           </div>
 
+        </div>
+      </section>
+
+      <!-- AI CHAT PAGE -->
+      <section id="page-chat" class="page">
+        <div class="chat-history" id="chat-history-panel">
+          <div class="chat-history-hdr">
+            <span class="chat-history-title">History</span>
+            <button class="btn-ghost btn-xs" onclick="toggleChatHistory()" title="Collapse" style="padding:0 4px;font-size:14px;color:var(--t3);background:none;border:none;cursor:pointer">×</button>
+          </div>
+          <div class="chat-history-list" id="chat-history-list"></div>
+          <div style="padding:8px">
+            <button class="btn btn-ghost btn-xs" style="width:100%;color:var(--t4)" onclick="newChat()">+ New Chat</button>
+          </div>
+        </div>
+        <div class="chat-main">
+          <div class="chat-toolbar">
+            <button class="btn btn-ghost btn-xs" onclick="toggleChatHistory()" title="Toggle history" style="padding:0 6px;font-size:16px;color:var(--blue);opacity:.7">☰</button>
+            <span style="font:600 12px var(--mono);color:var(--blue);letter-spacing:.1em">JARVIS AI</span>
+            <span style="font:400 11px var(--font);color:var(--t4);margin-left:auto">Exa + LLaMA 3.3 70B</span>
+            <button class="btn btn-ghost btn-xs" onclick="newChat()" style="color:var(--t3)">New</button>
+          </div>
+          <div class="chat-feed" id="chat-feed">
+            <div class="chat-empty" id="chat-empty">
+              <div class="chat-empty-icon">J</div>
+              <div class="chat-empty-title">Jarvis is ready</div>
+              <div class="chat-empty-sub">Ask about your leads, get venue ideas, find suppliers, or query any 360 booth business intelligence.</div>
+            </div>
+          </div>
+          <div class="chat-chips" id="chat-chips">
+            <button class="chat-chip" onclick="chatQuick('hot')">Who are my hottest leads?</button>
+            <button class="chat-chip" onclick="chatQuick('pipeline')">Pipeline summary</button>
+            <button class="chat-chip" onclick="chatQuick('outreach')">Draft an outreach email</button>
+            <button class="chat-chip" onclick="chatQuick('lightstand')">Find a light stand under €100</button>
+            <button class="chat-chip" onclick="chatQuick('venues')">Top corporate event venues Ireland</button>
+          </div>
+          <div class="chat-compose">
+            <textarea class="chat-ta" id="chat-input" placeholder="Ask Jarvis anything — leads, pipeline, suppliers, pricing, venues..." rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
+              oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+            <button class="btn btn-primary" id="chat-send-btn" onclick="sendChat()" style="height:40px;padding:0 16px;flex-shrink:0">Send</button>
+          </div>
         </div>
       </section>
 
@@ -954,16 +1147,58 @@ function doLogin(){
 }
 document.getElementById('login-pw').addEventListener('keydown',e=>{ if(e.key==='Enter')doLogin() })
 
+// ── MOBILE SIDEBAR ───────────────────────────────────────────
+function toggleMobileSidebar(){
+  const sb=document.getElementById('sidebar'); const ov=document.getElementById('sidebar-overlay')
+  sb.classList.toggle('mobile-open'); ov.classList.toggle('on')
+}
+function closeMobileSidebar(){
+  document.getElementById('sidebar')?.classList.remove('mobile-open')
+  document.getElementById('sidebar-overlay')?.classList.remove('on')
+}
+
+// ── BOOT PARTICLES ───────────────────────────────────────────
+function runBootParticles(){
+  const canvas=document.getElementById('boot-canvas'); if(!canvas)return ()=>{}
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight
+  const ctx=canvas.getContext('2d')
+  const pts=Array.from({length:55},()=>({
+    x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+    vx:(Math.random()-.5)*.45, vy:(Math.random()-.5)*.45,
+    r:Math.random()*1.2+.4, a:Math.random()*.4+.08,
+  }))
+  let rid; function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height)
+    for(let i=0;i<pts.length;i++){
+      const p=pts[i]; p.x+=p.vx; p.y+=p.vy
+      if(p.x<0||p.x>canvas.width)p.vx*=-1
+      if(p.y<0||p.y>canvas.height)p.vy*=-1
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2)
+      ctx.fillStyle=`rgba(88,166,255,${p.a})`; ctx.fill()
+      for(let j=i+1;j<pts.length;j++){
+        const q=pts[j]; const dx=p.x-q.x; const dy=p.y-q.y; const d=Math.sqrt(dx*dx+dy*dy)
+        if(d<110){ ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y)
+          ctx.strokeStyle=`rgba(88,166,255,${.06*(1-d/110)})`; ctx.stroke() }
+      }
+    }
+    rid=requestAnimationFrame(draw)
+  }
+  draw(); return ()=>cancelAnimationFrame(rid)
+}
+
 async function runBoot(){
   const overlay=document.getElementById('boot-overlay'); overlay.classList.add('on')
+  const stopParticles=runBootParticles()
+  const greet=document.getElementById('boot-greeting')
+  if(greet){ await sleep(200); greet.style.opacity='1'; greet.textContent=`JARVIS v2.1 — WELCOME BACK, ${OWNER_NAME.toUpperCase()}.` }
   const steps=['bl1','bl2','bl3','bl4','bl5']; const fill=document.getElementById('boot-fill')
   for(let i=0;i<steps.length;i++){
-    await sleep(i===4?600:380)
+    await sleep(i===4?700:400)
     const el=document.getElementById(steps[i]); el.classList.add('on')
     fill.style.width=((i+1)/steps.length*100)+'%'
     if(i===steps.length-1){ el.querySelector('.bl-dot').classList.add('done'); el.style.color='var(--green)' }
   }
-  await sleep(700); overlay.classList.remove('on'); showApp()
+  await sleep(800); stopParticles(); overlay.classList.remove('on'); showApp()
 }
 
 function showApp(){
@@ -987,6 +1222,7 @@ const pageMeta={
   history: {title:'Scan History',      badge:'LOG'},
   leads:   {title:'Lead Database',     badge:'CRM'},
   messages:{title:'WhatsApp',          badge:'COMMS'},
+  chat:    {title:'AI Chat',           badge:'JARVIS AI'},
   settings:{title:'Settings',          badge:'CONFIG'},
 }
 
@@ -1004,6 +1240,8 @@ function goPage(name){
   if(name==='leads')renderLeadsTable()
   if(name==='pipeline')renderPipeline()
   if(name==='messages'){ renderMessages(true); startMsgPoll() }
+  if(name==='chat') renderChatHistory()
+  closeMobileSidebar()
 }
 
 // ── AGENT STATE ──────────────────────────────────────────────
@@ -1011,6 +1249,8 @@ function agentShow(state){
   ;['idle','scan','results'].forEach(s=>{
     const el=document.getElementById('a-'+s); if(el)el.classList.toggle('on',s===state)
   })
+  const holo=document.getElementById('jarvis-holo')
+  if(holo)holo.classList.toggle('active',state==='scan')
 }
 function goAgentIdle(){ agentShow('idle') }
 
@@ -1331,6 +1571,7 @@ function loadSettingsForm(){
     if(b.dataset.val===saved)b.classList.add('active-brand')
   })
   const hint=document.getElementById('schedule-hint'); if(hint)hint.textContent=SCHEDULE_HINTS[saved]||''
+  loadNextScanDate()
 }
 
 function saveSettings(){
@@ -1455,10 +1696,9 @@ async function renderMessages(fetchNew=true){
   const msgs=DB.get(DB_MSGS,[])
   if(!msgs.length){
     feed.innerHTML=`<div class="msg-empty">
-      <div style="font:600 12px var(--mono);color:var(--t4);letter-spacing:.1em">NO MESSAGES</div>
-      <div style="font:400 12px var(--font);color:var(--t4);text-align:center;max-width:260px;margin-top:4px;line-height:1.6">
-        Use the compose box below, tap a Quick button, or press the WA button on any lead in the database or pipeline.
-      </div>
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.2);display:flex;align-items:center;justify-content:center;font:700 14px var(--mono);color:var(--green);margin:0 auto 10px">WA</div>
+      <div style="font:600 13px var(--font);color:var(--t2);margin-bottom:4px">No messages yet</div>
+      <div style="font:400 12px var(--font);color:var(--t4);text-align:center;max-width:240px;line-height:1.65">Use the compose box, tap Quick buttons, or press WA on any lead to start.</div>
     </div>`
     return
   }
@@ -1468,24 +1708,24 @@ async function renderMessages(fetchNew=true){
     const d=new Date(m.ts)
     const time=d.toLocaleTimeString('en-IE',{hour:'2-digit',minute:'2-digit'})+' · '+d.toLocaleDateString('en-IE',{day:'numeric',month:'short'})
     if(m.type==='inbound'){
-      return `<div class="msg-bubble" style="align-self:flex-start;align-items:flex-start">
-        <span class="msg-label" style="background:rgba(255,255,255,.06);color:var(--t3)">Reply</span>
-        <div class="msg-body" style="background:var(--s2);border:1px solid var(--border);color:var(--t1);border-bottom-left-radius:3px">${esc(m.body)}</div>
+      return `<div class="msg-bubble wa-incoming">
+        <span class="msg-label" style="background:rgba(63,185,80,.08);color:rgba(63,185,80,.7)">Reply</span>
+        <div class="msg-body wa-incoming">${esc(m.body)}</div>
         <span class="msg-meta">${time}</span>
       </div>`
     }
     if(m.type==='auto'||m.type==='system'){
-      return `<div class="msg-bubble auto">
+      return `<div class="msg-bubble auto wa-system">
         <span class="msg-label auto">${esc(m.label||'System')}</span>
-        <div class="msg-body">${esc(m.body)}</div>
+        <div class="msg-body wa-system">${esc(m.body)}</div>
         <span class="msg-meta">${time}</span>
       </div>`
     }
-    const lblCls=m.label==='Lead Brief'?'brief':m.label==='Intel Report'?'auto':''
-    return `<div class="msg-bubble sent">
+    const lblCls=m.label==='Lead Brief'?'brief':m.label==='Intel Report'||m.label==='Hot Leads'?'auto':''
+    return `<div class="msg-bubble wa-outgoing">
       <span class="msg-label ${lblCls}">${esc(m.label||'Sent')}</span>
-      <div class="msg-body">${esc(m.body)}</div>
-      <span class="msg-meta">${time}</span>
+      <div class="msg-body wa-outgoing">${esc(m.body)}</div>
+      <span class="msg-meta" style="display:flex;align-items:center;gap:4px">${time} <span style="color:rgba(63,185,80,.6)">✓✓</span></span>
     </div>`
   }).join('')
   if(atBottom||fetchNew) feed.scrollTop=feed.scrollHeight
@@ -1702,6 +1942,158 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function safeDomain(url){try{return new URL(url).hostname.replace(/^www\./,'')}catch{return ''}}
 function cp(btn,val){navigator.clipboard.writeText(val).then(()=>{const t=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=t,2000)}).catch(()=>{})}
+
+// ── DATE/TIME SCHEDULER ──────────────────────────────────────
+function saveNextScanDate(){
+  const dt=document.getElementById('next-scan-dt')?.value
+  if(!dt){ toast('Pick a date and time first','info'); return }
+  const cfg=DB.cfg(); cfg.nextScanOverride=new Date(dt).toISOString()
+  DB.set(DB_CFG,cfg)
+  const hint=document.getElementById('next-scan-hint')
+  if(hint)hint.textContent=`Next scan locked to: ${new Date(dt).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} UTC`
+  toast('Next scan date saved','success')
+}
+
+function loadNextScanDate(){
+  const cfg=DB.cfg()
+  if(cfg.nextScanOverride){
+    const el=document.getElementById('next-scan-dt')
+    if(el){
+      const d=new Date(cfg.nextScanOverride)
+      // datetime-local format: YYYY-MM-DDTHH:MM
+      el.value=d.toISOString().slice(0,16)
+    }
+    const hint=document.getElementById('next-scan-hint')
+    if(hint)hint.textContent=`Locked to: ${new Date(cfg.nextScanOverride).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`
+  }
+}
+
+// ── AI CHAT ──────────────────────────────────────────────────
+const DB_CHAT='b360_intel_chat'
+
+let chatActiveId=null
+
+function getChatSessions(){ return DB.get(DB_CHAT,[]) }
+
+function saveChatSession(sess){
+  const sessions=getChatSessions()
+  const idx=sessions.findIndex(s=>s.id===sess.id)
+  if(idx>=0) sessions[idx]=sess; else sessions.unshift(sess)
+  if(sessions.length>30)sessions.length=30
+  DB.set(DB_CHAT,sessions)
+}
+
+function newChat(){
+  chatActiveId='chat_'+Date.now()
+  document.getElementById('chat-feed').innerHTML=document.getElementById('chat-empty')?.outerHTML||''
+  renderChatHistory()
+  document.getElementById('chat-input')?.focus()
+  document.getElementById('chat-chips').style.display='flex'
+}
+
+function renderChatHistory(){
+  const list=document.getElementById('chat-history-list'); if(!list)return
+  const sessions=getChatSessions()
+  if(!sessions.length){ list.innerHTML=`<div style="padding:12px 10px;font:400 11px var(--font);color:var(--t4)">No chats yet</div>`; return }
+  list.innerHTML=sessions.map(s=>`
+    <div class="chi ${s.id===chatActiveId?'active':''}" onclick="loadChatSession('${s.id}')">
+      <div class="chi-q">${esc((s.firstMsg||'New Chat').slice(0,32))}</div>
+      <div class="chi-ts">${new Date(s.ts).toLocaleDateString('en-IE',{day:'numeric',month:'short'})}</div>
+    </div>`).join('')
+}
+
+function loadChatSession(id){
+  chatActiveId=id
+  const sessions=getChatSessions()
+  const sess=sessions.find(s=>s.id===id); if(!sess)return
+  const feed=document.getElementById('chat-feed'); if(!feed)return
+  feed.innerHTML=sess.messages.map(m=>renderChatBubble(m)).join('')
+  feed.scrollTop=feed.scrollHeight
+  renderChatHistory()
+  document.getElementById('chat-chips').style.display='none'
+}
+
+function renderChatBubble(m){
+  const time=new Date(m.ts).toLocaleTimeString('en-IE',{hour:'2-digit',minute:'2-digit'})
+  const bodyHtml=esc(m.content).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<strong>$1</strong>')
+  const srcs=m.sources&&m.sources.length?`<div class="chat-sources">${m.sources.map(s=>`<a class="chat-src" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title.slice(0,30))}</a>`).join('')}</div>`:''
+  return `<div class="chat-bubble ${m.role==='user'?'user':'jarvis'}">
+    <span class="chat-role-tag">${m.role==='user'?OWNER_NAME:'Jarvis'}</span>
+    <div class="chat-body">${bodyHtml}</div>
+    ${srcs}
+    <span class="chat-ts">${time}</span>
+  </div>`
+}
+
+function toggleChatHistory(){
+  const panel=document.getElementById('chat-history-panel')
+  if(panel)panel.classList.toggle('collapsed')
+}
+
+async function sendChat(){
+  const ta=document.getElementById('chat-input')
+  const msg=(ta?.value||'').trim()
+  if(!msg)return
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal){ toast('AI Chat requires the live Vercel deployment','warn'); return }
+
+  if(!chatActiveId) chatActiveId='chat_'+Date.now()
+  document.getElementById('chat-chips').style.display='none'
+
+  const sessions=getChatSessions()
+  let sess=sessions.find(s=>s.id===chatActiveId)
+  if(!sess){ sess={id:chatActiveId,ts:new Date().toISOString(),firstMsg:msg,messages:[]}; sessions.unshift(sess); DB.set(DB_CHAT,sessions) }
+
+  const userMsg={role:'user',content:msg,ts:new Date().toISOString()}
+  sess.messages.push(userMsg); saveChatSession(sess)
+
+  const feed=document.getElementById('chat-feed')
+  if(feed){ feed.innerHTML=sess.messages.map(renderChatBubble).join('') + `<div class="chat-thinking" id="chat-thinking"><div class="chat-think-dot"></div><div class="chat-think-dot"></div><div class="chat-think-dot"></div></div>` ; feed.scrollTop=feed.scrollHeight }
+
+  ta.value=''; ta.style.height='auto'
+  const btn=document.getElementById('chat-send-btn'); btn.disabled=true
+
+  try{
+    // Build context from dashboard state
+    const leads=DB.get(DB_LEADS,[])
+    const scans=DB.get(DB_SCANS,[])
+    const pipeline={}; leads.forEach(l=>{ const s=l.status||'New'; pipeline[s]=(pipeline[s]||0)+1 })
+    const context={leads:leads.slice(0,40), scans:scans.slice(0,5), pipeline}
+
+    const res=await fetch('/api/agent/chat',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg, context}),
+    })
+    const data=await res.json().catch(()=>({}))
+    if(!res.ok) throw new Error(data.error||`Chat error ${res.status}`)
+
+    const aiMsg={role:'jarvis',content:data.reply||'',ts:new Date().toISOString(),sources:data.sources||[]}
+    sess.messages.push(aiMsg); saveChatSession(sess)
+    renderChatHistory()
+
+    document.getElementById('chat-thinking')?.remove()
+    if(feed){ feed.innerHTML=sess.messages.map(renderChatBubble).join(''); feed.scrollTop=feed.scrollHeight }
+  }catch(err){
+    document.getElementById('chat-thinking')?.remove()
+    const errMsg={role:'jarvis',content:`Error: ${err.message}`,ts:new Date().toISOString(),sources:[]}
+    sess.messages.push(errMsg); saveChatSession(sess)
+    if(feed){ feed.innerHTML=sess.messages.map(renderChatBubble).join(''); feed.scrollTop=feed.scrollHeight }
+    toast('Chat error: '+err.message,'error')
+  }
+  btn.disabled=false
+}
+
+function chatQuick(type){
+  const ta=document.getElementById('chat-input')
+  const msgs={
+    hot:'Who are my hottest leads right now and what should I do first?',
+    pipeline:'Give me a full pipeline summary with next actions.',
+    outreach:'Draft a short outreach email for my top hot lead.',
+    lightstand:'Find me a quality light stand under €100 available in Ireland.',
+    venues:'What are the top corporate event venues in Dublin for 2026?',
+  }
+  if(ta&&msgs[type]){ ta.value=msgs[type]; ta.focus() }
+}
 
 // ── INIT ─────────────────────────────────────────────────────
 checkAuth()

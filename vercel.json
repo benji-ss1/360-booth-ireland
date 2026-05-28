@@ -8,6 +8,7 @@
     "api/agent/scan.js":            { "maxDuration": 60 },
     "api/agent/whatsapp-send.js":   { "maxDuration": 15 },
     "api/agent/messages.js":        { "maxDuration": 10 },
+    "api/agent/chat.js":            { "maxDuration": 30 },
     "api/whatsapp-webhook.js":      { "maxDuration": 10 }
   },
   "crons": [
