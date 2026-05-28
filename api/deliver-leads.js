@@ -379,13 +379,27 @@ module.exports = async function handler(req, res) {
     const allOk = emailResults.every(r => r.ok);
     const warmCount = scored.filter(e => e.urgency === 'WARM').length;
 
-    // 5. Send WhatsApp notification (non-blocking — don't fail if Twilio not configured)
-    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_WHATSAPP_TO) {
+    // 5. Send WhatsApp notification directly via Twilio (non-blocking)
+    const TWILIO_SID   = process.env.TWILIO_ACCOUNT_SID;
+    const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+    const TWILIO_FROM  = process.env.TWILIO_WHATSAPP_FROM;
+    const TWILIO_TO    = process.env.TWILIO_WHATSAPP_TO;
+    if (TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM && TWILIO_TO) {
       try {
-        await fetch(`${process.env.VERCEL_URL ? 'https://'+process.env.VERCEL_URL : 'http://localhost:3000'}/api/whatsapp-notify`, {
+        const waLines = [
+          '*Jarvis Intel Report — 360 Booth Ireland*',
+          '',
+          hotCount > 0 ? `🔴 *${hotCount} hot lead${hotCount > 1 ? 's' : ''}* ready to contact` : 'No hot leads this run',
+          warmCount > 0 ? `🟡 ${warmCount} warm lead${warmCount > 1 ? 's' : ''} worth following up` : '',
+          '',
+          `Full report sent to your email. Open the dashboard to review.`,
+        ].filter(Boolean).join('\n');
+        const waParams = new URLSearchParams({ To: TWILIO_TO, From: TWILIO_FROM, Body: waLines });
+        const waCreds  = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString('base64');
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ hot: hotCount, warm: warmCount, total: scored.length }),
+          headers: { Authorization: `Basic ${waCreds}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: waParams.toString(),
         });
       } catch (waErr) {
         console.warn('[deliver-leads] WhatsApp notify failed (non-fatal):', waErr.message);

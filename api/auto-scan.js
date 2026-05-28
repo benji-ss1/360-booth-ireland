@@ -83,6 +83,19 @@ async function supabasePatch(table, match, body, serviceKey) {
   });
 }
 
+async function supabaseUpsert(table, body, serviceKey) {
+  return fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 // ── Scan helpers (shared with scan-leads.js) ───────────────────────────────
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -258,8 +271,20 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'Missing required environment variables' });
   }
 
-  // Read schedule config from Supabase
-  const configs = await supabaseGet('scan_config?id=eq.main&select=*', SERVICE_KEY);
+  // Read schedule config from Supabase — create a default row if it doesn't exist yet
+  let configs = await supabaseGet('scan_config?id=eq.main&select=*', SERVICE_KEY);
+  if (!configs || !configs.length) {
+    // Bootstrap the row so future cron calls and the settings page both have something to work with
+    await supabaseUpsert('scan_config', {
+      id: 'main',
+      is_active: true,
+      schedule_type: 'weekly',
+      next_run_at: null,
+      last_run_at: null,
+      custom_terms: '',
+    }, SERVICE_KEY);
+    configs = await supabaseGet('scan_config?id=eq.main&select=*', SERVICE_KEY);
+  }
   const config = configs?.[0];
 
   // If cron call: check if scan is actually due
@@ -267,13 +292,13 @@ module.exports = async function handler(req, res) {
     if (!config || !config.is_active) {
       return res.status(200).json({ message: 'Scanner not active — skipped' });
     }
-    if (!config.next_run_at) {
-      return res.status(200).json({ message: 'No next_run_at set — skipped' });
-    }
-    const nextRun = new Date(config.next_run_at);
-    const now = new Date();
-    if (nextRun > now) {
-      return res.status(200).json({ message: `Next scan scheduled for ${nextRun.toISOString()} — skipped today` });
+    // If next_run_at is set, check if we've passed it; if not set, always run
+    if (config.next_run_at) {
+      const nextRun = new Date(config.next_run_at);
+      const now = new Date();
+      if (nextRun > now) {
+        return res.status(200).json({ message: `Next scan scheduled for ${nextRun.toISOString()} — skipped today` });
+      }
     }
   }
 

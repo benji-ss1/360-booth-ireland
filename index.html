@@ -215,6 +215,44 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .kpi-val.red{color:var(--red)}
 .kpi-val.sm{font-size:18px}
 
+/* ── OVERVIEW PAGE ──────────────────────────────────────────── */
+.ov-hero{display:flex;gap:32px;align-items:center;margin-bottom:32px;flex-wrap:wrap}
+.ov-hero-text{flex:1;min-width:200px}
+.ov-title{font:800 32px var(--font);color:var(--t1);line-height:1.15;margin-bottom:6px}
+.ov-sub{font:500 14px var(--font);color:var(--t3);margin-bottom:16px}
+.ov-actions{display:flex;gap:10px;flex-wrap:wrap}
+.ov-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.ov-kpi{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 16px;position:relative;overflow:hidden}
+.ov-kpi::before{content:'';position:absolute;inset:0;opacity:.06;border-radius:inherit}
+.ov-kpi.hot::before{background:var(--red)}
+.ov-kpi.warm::before{background:var(--warn)}
+.ov-kpi.total::before{background:var(--blue)}
+.ov-kpi.revenue::before{background:var(--brand)}
+.ov-kpi-label{font:500 11px var(--font);color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.ov-kpi-val{font:800 32px var(--mono);line-height:1;margin-bottom:4px}
+.ov-kpi.hot .ov-kpi-val{color:var(--red)}
+.ov-kpi.warm .ov-kpi-val{color:var(--warn)}
+.ov-kpi.total .ov-kpi-val{color:var(--blue)}
+.ov-kpi.revenue .ov-kpi-val{color:var(--brand)}
+.ov-kpi-delta{font:500 11px var(--font);color:var(--t4)}
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.ov-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px}
+.ov-card-title{font:700 12px var(--font);color:var(--t2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ov-card-title .ov-dot{width:6px;height:6px;border-radius:50%;background:var(--brand);flex-shrink:0}
+.ov-activity-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)}
+.ov-activity-item:last-child{border-bottom:none}
+.ov-act-ico{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.ov-act-ico.scan{background:rgba(88,166,255,.12);color:var(--blue)}
+.ov-act-ico.lead{background:rgba(248,81,73,.1);color:var(--red)}
+.ov-act-ico.msg{background:rgba(63,185,80,.1);color:var(--green)}
+.ov-act-ico.pipe{background:rgba(201,168,76,.1);color:var(--brand)}
+.ov-act-text{font:500 13px var(--font);color:var(--t2);line-height:1.4}
+.ov-act-time{font:400 11px var(--font);color:var(--t4);margin-top:2px}
+.ov-quick-btn{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all .15s;width:100%;margin-bottom:8px;color:var(--t1)}
+.ov-quick-btn:hover{background:var(--s3);border-color:var(--blue)}
+.ov-quick-btn-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ov-quick-btn-label{font:600 13px var(--font)}
+.ov-quick-btn-sub{font:400 11px var(--font);color:var(--t4);margin-top:1px}
 /* ── AGENT PAGE ─────────────────────────────────────────────── */
 #a-idle,#a-scan,#a-results{display:none}
 #a-idle.on,#a-scan.on,#a-results.on{display:block}
@@ -276,6 +314,12 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .ecard-img{width:100%;height:140px;overflow:hidden;cursor:zoom-in}
 .ecard-img img{width:100%;height:100%;object-fit:cover;transition:transform .3s ease}
 .ecard-img:hover img{transform:scale(1.04)}
+.ecard-img.img-fallback img{width:64px;height:64px;object-fit:contain;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.ecard-img.img-fallback{position:relative;background:var(--s3)}
+.ecard-img-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;cursor:default}
+.ecard-img-ph-inner{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ecard-img-ph-letter{font-size:38px;font-weight:800;line-height:1;opacity:.7}
+.ecard-img-ph-domain{font-size:10px;color:var(--t3);letter-spacing:.05em;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ecard-body{padding:14px}
 .ecard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .ecard-num{font:600 10px var(--mono);color:var(--t4);letter-spacing:.06em}
@@ -431,6 +475,8 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .msg-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
 .wa-btn{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:4px;font:500 10px var(--font);background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.2);color:var(--green);cursor:pointer;transition:all 120ms ease}
 .wa-btn:hover{background:rgba(63,185,80,.14);border-color:rgba(63,185,80,.4)}
+.del-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;font:600 11px var(--font);background:transparent;border:1px solid transparent;color:var(--t4);cursor:pointer;transition:all 120ms ease;line-height:1}
+.del-btn:hover{background:rgba(248,81,73,.12);border-color:rgba(248,81,73,.3);color:var(--red)}
 
 /* ── EMPTY STATE ────────────────────────────────────────────── */
 .empty-state{padding:48px 24px;text-align:center}
@@ -459,21 +505,33 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .toast.error .toast-dot{background:var(--red)}
 .toast.info .toast-dot{background:var(--brand)}
 
-/* ── JARVIS HOLOGRAM ─────────────────────────────────────────── */
-.jarvis-holo{width:160px;height:160px;margin:0 auto 20px;position:relative;flex-shrink:0}
-.jarvis-holo-ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(88,166,255,.3);animation:holoR 9s linear infinite}
-.jarvis-holo-ring:nth-child(2){border-color:rgba(201,168,76,.22);animation-duration:13s;animation-direction:reverse;inset:14px}
-.jarvis-holo-ring:nth-child(3){border-color:rgba(56,189,248,.15);animation-duration:5.5s;inset:28px}
-.jarvis-holo-core{position:absolute;inset:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle,rgba(88,166,255,.18) 0%,rgba(201,168,76,.08) 55%,transparent 75%);
-  animation:holoP 3.5s ease infinite}
-.jarvis-holo-label{font:700 22px var(--mono);color:rgba(88,166,255,.85);letter-spacing:-.02em}
+/* ── JARVIS 3D NEURAL ORB ────────────────────────────────────── */
+.jarvis-holo{width:180px;height:180px;position:relative;flex-shrink:0;perspective:600px}
+.jarvis-holo-sphere{width:180px;height:180px;position:relative;transform-style:preserve-3d;animation:sphereSpin 22s linear infinite}
+.jarvis-holo-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(88,166,255,.35);animation:ringPulse 3.5s ease-in-out infinite}
+.jarvis-holo-ring:nth-child(1){transform:rotateX(0deg) rotateY(0deg);border-color:rgba(88,166,255,.55)}
+.jarvis-holo-ring:nth-child(2){transform:rotateX(60deg) rotateY(20deg);border-color:rgba(88,166,255,.35);animation-delay:.4s}
+.jarvis-holo-ring:nth-child(3){transform:rotateX(120deg) rotateY(40deg);border-color:rgba(56,189,248,.28);animation-delay:.8s}
+.jarvis-holo-ring:nth-child(4){transform:rotateX(80deg) rotateY(120deg);border-color:rgba(88,166,255,.22);animation-delay:1.2s}
+.jarvis-holo-ring:nth-child(5){transform:rotateX(150deg) rotateY(80deg);border-color:rgba(56,189,248,.16);animation-delay:1.6s}
+.jarvis-holo-core{position:absolute;inset:28px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 40% 35%,rgba(88,166,255,.6) 0%,rgba(88,166,255,.2) 40%,rgba(14,22,40,.95) 75%);
+  box-shadow:0 0 32px rgba(88,166,255,.5),0 0 64px rgba(88,166,255,.22),inset 0 0 24px rgba(88,166,255,.18);
+  animation:coreGlow 2.8s ease-in-out infinite}
+.jarvis-holo-label{font:800 11px var(--mono);color:rgba(88,166,255,.9);letter-spacing:.14em;text-transform:uppercase;text-shadow:0 0 10px rgba(88,166,255,.7)}
+.jarvis-holo-sub{font:600 8px var(--mono);color:rgba(88,166,255,.45);letter-spacing:.1em;margin-top:2px}
 .jarvis-holo-scan{position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none}
-.jarvis-holo-scan::after{content:'';position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(88,166,255,.6),transparent);
-  animation:holoScan 2.2s ease-in-out infinite;top:50%;box-shadow:0 0 8px rgba(88,166,255,.4)}
-.jarvis-holo.active .jarvis-holo-core{background:radial-gradient(circle,rgba(88,166,255,.45) 0%,rgba(201,168,76,.15) 55%,transparent 75%)}
-.jarvis-holo.active .jarvis-holo-ring{border-color:rgba(88,166,255,.7);animation-duration:3s}
-.jarvis-holo.active .jarvis-holo-label{color:rgba(88,166,255,1);text-shadow:0 0 12px rgba(88,166,255,.7)}
+.jarvis-holo-scan::after{content:'';position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(88,166,255,.75),transparent);
+  top:0;animation:scanLine 2.2s linear infinite;box-shadow:0 0 8px rgba(88,166,255,.5)}
+.jarvis-holo.active .jarvis-holo-sphere{animation-duration:4s}
+.jarvis-holo.active .jarvis-holo-ring{border-color:rgba(88,166,255,.9)!important;animation-duration:1s!important}
+.jarvis-holo.active .jarvis-holo-core{background:radial-gradient(circle at 40% 35%,rgba(88,166,255,.9) 0%,rgba(56,189,248,.45) 45%,rgba(14,22,40,.9) 75%);
+  box-shadow:0 0 52px rgba(88,166,255,.85),0 0 100px rgba(88,166,255,.38),inset 0 0 36px rgba(88,166,255,.3)}
+.jarvis-holo.active .jarvis-holo-label{color:#fff;text-shadow:0 0 18px rgba(88,166,255,1)}
+@keyframes sphereSpin{from{transform:rotateY(0deg) rotateX(12deg)}to{transform:rotateY(360deg) rotateX(12deg)}}
+@keyframes ringPulse{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes coreGlow{0%,100%{box-shadow:0 0 32px rgba(88,166,255,.5),0 0 64px rgba(88,166,255,.22),inset 0 0 24px rgba(88,166,255,.18)}50%{box-shadow:0 0 52px rgba(88,166,255,.78),0 0 96px rgba(88,166,255,.35),inset 0 0 32px rgba(88,166,255,.25)}}
+@keyframes scanLine{0%{top:-3px}100%{top:102%}}
 @keyframes holoR{from{transform:rotateZ(0deg)}to{transform:rotateZ(360deg)}}
 @keyframes holoP{0%,100%{box-shadow:0 0 18px rgba(88,166,255,.18),inset 0 0 12px rgba(88,166,255,.05)}50%{box-shadow:0 0 32px rgba(88,166,255,.35),inset 0 0 20px rgba(88,166,255,.1)}}
 @keyframes holoScan{0%{top:0%;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
@@ -539,6 +597,9 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .chat-think-dot:nth-child(3){animation-delay:.5s}
 @keyframes thinkP{0%,100%{opacity:.18;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
 .chat-compose{padding:10px 16px 14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--bg)}
+.chat-tool-btn{width:36px;height:40px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);transition:all .15s;flex-shrink:0}
+.chat-tool-btn:hover{background:var(--s2);color:var(--blue)}
+.chat-tool-btn.voice-active{border-color:rgba(88,166,255,.5);color:var(--blue);background:rgba(88,166,255,.08)}
 .chat-ta{flex:1;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 14px;color:var(--t1);font:400 13px var(--font);resize:none;min-height:40px;max-height:120px;line-height:1.5;transition:border-color var(--tf)}
 .chat-ta:focus{border-color:rgba(88,166,255,.4);outline:none}
 .chat-ta::placeholder{color:var(--t4)}
@@ -642,7 +703,11 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
       </div>
     </div>
     <div class="sb-nav">
-      <div class="sb-section-label">Intelligence</div>
+      <div class="sb-section-label">Overview</div>
+      <div class="sb-item" onclick="goPage('overview')" data-page="overview">
+        <div class="si-dot" style="background:var(--brand)"></div> Dashboard
+      </div>
+      <div class="sb-section-label" style="margin-top:4px">Intelligence</div>
       <div class="sb-item active" onclick="goPage('agent')" data-page="agent">
         <div class="si-dot"></div> Agent
       </div>
@@ -699,6 +764,70 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 
     <div id="content">
 
+      <!-- OVERVIEW PAGE -->
+      <section id="page-overview" class="page">
+        <div class="ov-hero">
+          <div id="overview-holo" class="jarvis-holo" style="margin:0">
+            <div class="jarvis-holo-sphere">
+              <div class="jarvis-holo-ring"></div>
+              <div class="jarvis-holo-ring"></div>
+              <div class="jarvis-holo-ring"></div>
+              <div class="jarvis-holo-ring"></div>
+              <div class="jarvis-holo-ring"></div>
+              <div class="jarvis-holo-scan"></div>
+              <div class="jarvis-holo-core">
+                <span class="jarvis-holo-label">360°</span>
+                <span class="jarvis-holo-sub">IRELAND</span>
+              </div>
+            </div>
+          </div>
+          <div class="ov-hero-text">
+            <div class="ov-title" id="ov-greeting">Good morning, Benji</div>
+            <div class="ov-sub" id="ov-sub">Here's your intelligence summary for today.</div>
+            <div class="ov-actions">
+              <button class="btn btn-primary btn-sm" onclick="goPage('agent')">Run Scan</button>
+              <button class="btn btn-outline btn-sm" onclick="goPage('leads')">Lead Database</button>
+              <button class="btn btn-ghost btn-sm" onclick="goPage('chat')">Ask Jarvis</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ov-kpi-grid" id="ov-kpis">
+          <div class="ov-kpi hot"><div class="ov-kpi-label">Hot Leads</div><div class="ov-kpi-val" id="ov-hot">0</div><div class="ov-kpi-delta">Score ≥ 80</div></div>
+          <div class="ov-kpi warm"><div class="ov-kpi-label">Warm Leads</div><div class="ov-kpi-val" id="ov-warm">0</div><div class="ov-kpi-delta">Score 55–79</div></div>
+          <div class="ov-kpi total"><div class="ov-kpi-label">Total Leads</div><div class="ov-kpi-val" id="ov-total">0</div><div class="ov-kpi-delta">In database</div></div>
+          <div class="ov-kpi revenue"><div class="ov-kpi-label">Pipeline Value</div><div class="ov-kpi-val" id="ov-revenue">€0</div><div class="ov-kpi-delta">Hot leads × €1,200 avg</div></div>
+        </div>
+
+        <div class="ov-grid">
+          <div class="ov-card">
+            <div class="ov-card-title"><span class="ov-dot"></span>Recent Activity</div>
+            <div id="ov-activity">
+              <div style="color:var(--t4);font-size:13px;padding:16px 0">No activity yet — run your first scan</div>
+            </div>
+          </div>
+          <div class="ov-card">
+            <div class="ov-card-title"><span class="ov-dot" style="background:var(--blue)"></span>Quick Actions</div>
+            <button class="ov-quick-btn" onclick="goPage('agent')">
+              <div class="ov-quick-btn-ico" style="background:rgba(88,166,255,.12);color:var(--blue)">⚡</div>
+              <div><div class="ov-quick-btn-label">Scan for Leads</div><div class="ov-quick-btn-sub">Search new B2B events in Ireland</div></div>
+            </button>
+            <button class="ov-quick-btn" onclick="goPage('pipeline')">
+              <div class="ov-quick-btn-ico" style="background:rgba(201,168,76,.1);color:var(--brand)">◈</div>
+              <div><div class="ov-quick-btn-label">View Pipeline</div><div class="ov-quick-btn-sub">Move leads through your CRM</div></div>
+            </button>
+            <button class="ov-quick-btn" onclick="goPage('messages')">
+              <div class="ov-quick-btn-ico" style="background:rgba(63,185,80,.1);color:var(--green)">◎</div>
+              <div><div class="ov-quick-btn-label">WhatsApp</div><div class="ov-quick-btn-sub">Review incoming messages</div></div>
+            </button>
+            <button class="ov-quick-btn" onclick="sendReportNow()">
+              <div class="ov-quick-btn-ico" style="background:rgba(248,81,73,.1);color:var(--red)">✉</div>
+              <div><div class="ov-quick-btn-label">Send Report Now</div><div class="ov-quick-btn-sub">Email latest intel to your inbox</div></div>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- AGENT PAGE -->
       <section id="page-agent" class="page on">
         <div id="a-idle" class="on">
@@ -710,11 +839,18 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
               <div class="jarvis-greeting" id="greeting"></div>
             </div>
             <div id="jarvis-holo" class="jarvis-holo" style="flex-shrink:0">
-              <div class="jarvis-holo-ring"></div>
-              <div class="jarvis-holo-ring"></div>
-              <div class="jarvis-holo-ring"></div>
-              <div class="jarvis-holo-scan"></div>
-              <div class="jarvis-holo-core"><span class="jarvis-holo-label">J</span></div>
+              <div class="jarvis-holo-sphere">
+                <div class="jarvis-holo-ring"></div>
+                <div class="jarvis-holo-ring"></div>
+                <div class="jarvis-holo-ring"></div>
+                <div class="jarvis-holo-ring"></div>
+                <div class="jarvis-holo-ring"></div>
+                <div class="jarvis-holo-scan"></div>
+                <div class="jarvis-holo-core">
+                  <span class="jarvis-holo-label">360°</span>
+                  <span class="jarvis-holo-sub">JARVIS</span>
+                </div>
+              </div>
             </div>
           </div>
           <div class="prompt-card">
@@ -803,6 +939,9 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
         <div class="leads-toolbar">
           <div class="leads-toolbar-row">
             <input class="field" type="text" id="leads-search" placeholder="Search by event, organiser, email..." oninput="renderLeadsTable()" style="flex:1;min-width:200px">
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="Export to CSV">Export CSV</button>
+            <button class="btn btn-outline btn-sm" onclick="clearVisibleLeads()" title="Delete filtered leads" style="border-color:rgba(248,81,73,.3);color:var(--red)">Clear Visible</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearAllLeads()" title="Delete all leads" style="color:var(--t4);font-size:11px">Clear All</button>
           </div>
           <div class="leads-toolbar-row" style="gap:16px">
             <div>
@@ -841,7 +980,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
             <thead>
               <tr>
                 <th>Event</th><th>Organiser</th><th>Contact</th>
-                <th>Score</th><th>Type</th><th>Status</th><th>Seen</th><th></th>
+                <th>Score</th><th>Type</th><th>Status</th><th>Seen</th><th></th><th></th>
               </tr>
             </thead>
             <tbody id="leads-tbody"></tbody>
@@ -1055,7 +1194,19 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
             <button class="chat-chip" onclick="chatQuick('lightstand')">Find a light stand under €100</button>
             <button class="chat-chip" onclick="chatQuick('venues')">Top corporate event venues Ireland</button>
           </div>
+          <div id="chat-file-preview" style="display:none;padding:6px 12px;background:var(--s2);border-top:1px solid var(--border);font-size:12px;color:var(--t3);display:flex;align-items:center;gap:8px">
+            <span id="chat-file-name">No file</span>
+            <button onclick="clearChatFile()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0 2px">✕</button>
+          </div>
+          <input type="file" id="chat-file-input" accept=".txt,.md,.csv,.pdf,.doc,.docx,.json" style="display:none" onchange="handleChatFile(this)">
           <div class="chat-compose">
+            <button class="chat-tool-btn" onclick="document.getElementById('chat-file-input').click()" title="Attach file">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <button class="chat-tool-btn" id="voice-toggle-btn" onclick="toggleVoice()" title="Toggle Jarvis voice">
+              <svg id="voice-icon-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <svg id="voice-icon-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            </button>
             <textarea class="chat-ta" id="chat-input" placeholder="Ask Jarvis anything — leads, pipeline, suppliers, pricing, venues..." rows="1"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
               oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
@@ -1095,22 +1246,31 @@ const DB={
   cfg:()=>DB.get(DB_CFG,{pw:DEFAULT_PW,email1:'benj.sanusi@gmail.com',email2:'info@360boothireland.ie',schedule:'weekly',whatsapp:''}),
 }
 
+function makeLeadKey(e){
+  // btoa() crashes on non-ASCII — use a simple numeric hash instead
+  const s=String(e.url||e.title||Math.random())
+  let h=0; for(let i=0;i<Math.min(s.length,80);i++){ h=((h<<5)-h)+s.charCodeAt(i); h|=0 }
+  return 'k'+Math.abs(h).toString(36)
+}
+
 function saveScansAndLeads(scan){
-  const scans=DB.get(DB_SCANS); scans.unshift(scan)
-  if(scans.length>50)scans.length=50
-  DB.set(DB_SCANS,scans)
-  const leads=DB.get(DB_LEADS); const idx={}
-  leads.forEach((l,i)=>{ idx[l._key]=i })
-  scan.events.forEach(e=>{
-    const key=e.url?btoa(e.url).slice(0,20):btoa(e.title||'x').slice(0,20)
-    if(idx[key]!==undefined){
-      if(e.lead_score>leads[idx[key]].lead_score)
-        leads[idx[key]]={...leads[idx[key]],...e,_key:key,firstSeen:leads[idx[key]].firstSeen,status:leads[idx[key]].status||'New'}
-    } else {
-      leads.push({...e,_key:key,firstSeen:scan.ts,status:'New'})
-    }
-  })
-  DB.set(DB_LEADS,leads); updateBadges()
+  try{
+    const scans=DB.get(DB_SCANS); scans.unshift(scan)
+    if(scans.length>50)scans.length=50
+    DB.set(DB_SCANS,scans)
+    const leads=DB.get(DB_LEADS); const idx={}
+    leads.forEach((l,i)=>{ idx[l._key]=i })
+    scan.events.forEach(e=>{
+      const key=makeLeadKey(e)
+      if(idx[key]!==undefined){
+        if((e.lead_score||0)>(leads[idx[key]].lead_score||0))
+          leads[idx[key]]={...leads[idx[key]],...e,_key:key,firstSeen:leads[idx[key]].firstSeen,status:leads[idx[key]].status||'New'}
+      } else {
+        leads.push({...e,_key:key,firstSeen:scan.ts,status:'New'})
+      }
+    })
+    DB.set(DB_LEADS,leads); updateBadges()
+  }catch(err){ console.error('[saveScansAndLeads]',err) }
 }
 
 function updateBadges(){
@@ -1187,6 +1347,7 @@ function runBootParticles(){
 }
 
 async function runBoot(){
+  initVoice()
   const overlay=document.getElementById('boot-overlay'); overlay.classList.add('on')
   const stopParticles=runBootParticles()
   const greet=document.getElementById('boot-greeting')
@@ -1199,13 +1360,23 @@ async function runBoot(){
     if(i===steps.length-1){ el.querySelector('.bl-dot').classList.add('done'); el.style.color='var(--green)' }
   }
   await sleep(800); stopParticles(); overlay.classList.remove('on'); showApp()
+  // Auto-speak welcome if voice was previously enabled (stored in sessionStorage to avoid surprising repeat loads)
+  if(sessionStorage.getItem('jarvisVoice')==='1'){
+    jarvisVoiceEnabled=true
+    const btn=document.getElementById('voice-toggle-btn'); if(btn)btn.classList.add('voice-active')
+    const onIco=document.getElementById('voice-icon-on'); if(onIco)onIco.style.display='block'
+    const offIco=document.getElementById('voice-icon-off'); if(offIco)offIco.style.display='none'
+    const h=new Date().getHours()
+    const gr=h<12?'Good morning':'Good afternoon'
+    setTimeout(()=>jarvisSpeak(`${gr}, ${OWNER_NAME}. I'm Jarvis, your intelligence officer. All systems online.`,{pitch:0.7,rate:0.85}),600)
+  }
 }
 
 function showApp(){
   DB.set(DB_AUTH,{authed:true,ts:Date.now()})
   document.getElementById('login-screen').style.display='none'
   document.getElementById('app').classList.add('on')
-  loadSettingsForm(); updateBadges(); updateNextRunDisplay()
+  loadSettingsForm(); updateBadges(); updateNextRunDisplay(); renderOverview()
   // greeting
   const h=new Date().getHours()
   const gr=h<12?'Good morning':h<17?'Good afternoon':'Good evening'
@@ -1215,8 +1386,47 @@ function showApp(){
 
 function doLogout(){ DB.set(DB_AUTH,{authed:false,ts:0}); location.reload() }
 
+// ── OVERVIEW PAGE ────────────────────────────────────────────
+function renderOverview(){
+  const leads=DB.get(DB_LEADS)
+  const scans=DB.get(DB_SCANS)
+  const msgs=DB.get(DB_MSGS)
+  const hot=leads.filter(l=>l.lead_score>=80).length
+  const warm=leads.filter(l=>l.lead_score>=55&&l.lead_score<80).length
+  const revenue=(hot*1200).toLocaleString('en-IE',{style:'currency',currency:'EUR',maximumFractionDigits:0})
+  // KPIs
+  const el=id=>document.getElementById(id)
+  if(el('ov-hot'))el('ov-hot').textContent=hot
+  if(el('ov-warm'))el('ov-warm').textContent=warm
+  if(el('ov-total'))el('ov-total').textContent=leads.length
+  if(el('ov-revenue'))el('ov-revenue').textContent=revenue
+  // Greeting
+  const h=new Date().getHours()
+  const gr=h<12?'Good morning':h<17?'Good afternoon':'Good evening'
+  if(el('ov-greeting'))el('ov-greeting').textContent=`${gr}, ${OWNER_NAME}`
+  if(el('ov-sub'))el('ov-sub').textContent=`${leads.length} leads in database — ${hot} hot, ${warm} warm.`
+  // Activity feed
+  const acts=[]
+  scans.slice(0,3).forEach(s=>acts.push({type:'scan',text:`Scan completed — ${s.total||0} events, ${s.hot||0} hot`,time:s.ts}))
+  leads.filter(l=>l.firstSeen).sort((a,b)=>new Date(b.firstSeen)-new Date(a.firstSeen)).slice(0,3)
+    .forEach(l=>acts.push({type:'lead',text:`New lead: ${l.title||l.domain||'Event'} (${l.lead_score}/100)`,time:l.firstSeen}))
+  msgs.slice(0,2).forEach(m=>acts.push({type:'msg',text:`WhatsApp: ${(m.body||'').slice(0,55)}`,time:m.ts}))
+  acts.sort((a,b)=>new Date(b.time||0)-new Date(a.time||0))
+  const ico={scan:'⚡',lead:'◎',msg:'✓',pipe:'◈'}
+  const actBox=el('ov-activity')
+  if(actBox){
+    actBox.innerHTML=acts.length?acts.slice(0,6).map(a=>`
+      <div class="ov-activity-item">
+        <div class="ov-act-ico ${a.type}">${ico[a.type]||'•'}</div>
+        <div><div class="ov-act-text">${esc(a.text)}</div><div class="ov-act-time">${a.time?new Date(a.time).toLocaleDateString('en-IE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''}</div></div>
+      </div>`).join('')
+    :'<div style="color:var(--t4);font-size:13px;padding:12px 0">No activity yet — run your first scan to get started.</div>'
+  }
+}
+
 // ── NAVIGATION ───────────────────────────────────────────────
 const pageMeta={
+  overview:{title:'Overview',          badge:'DASHBOARD'},
   agent:   {title:'Intelligence Agent',badge:'JARVIS'},
   pipeline:{title:'Pipeline',          badge:'CRM'},
   history: {title:'Scan History',      badge:'LOG'},
@@ -1236,6 +1446,7 @@ function goPage(name){
   const m=pageMeta[name]||{}
   const tt=document.getElementById('tb-title'); if(tt)tt.textContent=m.title||name
   const tb=document.getElementById('tb-badge'); if(tb)tb.textContent=m.badge||''
+  if(name==='overview')renderOverview()
   if(name==='history')renderHistory()
   if(name==='leads')renderLeadsTable()
   if(name==='pipeline')renderPipeline()
@@ -1356,7 +1567,11 @@ function renderResults(events,mode,query){
     const fc=sc>=80?'var(--green)':sc>=55?'var(--warn)':'var(--blue)'
     const urg=e.urgency||'Cool'
     return `<div class="ecard" style="animation-delay:${i*55}ms">
-      ${e.image?`<div class="ecard-img" onclick="openLb('${esc(e.image)}','${esc(e.title)}')" title="Expand image"><img src="${esc(e.image)}" loading="lazy" alt="" onerror="this.parentElement.style.display='none'"></div>`:''}
+      <div class="ecard-img" ${e.image?`onclick="openLb('${esc(e.image)}','${esc(e.title)}')" title="Expand image"`:''}>${
+        e.image
+          ? `<img src="${esc(e.image)}" loading="lazy" alt="" onerror="this.src='https://www.google.com/s2/favicons?domain=${esc(e.domain||'')}&sz=128';this.onerror=null;this.closest('.ecard-img').classList.add('img-fallback')">`
+          : `<div class="ecard-img-ph" style="background:linear-gradient(135deg,var(--s3) 0%,${fc}11 100%)"><div class="ecard-img-ph-inner"><span class="ecard-img-ph-letter" style="color:${fc}">${(e.domain||e.title||'?')[0].toUpperCase()}</span><span class="ecard-img-ph-domain">${esc(e.domain||'')}</span></div></div>`
+      }</div>
       <div class="ecard-body">
         <div class="ecard-top"><div class="ecard-num">Lead ${String(i+1).padStart(2,'0')}</div><span class="badge badge-${urg.toLowerCase()}">${urg}</span></div>
         <div class="ecard-title">${esc(e.title)}</div>
@@ -1517,6 +1732,7 @@ function renderLeadsTable(){
       <td><span style="font:400 10px var(--mono);color:var(--t4)">${new Date(l.firstSeen||0).toLocaleDateString('en-IE')}</span></td>
       <td>${l.url?`<a class="src-link" href="${esc(l.url)}" target="_blank" rel="noopener">View</a>`:''}</td>
       <td><button class="wa-btn" onclick="sendLeadToWhatsApp('${esc(l._key)}')">WA</button></td>
+      <td><button class="del-btn" onclick="deleteLead('${esc(l._key)}')" title="Delete lead">✕</button></td>
     </tr>`
   }).join('')
 }
@@ -1524,6 +1740,39 @@ function renderLeadsTable(){
 function updateLeadStatus(key,status){
   const leads=DB.get(DB_LEADS); const l=leads.find(x=>x._key===key); if(l)l.status=status
   DB.set(DB_LEADS,leads); toast('Status → '+status,'info')
+}
+
+function deleteLead(key){
+  const leads=DB.get(DB_LEADS)
+  const idx=leads.findIndex(l=>l._key===key); if(idx===-1)return
+  leads.splice(idx,1); DB.set(DB_LEADS,leads)
+  updateBadges(); renderLeadsTable(); toast('Lead deleted','info')
+}
+
+function clearVisibleLeads(){
+  const q=(document.getElementById('leads-search')?.value||'').toLowerCase()
+  const uf=leadsFilter.urgency; const sf=leadsFilter.status; const cf=leadsFilter.contact
+  const leads=DB.get(DB_LEADS)
+  const visible=leads.filter(l=>{
+    if(q&&!((l.title||'')+(l.organizer||'')+(l.email||l.email_inferred||'')+(l.domain||'')).toLowerCase().includes(q))return false
+    if(uf&&l.urgency!==uf)return false
+    if(sf&&(l.status||'New')!==sf)return false
+    if(cf==='email'&&!l.email&&!l.email_inferred)return false
+    if(cf==='phone'&&!l.phone)return false
+    return true
+  })
+  if(!visible.length){ toast('Nothing to clear','info'); return }
+  if(!confirm(`Delete ${visible.length} visible lead${visible.length!==1?'s':''}? This cannot be undone.`))return
+  const visKeys=new Set(visible.map(l=>l._key))
+  DB.set(DB_LEADS,leads.filter(l=>!visKeys.has(l._key)))
+  updateBadges(); renderLeadsTable(); toast(`Deleted ${visible.length} leads`,'success')
+}
+
+function clearAllLeads(){
+  const leads=DB.get(DB_LEADS)
+  if(!leads.length){ toast('No leads to clear','info'); return }
+  if(!confirm(`Delete ALL ${leads.length} leads? This cannot be undone.`))return
+  DB.set(DB_LEADS,[]); updateBadges(); renderLeadsTable(); toast('All leads cleared','info')
 }
 
 function exportLeads(){
@@ -1545,7 +1794,7 @@ const SCHEDULE_HINTS={
   '5x':  'Every weekday at 8am — set DELIVERY_SCHEDULE=5x in Vercel env vars',
 }
 
-function setSchedule(val,btn){
+async function setSchedule(val,btn){
   document.querySelectorAll('#schedule-seg .seg-btn').forEach(b=>b.classList.remove('active-brand'))
   if(btn)btn.classList.add('active-brand')
   const hint=document.getElementById('schedule-hint')
@@ -1553,8 +1802,13 @@ function setSchedule(val,btn){
   const cfg=DB.cfg(); cfg.schedule=val; DB.set(DB_CFG,cfg)
   const disp=document.getElementById('mon-freq-display')
   if(disp)disp.textContent={weekly:'Every week','2x':'Twice a week','3x':'Three times a week','4x':'Four times a week','5x':'Every weekday'}[val]||''
-  toast('Schedule preference saved. Update vercel.json to activate.','info')
   updateNextRunDisplay()
+  // Persist to Supabase so deliver-leads.js picks up the new schedule
+  try{
+    const r=await fetch('/api/set-scan-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({schedule_type:val})})
+    if(r.ok){ toast(`Delivery set to ${val === 'weekly' ? 'weekly' : val+'× per week'} ✓`,'success') }
+    else{ toast('Saved locally — server sync failed','warn') }
+  }catch{ toast(`Schedule saved locally`,'info') }
 }
 
 function loadSettingsForm(){
@@ -1817,6 +2071,7 @@ async function sendLeadToWhatsApp(key){
     const msgs=DB.get(DB_MSGS,[])
     msgs.push({id:'opt_'+Date.now(),ts:new Date().toISOString(),body,type:'sent',label:'Lead Brief',local:true})
     DB.set(DB_MSGS,msgs)
+    updateBadges()
     if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages(false)
     toast('Lead sent to WhatsApp','success')
     setTimeout(()=>{ if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages(true) },2000)
@@ -1841,8 +2096,9 @@ async function autoSendHotLeads(scored){
   try{
     await agentWhatsApp(body,'Hot Leads')
     const msgs=DB.get(DB_MSGS,[])
-    msgs.push({id:'opt_'+Date.now(),ts:new Date().toISOString(),body,type:'sent',label:'Hot Leads',local:true})
+    msgs.push({id:'opt_'+Date.now(),ts:new Date().toISOString(),body,type:'sent',label:'Hot Leads Auto',local:true})
     DB.set(DB_MSGS,msgs)
+    updateBadges()
     if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages(false)
     toast(`${hot.length} hot lead${hot.length!==1?'s':''} sent to WhatsApp`,'success')
   }catch(e){ console.warn('[autoSendHotLeads]',e.message) }
@@ -1944,14 +2200,21 @@ function safeDomain(url){try{return new URL(url).hostname.replace(/^www\./,'')}c
 function cp(btn,val){navigator.clipboard.writeText(val).then(()=>{const t=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=t,2000)}).catch(()=>{})}
 
 // ── DATE/TIME SCHEDULER ──────────────────────────────────────
-function saveNextScanDate(){
+async function saveNextScanDate(){
   const dt=document.getElementById('next-scan-dt')?.value
   if(!dt){ toast('Pick a date and time first','info'); return }
-  const cfg=DB.cfg(); cfg.nextScanOverride=new Date(dt).toISOString()
-  DB.set(DB_CFG,cfg)
+  const iso=new Date(dt).toISOString()
+  const cfg=DB.cfg(); cfg.nextScanOverride=iso; DB.set(DB_CFG,cfg)
   const hint=document.getElementById('next-scan-hint')
-  if(hint)hint.textContent=`Next scan locked to: ${new Date(dt).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} UTC`
-  toast('Next scan date saved','success')
+  const label=new Date(dt).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+  if(hint)hint.textContent=`Next scan locked to: ${label} UTC`
+  // Write to Supabase so the cron job picks it up
+  try{
+    const r=await fetch('/api/set-scan-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({next_run_at:iso,is_active:true})})
+    if(r.ok){ toast('Next scan date saved and synced to server ✓','success') }
+    else{ toast('Saved locally — server sync failed (check Supabase key)','warn') }
+  }catch{ toast('Saved locally — server unreachable','warn') }
+  updateNextRunDisplay()
 }
 
 function loadNextScanDate(){
@@ -1966,6 +2229,86 @@ function loadNextScanDate(){
     const hint=document.getElementById('next-scan-hint')
     if(hint)hint.textContent=`Locked to: ${new Date(cfg.nextScanOverride).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`
   }
+}
+
+// ── JARVIS VOICE ENGINE ──────────────────────────────────────
+let jarvisVoiceEnabled = false
+let jarvisVoiceReady   = false
+let preferredVoice     = null
+
+function initVoice(){
+  if(!('speechSynthesis' in window)) return
+  function pickVoice(){
+    const voices=speechSynthesis.getVoices()
+    // Prefer a deep, clear en-GB or en-US voice for "robotic" feel
+    preferredVoice = voices.find(v=>/Google UK English Male/i.test(v.name))
+      || voices.find(v=>/Daniel|Oliver|Arthur/i.test(v.name))
+      || voices.find(v=>v.lang==='en-GB'&&!v.localService)
+      || voices.find(v=>v.lang==='en-US'&&!v.localService)
+      || voices.find(v=>v.lang.startsWith('en'))
+      || null
+    jarvisVoiceReady = true
+  }
+  if(speechSynthesis.getVoices().length) pickVoice()
+  else speechSynthesis.addEventListener('voiceschanged', pickVoice, {once:true})
+}
+
+function jarvisSpeak(text, opts={}){
+  if(!jarvisVoiceEnabled || !('speechSynthesis' in window)) return
+  speechSynthesis.cancel()
+  const clean = text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/[#>]/g,'').replace(/\n+/g,' ').slice(0,500)
+  const u = new SpeechSynthesisUtterance(clean)
+  if(preferredVoice) u.voice = preferredVoice
+  u.rate  = opts.rate  ?? 0.88
+  u.pitch = opts.pitch ?? 0.75
+  u.volume= opts.volume?? 0.92
+  speechSynthesis.speak(u)
+}
+
+function toggleVoice(){
+  jarvisVoiceEnabled = !jarvisVoiceEnabled
+  const btn=document.getElementById('voice-toggle-btn')
+  const onIco=document.getElementById('voice-icon-on')
+  const offIco=document.getElementById('voice-icon-off')
+  if(btn){ btn.classList.toggle('voice-active', jarvisVoiceEnabled) }
+  if(onIco)  onIco.style.display  = jarvisVoiceEnabled ? 'block' : 'none'
+  if(offIco) offIco.style.display = jarvisVoiceEnabled ? 'none'  : 'block'
+  sessionStorage.setItem('jarvisVoice', jarvisVoiceEnabled ? '1' : '0')
+  if(jarvisVoiceEnabled){
+    jarvisSpeak(`Voice enabled. I'm Jarvis, your intelligence officer for 360 Booth Ireland.`, {pitch:0.7,rate:0.85})
+    toast('Jarvis voice ON','success')
+  } else {
+    speechSynthesis.cancel()
+    toast('Jarvis voice OFF','info')
+  }
+}
+
+// ── CHAT FILE UPLOAD ─────────────────────────────────────────
+let chatFileContent = null
+let chatFileName    = null
+
+function handleChatFile(input){
+  const file = input.files?.[0]
+  if(!file) return
+  if(file.size > 500*1024){ toast('File too large — max 500KB','error'); return }
+  chatFileName = file.name
+  const reader = new FileReader()
+  reader.onload = e => {
+    chatFileContent = e.target.result
+    const prev = document.getElementById('chat-file-preview')
+    const nameEl= document.getElementById('chat-file-name')
+    if(nameEl) nameEl.textContent = `📎 ${file.name} (${(file.size/1024).toFixed(1)}KB)`
+    if(prev){ prev.style.display='flex' }
+    toast(`File loaded: ${file.name}`,'success')
+  }
+  reader.readAsText(file)
+  input.value=''
+}
+
+function clearChatFile(){
+  chatFileContent=null; chatFileName=null
+  const prev=document.getElementById('chat-file-preview')
+  if(prev) prev.style.display='none'
 }
 
 // ── AI CHAT ──────────────────────────────────────────────────
@@ -2032,10 +2375,15 @@ function toggleChatHistory(){
 
 async function sendChat(){
   const ta=document.getElementById('chat-input')
-  const msg=(ta?.value||'').trim()
-  if(!msg)return
+  let msg=(ta?.value||'').trim()
+  if(!msg && !chatFileContent)return
+  if(!msg && chatFileContent) msg='Please analyse and summarise this file.'
   const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
   if(isLocal){ toast('AI Chat requires the live Vercel deployment','warn'); return }
+  // Append file content to message if present
+  const fullMsg = chatFileContent
+    ? `${msg}\n\n--- ATTACHED FILE: ${chatFileName||'file'} ---\n${chatFileContent.slice(0,8000)}`
+    : msg
 
   if(!chatActiveId) chatActiveId='chat_'+Date.now()
   document.getElementById('chat-chips').style.display='none'
@@ -2044,8 +2392,9 @@ async function sendChat(){
   let sess=sessions.find(s=>s.id===chatActiveId)
   if(!sess){ sess={id:chatActiveId,ts:new Date().toISOString(),firstMsg:msg,messages:[]}; sessions.unshift(sess); DB.set(DB_CHAT,sessions) }
 
-  const userMsg={role:'user',content:msg,ts:new Date().toISOString()}
+  const userMsg={role:'user',content:msg+(chatFileContent?` [📎 ${chatFileName||'file'}]`:''),ts:new Date().toISOString()}
   sess.messages.push(userMsg); saveChatSession(sess)
+  const fileRef=chatFileContent; clearChatFile()
 
   const feed=document.getElementById('chat-feed')
   if(feed){ feed.innerHTML=sess.messages.map(renderChatBubble).join('') + `<div class="chat-thinking" id="chat-thinking"><div class="chat-think-dot"></div><div class="chat-think-dot"></div><div class="chat-think-dot"></div></div>` ; feed.scrollTop=feed.scrollHeight }
@@ -2062,7 +2411,7 @@ async function sendChat(){
 
     const res=await fetch('/api/agent/chat',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:msg, context}),
+      body:JSON.stringify({message:fullMsg, context}),
     })
     const data=await res.json().catch(()=>({}))
     if(!res.ok) throw new Error(data.error||`Chat error ${res.status}`)
@@ -2073,6 +2422,7 @@ async function sendChat(){
 
     document.getElementById('chat-thinking')?.remove()
     if(feed){ feed.innerHTML=sess.messages.map(renderChatBubble).join(''); feed.scrollTop=feed.scrollHeight }
+    jarvisSpeak(data.reply||'')
   }catch(err){
     document.getElementById('chat-thinking')?.remove()
     const errMsg={role:'jarvis',content:`Error: ${err.message}`,ts:new Date().toISOString(),sources:[]}
