@@ -118,16 +118,16 @@ function phoneFallback(text) {
 }
 
 async function exaSearch(query, exaKey) {
-  const today = new Date().toISOString().slice(0, 10);
-  const nextYear = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // Look back 6 months — event pages are published well before the event date
+  const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   try {
     const res = await fetch(`${EXA_BASE}/search`, {
       method: 'POST',
       headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query, type: 'auto', numResults: 8,
-        startPublishedDate: today, endPublishedDate: nextYear,
-        includeDomains: EVENT_DOMAINS, contents: { highlights: true },
+        query, type: 'auto', numResults: 10,
+        startPublishedDate: sixMonthsAgo,
+        contents: { highlights: true },
       }),
     });
     if (!res.ok) return [];
@@ -177,6 +177,20 @@ async function extractWithGroq(text, title, url, groqKey) {
   }
 }
 
+function computeLeadScore(e) {
+  let score = 30;
+  if (e.email && e.phone) score += 35;
+  else if (e.email) score += 25;
+  else if (e.phone) score += 15;
+  const type = (e.event_type || '').toLowerCase();
+  if (['corporate', 'conference', 'fundraiser', 'gala', 'awards'].some(t => type.includes(t))) score += 30;
+  else if (type === 'wedding') score += 25;
+  else if (['birthday', 'party', 'other'].some(t => type.includes(t))) score += 15;
+  if (e.venue) score += 8;
+  if (e.event_date) score += 7;
+  return Math.min(score, 100);
+}
+
 function mapToLead(e, scanRunId) {
   if (!e) return null;
   const today = new Date().toISOString().slice(0, 10);
@@ -195,6 +209,7 @@ function mapToLead(e, scanRunId) {
     status: 'New',
     date: today,
     notes: parts.join(' | '),
+    lead_score: computeLeadScore(e),
     imported: false,
     scan_run_id: scanRunId,
     scan_run_at: new Date().toISOString(),
@@ -236,7 +251,9 @@ async function sendWhatsAppAlert(leads, sid, token, from, to) {
 
 // ── Email report after auto-scan ──────────────────────────────────────────
 const RESEND_BASE  = 'https://api.resend.com/emails';
-const TO_ADDRESSES = ['benj.sanusi@gmail.com', 'info@360boothireland.ie'];
+// onboarding@resend.dev (sandbox) only delivers to the Resend account owner.
+// Send only to that address until a custom domain is verified on Resend.
+const TO_ADDRESSES = ['benj.sanusi@gmail.com'];
 const FROM_ADDRESS = 'Jarvis 360 Booth <onboarding@resend.dev>';
 
 async function sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt, resendKey) {
@@ -420,9 +437,9 @@ module.exports = async function handler(req, res) {
       process.env.TWILIO_WHATSAPP_TO
     );
 
-    // Send email report via Resend (non-blocking — non-fatal)
+    // Send email report via Resend (always — so you know the cron actually ran)
     const RESEND_KEY = process.env.RESEND_API_KEY;
-    if (RESEND_KEY && leads.length) {
+    if (RESEND_KEY) {
       sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt, RESEND_KEY).catch(e =>
         console.warn('[auto-scan] Email report failed (non-fatal):', e.message)
       );
