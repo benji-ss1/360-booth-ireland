@@ -1451,12 +1451,6 @@ async function syncServerLeads(){
     }
   }catch(e){ console.warn('[syncServerLeads]',e.message) }
 }
-  // greeting
-  const h=new Date().getHours()
-  const gr=h<12?'Good morning':h<17?'Good afternoon':'Good evening'
-  const el=document.getElementById('greeting')
-  if(el)el.textContent=`${gr}, ${OWNER_NAME}. Ready to find your next booking.`
-}
 
 function doLogout(){ DB.set(DB_AUTH,{authed:false,ts:0}); location.reload() }
 
