@@ -1327,6 +1327,9 @@ function updateBadges(){
   const slc=document.getElementById('ss-lead-count'); if(slc)slc.textContent=lc
   const st=document.getElementById('ss-storage')
   if(st){ const b=new Blob([JSON.stringify(localStorage)]).size; st.textContent=b>1024?Math.round(b/1024)+' KB':b+' B' }
+  // Mobile tab badge
+  const mbadge=document.getElementById('mob-badge-messages')
+  if(mbadge){ mbadge.textContent=mc>0?mc:''; mbadge.classList.toggle('visible',mc>0) }
 }
 
 // ── AUTH ─────────────────────────────────────────────────────
@@ -2578,14 +2581,6 @@ function updateMobBadge(id, count){
   if(!el) return
   el.textContent=count>0?count:''
   el.classList.toggle('visible', count>0)
-}
-
-// Patch updateBadges to also update mobile badges
-const _origUpdateBadges=updateBadges
-function updateBadges(){
-  _origUpdateBadges()
-  const mc=DB.get(DB_MSGS,[]).length
-  updateMobBadge('messages',mc)
 }
 
 // ── INIT ─────────────────────────────────────────────────────
