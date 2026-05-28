@@ -3,8 +3,9 @@
 // Checks the scan_config table → runs scan if scheduled → writes to event_leads.
 
 const SUPABASE_URL = 'https://kcjmmiifemdarknrvpas.supabase.co';
-const EXA_BASE = 'https://api.exa.ai';
-const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions';
+const EXA_BASE    = 'https://api.exa.ai';
+const GROQ_BASE   = 'https://api.groq.com/openai/v1/chat/completions';
+const TWILIO_BASE = 'https://api.twilio.com/2010-04-01';
 
 const DEFAULT_QUERIES = [
   // Corporate & Awards
@@ -187,6 +188,39 @@ function mapToLead(e, scanRunId) {
   };
 }
 
+// ── WhatsApp alert after scan ─────────────────────────────────────────────
+async function sendWhatsAppAlert(leads, sid, token, from, to) {
+  if (!sid || !token || !from || !to || !leads.length) return;
+  try {
+    const withContact = leads.filter(l => l.email || l.phone).slice(0, 3);
+    const lines = [
+      '*Jarvis Auto-Scan — 360 Booth Ireland*',
+      '',
+      `${leads.length} new lead${leads.length !== 1 ? 's' : ''} found and saved to your database.`,
+    ];
+    if (withContact.length) {
+      lines.push('', 'Top contacts found:');
+      withContact.forEach((l, i) => {
+        lines.push(`${i + 1}. ${l.name || 'Event Lead'}`);
+        if (l.email) lines.push(`   ${l.email}`);
+        if (l.phone) lines.push(`   ${l.phone}`);
+      });
+    }
+    lines.push('', 'Open your dashboard to review and score them.');
+    const body = lines.join('\n').slice(0, 1600);
+    const url = `${TWILIO_BASE}/Accounts/${sid}/Messages.json`;
+    const params = new URLSearchParams({ To: to, From: from, Body: body });
+    const credentials = Buffer.from(`${sid}:${token}`).toString('base64');
+    await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+  } catch (err) {
+    console.warn('[auto-scan] WhatsApp alert failed (non-fatal):', err.message);
+  }
+}
+
 // ── Next run date calculator ───────────────────────────────────────────────
 function calcNextRun(scheduleType, fromDate = new Date()) {
   const d = new Date(fromDate);
@@ -284,9 +318,16 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Write to Supabase event_leads table
+    // Write to Supabase event_leads table + send WhatsApp alert
     if (leads.length) {
       await supabasePost('event_leads', leads, SERVICE_KEY);
+      sendWhatsAppAlert(
+        leads,
+        process.env.TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN,
+        process.env.TWILIO_WHATSAPP_FROM,
+        process.env.TWILIO_WHATSAPP_TO
+      ); // non-blocking
     }
 
     // Update scan_config: last_run_at + next_run_at

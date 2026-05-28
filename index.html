@@ -321,7 +321,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .pipe-col.col-won .pipe-col-title{color:var(--green)}
 .pipe-col.col-lost .pipe-col-hdr{border-color:rgba(248,81,73,.15)}
 .pipe-col.col-lost .pipe-col-title{color:var(--t4)}
-.pipe-cards{display:flex;flex-direction:column;gap:8px;flex:1}
+.pipe-cards{display:flex;flex-direction:column;gap:8px;max-height:640px;overflow-y:auto;padding-right:2px}
 .pipe-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);
   padding:12px;cursor:pointer;transition:all var(--tf);animation:fadeUp .2s ease both}
 .pipe-card:hover{border-color:var(--border-s);box-shadow:0 4px 12px rgba(0,0,0,.3)}
@@ -1043,6 +1043,7 @@ async function runPrompt(){
       hot:scored.filter(e=>e.lead_score>=80).length,total:scored.length,
       avgScore:scored.length?Math.round(scored.reduce((s,e)=>s+e.lead_score,0)/scored.length):0}
     saveScansAndLeads(scan); agentShow('results'); renderResults(scored,'search',q)
+    autoSendHotLeads(scored)
   }catch(e){ showScanErr(e.message); setProgress(0,'Failed') }
 }
 
@@ -1065,6 +1066,7 @@ async function runMonitor(){
       hot:scored.filter(e=>e.lead_score>=80).length,total:scored.length,
       avgScore:scored.length?Math.round(scored.reduce((s,e)=>s+e.lead_score,0)/scored.length):0}
     saveScansAndLeads(scan); agentShow('results'); renderResults(scored,'monitor','Monitor Run')
+    autoSendHotLeads(scored)
   }catch(e){ showScanErr(e.message); setProgress(0,'Failed') }
 }
 
@@ -1114,13 +1116,13 @@ function renderResults(events,mode,query){
     const fc=sc>=80?'var(--green)':sc>=55?'var(--warn)':'var(--blue)'
     const urg=e.urgency||'Cool'
     return `<div class="ecard" style="animation-delay:${i*55}ms">
-      ${e.image?`<div class="ecard-img" onclick="openLb('${esc(e.image)}','${esc(e.title)}')" title="Expand image"><img src="${esc(e.image)}" loading="lazy" alt=""></div>`:''}
+      ${e.image?`<div class="ecard-img" onclick="openLb('${esc(e.image)}','${esc(e.title)}')" title="Expand image"><img src="${esc(e.image)}" loading="lazy" alt="" onerror="this.parentElement.style.display='none'"></div>`:''}
       <div class="ecard-body">
         <div class="ecard-top"><div class="ecard-num">Lead ${String(i+1).padStart(2,'0')}</div><span class="badge badge-${urg.toLowerCase()}">${urg}</span></div>
         <div class="ecard-title">${esc(e.title)}</div>
         <div class="ecard-domain"><div class="ddot"></div>${esc(e.domain||'—')}</div>
         <div class="type-chip">${esc(e.event_type)}</div>
-        <div class="score-row"><div class="score-lbl">Score</div><div class="score-track"><div class="score-fill" style="width:${sc}%;background:linear-gradient(90deg,${fc},${fc}88)"></div></div><div class="score-num" style="color:${fc}">${sc}</div></div>
+        <div class="score-row"><div class="score-lbl">Score</div><div class="score-track"><div class="score-fill" style="width:${sc}%;background:linear-gradient(90deg,${fc},${fc}88)"></div></div><div class="score-num" style="color:${fc}${sc>=80?';text-shadow:0 0 10px '+fc+',0 0 22px '+fc+'55':sc>=55?';text-shadow:0 0 7px '+fc+'88':''}">${sc}</div></div>
         ${e.relevance?`<div class="ecard-insight">${esc(e.relevance)}</div>`:''}
         ${e.action?`<div class="ecard-action">→ ${esc(e.action)}</div>`:''}
       </div>
@@ -1173,7 +1175,7 @@ function pipeCard(l,currentStage){
   return `<div class="pipe-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
       <div class="pc-title">${esc((l.title||'').slice(0,60))}</div>
-      <div class="pc-score" style="color:${fc};flex-shrink:0">${sc}</div>
+      <div class="pc-score" style="color:${fc};flex-shrink:0${sc>=80?';text-shadow:0 0 10px '+fc+',0 0 20px '+fc+'44':sc>=55?';text-shadow:0 0 7px '+fc+'88':''}">${sc}</div>
     </div>
     <div class="pc-domain">${esc(l.domain||'')}</div>
     ${contact?`<div class="pc-contact">${esc(contact.slice(0,36))}</div>`:''}
@@ -1267,7 +1269,7 @@ function renderLeadsTable(){
         ${email?`<div class="ltd-email ${l.email?'':'est'}"><a href="mailto:${esc(email)}">${esc(email.slice(0,28))}</a><button class="copy-btn" onclick="cp(this,'${esc(email)}')" style="padding:1px 5px;margin-left:4px">Copy</button></div>`:'<div style="font:400 10px var(--font);color:var(--t4)">No email</div>'}
         ${l.phone?`<div class="ltd-phone"><a href="tel:${esc(l.phone.replace(/\s/g,''))}">${esc(l.phone)}</a></div>`:''}
       </td>
-      <td><span style="font:700 13px var(--mono);color:${sc(l.lead_score)}">${l.lead_score}</span></td>
+      <td><span style="font:700 14px var(--mono);color:${sc(l.lead_score)}${l.lead_score>=80?';text-shadow:0 0 8px var(--green)':l.lead_score>=55?';text-shadow:0 0 6px var(--warn)':''}">${l.lead_score}</span></td>
       <td><span class="badge badge-${(l.urgency||'cool').toLowerCase()}">${esc(l.event_type||'')}</span></td>
       <td><select class="status-select" onchange="updateLeadStatus('${l._key}',this.value)">
         ${['New','Contacted','Meeting','Won','Lost'].map(s=>`<option value="${s}"${status===s?' selected':''}>${s}</option>`).join('')}
@@ -1579,6 +1581,31 @@ async function sendLeadToWhatsApp(key){
     toast('Lead sent to WhatsApp','success')
     setTimeout(()=>{ if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages(true) },2000)
   }catch(e){ toast('Failed: '+e.message,'error') }
+}
+
+async function autoSendHotLeads(scored){
+  const hot=scored.filter(e=>e.lead_score>=80).sort((a,b)=>b.lead_score-a.lead_score).slice(0,3)
+  if(!hot.length) return
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal) return
+  const body=[
+    `*Hot Leads Detected — 360 Booth Ireland*`,``,
+    `Jarvis found ${hot.length} high-value lead${hot.length!==1?'s':''} in this scan.`,``
+  ].concat(hot.map((e,i)=>[
+    `${i+1}. ${e.title||e.domain} — ${e.lead_score}/100`,
+    e.organizer?`   Organiser: ${e.organizer}`:'',
+    (e.email||e.email_inferred)?`   Email: ${e.email||e.email_inferred}`:'',
+    e.phone?`   Phone: ${e.phone}`:'',
+    e.action?`   Next: ${e.action}`:'',
+  ].filter(Boolean).join('\n'))).join('\n\n')
+  try{
+    await agentWhatsApp(body,'Hot Leads')
+    const msgs=DB.get(DB_MSGS,[])
+    msgs.push({id:'opt_'+Date.now(),ts:new Date().toISOString(),body,type:'sent',label:'Hot Leads',local:true})
+    DB.set(DB_MSGS,msgs)
+    if(document.getElementById('page-messages')?.classList.contains('on'))renderMessages(false)
+    toast(`${hot.length} hot lead${hot.length!==1?'s':''} sent to WhatsApp`,'success')
+  }catch(e){ console.warn('[autoSendHotLeads]',e.message) }
 }
 
 function msgClearConfirm(){
