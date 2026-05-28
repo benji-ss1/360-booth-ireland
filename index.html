@@ -1074,6 +1074,13 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
                 <span id="send-report-btn-text">Send Intel Report Now</span>
               </button>
               <div class="ss-hint" style="margin-top:8px">Sends to: <span style="color:var(--brand)" id="report-email-display">benj.sanusi@gmail.com + info@360boothireland.ie</span></div>
+              <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+                <div class="ss-hint" style="margin-bottom:10px">Run the full Exa + Groq auto-scan right now — finds new leads, scores them, saves to database, and sends you an email + WhatsApp report.</div>
+                <div class="ss-status-box" id="run-scan-status"></div>
+                <button class="btn btn-primary" id="run-scan-btn" onclick="runAutoScanNow()" style="width:100%;height:40px">
+                  <span id="run-scan-btn-text">⚡ Run Auto-Scan Now</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1962,6 +1969,32 @@ async function sendReportNow(){
     statusBox.textContent='Could not reach the server. Make sure the project is deployed on Vercel.'
   }
   txt.textContent='Send Intel Report Now'; btn.disabled=false
+}
+
+// ── MANUAL AUTO-SCAN TRIGGER ─────────────────────────────────
+async function runAutoScanNow(){
+  const btn=document.getElementById('run-scan-btn')
+  const txt=document.getElementById('run-scan-btn-text')
+  const statusBox=document.getElementById('run-scan-status')
+  btn.disabled=true; txt.textContent='Scanning... (this takes ~30s)'
+  statusBox.className='ss-status-box'; statusBox.style.display='none'
+  try{
+    const res=await fetch('/api/auto-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dashboard_trigger:true})})
+    const data=await res.json().catch(()=>({}))
+    if(res.ok&&data.success){
+      statusBox.className='ss-status-box ok show'
+      statusBox.textContent=`Scan complete — ${data.leadsFound||0} leads found and saved. Email + WhatsApp report sent.`
+      toast(`Auto-scan done: ${data.leadsFound||0} leads found`,'success')
+      syncServerLeads()
+    } else {
+      statusBox.className='ss-status-box err show'
+      statusBox.textContent=`Error: ${data.error||data.message||'Scan failed ('+res.status+')'}`
+    }
+  }catch(e){
+    statusBox.className='ss-status-box err show'
+    statusBox.textContent='Could not reach the server. Check you are on the live Vercel deployment.'
+  }
+  txt.textContent='⚡ Run Auto-Scan Now'; btn.disabled=false
 }
 
 // ── MESSAGES (WhatsApp thread — Phase 2 with Supabase) ───────
