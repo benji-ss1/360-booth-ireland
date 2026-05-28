@@ -1180,6 +1180,25 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
           </div>
 
           <div class="ss-card">
+            <div class="ss-hdr"><div class="ss-hdr-dot" style="background:var(--blue)"></div><div class="ss-hdr-title">Jarvis Voice</div></div>
+            <div class="ss-body">
+              <div class="ss-hint" style="margin-bottom:12px">100% free — uses your browser's built-in voices. Enable voice then pick the one that sounds best. <strong style="color:var(--blue)">Daniel (British)</strong> or <strong style="color:var(--blue)">Google UK English Male</strong> are closest to Jarvis.</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+                <button class="btn btn-outline btn-sm" onclick="toggleVoice()" id="voice-settings-btn">Enable Voice</button>
+                <button class="btn btn-ghost btn-sm" onclick="previewVoice()">▶ Preview</button>
+                <span id="voice-status-label" style="font-size:12px;color:var(--t3)">Off</span>
+              </div>
+              <div class="ss-field">
+                <label class="ss-label">Choose Voice</label>
+                <select id="voice-picker" class="field" style="width:100%;margin-top:4px" onchange="applyVoicePicker()">
+                  <option value="">Loading voices…</option>
+                </select>
+              </div>
+              <div class="ss-hint" style="margin-top:8px">Say <strong style="color:var(--blue)">"Hey Jarvis"</strong> (Chrome) to activate hands-free. Jarvis will respond and execute your command.</div>
+            </div>
+          </div>
+
+          <div class="ss-card">
             <div class="ss-hdr"><div class="ss-hdr-dot"></div><div class="ss-hdr-title">Access Code</div></div>
             <div class="ss-body">
               <div class="ss-field">
@@ -2445,65 +2464,73 @@ function loadNextScanDate(){
   }
 }
 
-// ── JARVIS VOICE ENGINE (ElevenLabs + browser fallback) ──────
+// ── JARVIS VOICE ENGINE (browser Web Speech API — free) ───────
 let jarvisVoiceEnabled = false
 let jarvisVoiceReady   = false
 let preferredVoice     = null
-let _audioCtx          = null
-let _currentAudio      = null
 
 function initVoice(){
-  // Browser voice as fallback
   if(!('speechSynthesis' in window)) return
   function pickVoice(){
     const voices=speechSynthesis.getVoices()
+    // Priority: deep British/AI-sounding voices first
     preferredVoice = voices.find(v=>/Google UK English Male/i.test(v.name))
-      || voices.find(v=>/Daniel|Oliver|Arthur/i.test(v.name))
+      || voices.find(v=>/^Daniel$/i.test(v.name))
+      || voices.find(v=>/Daniel|Oliver|Arthur|Aaron/i.test(v.name))
       || voices.find(v=>v.lang==='en-GB'&&!v.localService)
+      || voices.find(v=>v.lang==='en-GB')
       || voices.find(v=>v.lang==='en-US'&&!v.localService)
       || voices.find(v=>v.lang.startsWith('en')) || null
-    jarvisVoiceReady = true
+    jarvisVoiceReady=true
+    populateVoicePicker(voices)
+    // Restore saved voice preference
+    const saved=localStorage.getItem('jarvisVoiceName')
+    if(saved){
+      const found=voices.find(v=>v.name===saved)
+      if(found) preferredVoice=found
+    }
   }
   if(speechSynthesis.getVoices().length) pickVoice()
   else speechSynthesis.addEventListener('voiceschanged', pickVoice, {once:true})
 }
 
-async function jarvisSpeak(text, opts={}){
-  if(!jarvisVoiceEnabled) return
-  const clean=text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/[#>\[\]]/g,'')
-    .replace(/https?:\/\/\S+/g,'').replace(/\n+/g,'. ').trim().slice(0,450)
-  if(!clean) return
+function populateVoicePicker(voices){
+  const sel=document.getElementById('voice-picker'); if(!sel) return
+  const enVoices=voices.filter(v=>v.lang.startsWith('en'))
+  sel.innerHTML=enVoices.map(v=>`<option value="${v.name}">${v.name} (${v.lang})</option>`).join('')
+  if(preferredVoice) sel.value=preferredVoice.name
+}
 
-  // Try ElevenLabs via server proxy first (only on live deployment)
-  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
-  if(!isLocal){
-    try{
-      if(_currentAudio){ _currentAudio.pause(); _currentAudio=null }
-      const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({text:clean})})
-      if(r.ok){
-        const blob=await r.blob()
-        const url=URL.createObjectURL(blob)
-        _currentAudio=new Audio(url)
-        _currentAudio.volume=opts.volume??0.92
-        _currentAudio.play()
-        _currentAudio.onended=()=>URL.revokeObjectURL(url)
-        // Animate the GIF/holo when speaking
-        document.getElementById('jarvis-holo')?.classList.add('active')
-        _currentAudio.onended=()=>{ URL.revokeObjectURL(url); document.getElementById('jarvis-holo')?.classList.remove('active') }
-        return
-      }
-    }catch(e){ /* fall through to browser voice */ }
-  }
+function applyVoicePicker(){
+  const sel=document.getElementById('voice-picker'); if(!sel) return
+  const voices=speechSynthesis.getVoices()
+  const found=voices.find(v=>v.name===sel.value)
+  if(found){ preferredVoice=found; localStorage.setItem('jarvisVoiceName',found.name) }
+}
 
-  // Browser fallback
-  if(!('speechSynthesis' in window)) return
+function previewVoice(){
+  const prev=jarvisVoiceEnabled
+  jarvisVoiceEnabled=true
+  jarvisSpeak(`I'm Jarvis, your intelligence officer for 360 Booth Ireland. All systems online.`,{rate:0.88,pitch:0.72})
+  jarvisVoiceEnabled=prev
+}
+
+function jarvisSpeak(text, opts={}){
+  if(!jarvisVoiceEnabled || !('speechSynthesis' in window)) return
   speechSynthesis.cancel()
+  const clean=text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/[#>\[\]]/g,'')
+    .replace(/https?:\/\/\S+/g,'').replace(/\n+/g,'. ').trim().slice(0,500)
+  if(!clean) return
   const u=new SpeechSynthesisUtterance(clean)
   if(preferredVoice) u.voice=preferredVoice
-  u.rate=opts.rate??0.88; u.pitch=opts.pitch??0.75; u.volume=opts.volume??0.92
+  u.rate=opts.rate??0.88; u.pitch=opts.pitch??0.72; u.volume=opts.volume??0.95
+  // Animate GIF while speaking
   document.getElementById('jarvis-holo')?.classList.add('active')
-  u.onend=()=>document.getElementById('jarvis-holo')?.classList.remove('active')
+  document.getElementById('overview-holo')?.classList.add('active')
+  u.onend=()=>{
+    document.getElementById('jarvis-holo')?.classList.remove('active')
+    document.getElementById('overview-holo')?.classList.remove('active')
+  }
   speechSynthesis.speak(u)
 }
 
@@ -2512,16 +2539,19 @@ function toggleVoice(){
   const btn=document.getElementById('voice-toggle-btn')
   const onIco=document.getElementById('voice-icon-on')
   const offIco=document.getElementById('voice-icon-off')
+  const settingsBtn=document.getElementById('voice-settings-btn')
+  const statusLbl=document.getElementById('voice-status-label')
   if(btn) btn.classList.toggle('voice-active',jarvisVoiceEnabled)
   if(onIco)  onIco.style.display =jarvisVoiceEnabled?'block':'none'
   if(offIco) offIco.style.display=jarvisVoiceEnabled?'none':'block'
+  if(settingsBtn) settingsBtn.textContent=jarvisVoiceEnabled?'Disable Voice':'Enable Voice'
+  if(statusLbl){ statusLbl.textContent=jarvisVoiceEnabled?'On — say "Hey Jarvis" to activate':'Off'; statusLbl.style.color=jarvisVoiceEnabled?'var(--green)':'var(--t3)' }
   sessionStorage.setItem('jarvisVoice',jarvisVoiceEnabled?'1':'0')
   if(jarvisVoiceEnabled){
     jarvisSpeak(`Online. I'm Jarvis, your intelligence officer for 360 Booth Ireland. All systems ready.`,{pitch:0.7,rate:0.88})
     toast('Jarvis voice ON — say "Hey Jarvis" to activate','success')
     startWakeWord()
   } else {
-    if(_currentAudio){ _currentAudio.pause(); _currentAudio=null }
     speechSynthesis.cancel()
     stopWakeWord()
     toast('Jarvis voice OFF','info')
