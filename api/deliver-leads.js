@@ -296,14 +296,15 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Auth — Vercel cron sends CRON_SECRET, manual triggers send the same header
-  const cronSecret    = process.env.CRON_SECRET;
-  const authHeader    = (req.headers.authorization || '').replace('Bearer ', '').trim();
-  const manualTrigger = req.body?.manual === true;
-  const isCronCall    = cronSecret ? authHeader === cronSecret : !manualTrigger;
+  // Auth — three valid callers: Vercel cron (X-Vercel-Cron:1), CRON_SECRET, or manual dashboard trigger
+  const cronSecret     = process.env.CRON_SECRET;
+  const authHeader     = (req.headers.authorization || '').replace('Bearer ', '').trim();
+  const isVercelCron   = req.headers['x-vercel-cron'] === '1';
+  const manualTrigger  = req.body?.manual === true;
+  const isCronCall     = isVercelCron || (cronSecret && authHeader === cronSecret);
 
-  if (cronSecret && authHeader !== cronSecret && !manualTrigger) {
-    return res.status(401).json({ error: 'Unauthorised. Set Authorization: Bearer <CRON_SECRET> header.' });
+  if (!isCronCall && !manualTrigger) {
+    return res.status(401).json({ error: 'Unauthorised. Vercel cron header or dashboard_trigger required.' });
   }
 
   // Schedule gate — cron fires Mon–Fri but we only deliver on configured days

@@ -611,38 +611,83 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .chat-empty-title{font:600 16px var(--font);color:var(--t2)}
 .chat-empty-sub{font:400 12px var(--font);color:var(--t4);text-align:center;max-width:260px;line-height:1.65}
 
-/* ── RESPONSIVE ─────────────────────────────────────────────── */
+/* ── RESPONSIVE — Clarion mobile pattern ────────────────────── */
+
+/* ── BOTTOM TAB BAR (mobile only) ── */
+#mob-tabs{display:none}
+#mob-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:299;backdrop-filter:blur(3px)}
+#mob-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar);border-top:1px solid var(--sidebar-border);z-index:301;border-radius:20px 20px 0 0;padding:12px 0 env(safe-area-inset-bottom,16px);transform:translateY(100%);transition:transform .3s cubic-bezier(.16,1,.3,1)}
+#mob-drawer.open{transform:translateY(0)}
+.mob-drawer-handle{width:32px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 16px}
+.mob-drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:0 12px}
+.mob-drawer-item{display:flex;align-items:center;gap:10px;padding:14px 12px;border-radius:10px;cursor:pointer;transition:background .15s}
+.mob-drawer-item:hover,.mob-drawer-item:active{background:rgba(255,255,255,.06)}
+.mob-drawer-item-ico{font-size:16px;width:20px;text-align:center}
+.mob-drawer-item-lbl{font:500 13px var(--font);color:rgba(255,255,255,.75)}
+
 @media(max-width:768px){
-  :root{--sidebar-w:240px}
-  #sidebar{position:fixed;left:calc(-1 * var(--sidebar-w));z-index:50;height:100vh;top:0;transition:left .28s cubic-bezier(.4,0,.2,1)}
-  #sidebar.mobile-open{left:0;box-shadow:4px 0 24px rgba(0,0,0,.5)}
-  #sidebar-overlay.on{display:block}
-  #hamburger{display:flex}
+  /* Hide desktop sidebar + hamburger, show bottom tabs */
+  #sidebar{display:none}
+  #sidebar-overlay{display:none!important}
+  #hamburger{display:none!important}
+
+  /* Bottom tab bar — Clarion spec */
+  #mob-tabs{
+    display:flex;
+    position:fixed;bottom:0;left:0;right:0;
+    height:64px;
+    padding-bottom:env(safe-area-inset-bottom,0);
+    background:var(--sidebar);
+    border-top:1px solid rgba(255,255,255,.08);
+    z-index:200;
+  }
+  .mob-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    cursor:pointer;border:none;background:none;padding:0;
+    color:rgba(255,255,255,.45);transition:color .15s;position:relative
+  }
+  .mob-tab.active{color:var(--brand)}
+  .mob-tab.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--brand);border-radius:0 0 2px 2px}
+  .mob-tab-ico{font-size:20px;line-height:1}
+  .mob-tab-lbl{font:500 10px var(--font);letter-spacing:.02em}
+  .mob-tab-badge{position:absolute;top:8px;right:calc(50% - 16px);background:var(--red);color:#fff;font:700 9px var(--mono);border-radius:6px;padding:1px 4px;min-width:14px;text-align:center;display:none}
+  .mob-tab-badge.visible{display:block}
+
+  /* App shell on mobile */
   #app{flex-direction:column}
   #main{width:100%}
-  #topbar{padding:0 14px}
-  .tb-right{display:none}
-  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  #content{padding-bottom:80px} /* room for tab bar */
+  #topbar{padding:0 16px;height:52px}
+  #topbar .tb-right{display:none}
+
+  /* Content adjustments */
+  .kpi-grid,.ov-kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .ov-grid{grid-template-columns:1fr}
   .events-grid{grid-template-columns:1fr}
   .settings-grid{grid-template-columns:1fr}
   .pipeline-board{min-height:auto}
   .pipe-col{min-width:200px;width:200px}
+  .section-hdr{flex-direction:column;gap:8px}
+  .section-actions{width:100%;justify-content:flex-start}
+  .chat-history{display:none}
+  #page-chat{flex-direction:column}
+  .chat-compose{padding:8px 12px 12px}
+  .ov-hero{flex-direction:column;gap:16px;text-align:center}
+  .ov-actions{justify-content:center}
+
+  /* Leads table on mobile — card layout */
   .leads-table thead{display:none}
   .leads-table tbody tr{display:block;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:8px;padding:10px 12px}
   .leads-table td{display:flex;align-items:center;gap:6px;padding:4px 0;border:none;font-size:12px}
   .leads-table td::before{content:attr(data-label);font:600 10px var(--font);color:var(--t4);text-transform:uppercase;letter-spacing:.06em;min-width:60px;flex-shrink:0}
-  .section-hdr{flex-direction:column;gap:8px}
-  .section-actions{width:100%}
-  .chat-history{display:none}
-  #page-chat{flex-direction:column}
-  .chat-compose{padding:8px 12px 12px}
 }
 @media(max-width:480px){
-  #content{padding:14px}
-  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
-  .kpi{padding:12px}
-  .kpi-val{font-size:22px}
-  .a-title{font-size:28px}
+  #content{padding:12px;padding-bottom:80px}
+  .kpi-grid,.ov-kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi,.ov-kpi{padding:12px}
+  .kpi-val,.ov-kpi-val{font-size:22px}
+  .a-title{font-size:26px}
+  .leads-toolbar-row{flex-wrap:wrap}
 }
 </style>
 </head>
@@ -1377,6 +1422,32 @@ function showApp(){
   document.getElementById('login-screen').style.display='none'
   document.getElementById('app').classList.add('on')
   loadSettingsForm(); updateBadges(); updateNextRunDisplay(); renderOverview()
+  // Set initial active mobile tab
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.toggle('active',t.dataset.mobtab==='agent'))
+  // Sync server-side leads from auto-scan cron runs into localStorage
+  syncServerLeads()
+}
+
+async function syncServerLeads(){
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal) return
+  try{
+    const r=await fetch('/api/get-leads')
+    if(!r.ok) return
+    const {leads:serverLeads=[]}=await r.json()
+    if(!serverLeads.length) return
+    const local=DB.get(DB_LEADS)
+    const keySet=new Set(local.map(l=>l._key))
+    let added=0
+    for(const sl of serverLeads){
+      if(!keySet.has(sl._key)){ local.push(sl); keySet.add(sl._key); added++ }
+    }
+    if(added>0){
+      DB.set(DB_LEADS,local); updateBadges(); renderOverview()
+      toast(`${added} lead${added!==1?'s':''} synced from server`,'success')
+    }
+  }catch(e){ console.warn('[syncServerLeads]',e.message) }
+}
   // greeting
   const h=new Date().getHours()
   const gr=h<12?'Good morning':h<17?'Good afternoon':'Good evening'
@@ -1446,6 +1517,8 @@ function goPage(name){
   const m=pageMeta[name]||{}
   const tt=document.getElementById('tb-title'); if(tt)tt.textContent=m.title||name
   const tb=document.getElementById('tb-badge'); if(tb)tb.textContent=m.badge||''
+  // Sync mobile tab highlight
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.toggle('active',t.dataset.mobtab===name))
   if(name==='overview')renderOverview()
   if(name==='history')renderHistory()
   if(name==='leads')renderLeadsTable()
@@ -1554,7 +1627,7 @@ function renderResults(events,mode,query){
   document.getElementById('res-headline').textContent=`${events.length} Events Analysed — ${hot} High-Value Lead${hot!==1?'s':''}`
   document.getElementById('res-meta').innerHTML=
     `<span>${mode==='search'?`Query: "${(query||'').slice(0,50)}"` : 'Monitor: B2B Event Intelligence Ireland'}</span>`+
-    `<span>${now.toLocaleDateString('en-IE')} ${now.toLocaleTimeString('en-IE',{hour12:false})}</span>`+
+    `<span>${fmtDublin(now,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} Dublin</span>`+
     `<span>LLaMA 3.3 70B</span>`
   document.getElementById('res-kpis').innerHTML=`
     <div class="kpi"><div class="kpi-label">Events Found</div><div class="kpi-val">${events.length}</div></div>
@@ -1787,11 +1860,11 @@ function exportLeads(){
 
 // ── SETTINGS ─────────────────────────────────────────────────
 const SCHEDULE_HINTS={
-  weekly:'Monday at 8am UTC — set DELIVERY_SCHEDULE=weekly in Vercel env vars',
-  '2x':  'Mon + Thu at 8am — set DELIVERY_SCHEDULE=2x in Vercel env vars',
-  '3x':  'Mon, Wed, Fri at 8am — set DELIVERY_SCHEDULE=3x in Vercel env vars',
-  '4x':  'Mon, Tue, Thu, Fri at 8am — set DELIVERY_SCHEDULE=4x in Vercel env vars',
-  '5x':  'Every weekday at 8am — set DELIVERY_SCHEDULE=5x in Vercel env vars',
+  weekly:'Monday at 8am GMT (Dublin) — Jarvis will email + WhatsApp your hot leads',
+  '2x':  'Mon + Thu at 8am GMT — twice-weekly intel report',
+  '3x':  'Mon, Wed, Fri at 8am GMT — three times per week',
+  '4x':  'Mon, Tue, Thu, Fri at 8am GMT — four times per week',
+  '5x':  'Every weekday at 8am GMT — daily intel reports',
 }
 
 async function setSchedule(val,btn){
@@ -2170,10 +2243,15 @@ function calcNextRuns(schedule){
   return runs
 }
 
+const TZ='Europe/Dublin'
+function fmtDublin(d,opts={}){return new Date(d).toLocaleString('en-IE',{timeZone:TZ,...opts})}
+function fmtDublinDate(d){return new Date(d).toLocaleDateString('en-IE',{timeZone:TZ,weekday:'short',day:'numeric',month:'short'})}
+function fmtDublinTime(d){return new Date(d).toLocaleTimeString('en-IE',{timeZone:TZ,hour:'2-digit',minute:'2-digit'})}
+
 function updateNextRunDisplay(){
   const cfg=DB.cfg(); const sched=cfg.schedule||'weekly'
   const runs=calcNextRuns(sched)
-  const fmt=d=>d.toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})+' @ 8:00 UTC'
+  const fmt=d=>fmtDublinDate(d)+' @ 8:00 GMT'
   const el1=document.getElementById('next-run-display')
   const el2=document.getElementById('next-run2-display')
   if(el1)el1.textContent=runs[0]?fmt(runs[0]):'—'
@@ -2207,7 +2285,7 @@ async function saveNextScanDate(){
   const cfg=DB.cfg(); cfg.nextScanOverride=iso; DB.set(DB_CFG,cfg)
   const hint=document.getElementById('next-scan-hint')
   const label=new Date(dt).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
-  if(hint)hint.textContent=`Next scan locked to: ${label} UTC`
+  if(hint)hint.textContent=`Next scan locked to: ${label} Dublin (GMT)`
   // Write to Supabase so the cron job picks it up
   try{
     const r=await fetch('/api/set-scan-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({next_run_at:iso,is_active:true})})
@@ -2445,8 +2523,81 @@ function chatQuick(type){
   if(ta&&msgs[type]){ ta.value=msgs[type]; ta.focus() }
 }
 
+// ── MOBILE BOTTOM TAB BAR ─────────────────────────────────────
+const MOB_TABS=[
+  {id:'overview', ico:'◈', lbl:'Overview'},
+  {id:'agent',    ico:'⚡', lbl:'Agent'},
+  {id:'leads',    ico:'◎', lbl:'Leads'},
+  {id:'messages', ico:'✓', lbl:'WhatsApp', badge:'sb-msgs-count'},
+  {id:'more',     ico:'…', lbl:'More'},
+]
+const MOB_MORE=[
+  {id:'pipeline', ico:'◆', lbl:'Pipeline'},
+  {id:'history',  ico:'▣', lbl:'Scan History'},
+  {id:'chat',     ico:'J', lbl:'AI Chat'},
+  {id:'settings', ico:'⚙', lbl:'Settings'},
+]
+
+function buildMobNav(){
+  const bar=document.getElementById('mob-tabs'); if(!bar) return
+  bar.innerHTML=MOB_TABS.map(t=>`
+    <button class="mob-tab" data-mobtab="${t.id}" onclick="mobTabTap('${t.id}')">
+      <span class="mob-tab-ico">${t.ico}</span>
+      <span class="mob-tab-lbl">${t.lbl}</span>
+      ${t.badge?`<span class="mob-tab-badge" id="mob-badge-${t.id}"></span>`:''}
+    </button>`).join('')
+  // Drawer
+  const drawer=document.getElementById('mob-drawer'); if(!drawer) return
+  drawer.innerHTML=`<div class="mob-drawer-handle"></div>
+    <div class="mob-drawer-grid">
+      ${MOB_MORE.map(i=>`<div class="mob-drawer-item" onclick="mobTabTap('${i.id}');closeMobDrawer()">
+        <span class="mob-drawer-item-ico">${i.ico}</span>
+        <span class="mob-drawer-item-lbl">${i.lbl}</span>
+      </div>`).join('')}
+    </div>`
+}
+
+function mobTabTap(id){
+  if(id==='more'){ openMobDrawer(); return }
+  closeMobDrawer()
+  goPage(id)
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.toggle('active', t.dataset.mobtab===id))
+}
+
+function openMobDrawer(){
+  document.getElementById('mob-drawer-overlay').style.display='block'
+  document.getElementById('mob-drawer').classList.add('open')
+}
+function closeMobDrawer(){
+  document.getElementById('mob-drawer-overlay').style.display='none'
+  document.getElementById('mob-drawer')?.classList.remove('open')
+}
+
+function updateMobBadge(id, count){
+  const el=document.getElementById('mob-badge-'+id)
+  if(!el) return
+  el.textContent=count>0?count:''
+  el.classList.toggle('visible', count>0)
+}
+
+// Patch updateBadges to also update mobile badges
+const _origUpdateBadges=updateBadges
+function updateBadges(){
+  _origUpdateBadges()
+  const mc=DB.get(DB_MSGS,[]).length
+  updateMobBadge('messages',mc)
+}
+
 // ── INIT ─────────────────────────────────────────────────────
 checkAuth()
+buildMobNav()
+document.getElementById('mob-drawer-overlay')?.addEventListener('click',closeMobDrawer)
 </script>
+
+<!-- MOBILE UI -->
+<div id="mob-tabs"></div>
+<div id="mob-drawer-overlay"></div>
+<div id="mob-drawer"></div>
+
 </body>
 </html>

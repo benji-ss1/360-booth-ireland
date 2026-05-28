@@ -234,6 +234,62 @@ async function sendWhatsAppAlert(leads, sid, token, from, to) {
   }
 }
 
+// ── Email report after auto-scan ──────────────────────────────────────────
+const RESEND_BASE  = 'https://api.resend.com/emails';
+const TO_ADDRESSES = ['benj.sanusi@gmail.com', 'info@360boothireland.ie'];
+const FROM_ADDRESS = 'Jarvis 360 Booth <onboarding@resend.dev>';
+
+async function sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt, resendKey) {
+  const scoreColour = s => s >= 80 ? '#FF4465' : s >= 55 ? '#F0A500' : '#00D4FF';
+  const card = l => `
+    <div style="background:#0C1520;border:1px solid rgba(0,212,255,${l.lead_score>=80?'.3':'.07'});border-radius:10px;padding:16px 18px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:#D6EDFF;margin-bottom:6px;">${l.name||l.notes?.split(' | ')[0]||'Event Lead'}</div>
+      ${l.email?`<div style="font-size:12px;color:#7EB8D8;">✉ ${l.email}</div>`:''}
+      ${l.phone?`<div style="font-size:12px;color:#7EB8D8;">📞 ${l.phone}</div>`:''}
+      ${l.notes?`<div style="font-size:11px;color:#2E4A62;margin-top:6px;">${l.notes.slice(0,120)}</div>`:''}
+      <div style="font-size:20px;font-weight:800;color:${scoreColour(l.lead_score||0)};margin-top:8px;font-family:monospace;">${l.lead_score||0}<span style="font-size:11px;color:#2E4A62;font-weight:400;">/100</span></div>
+    </div>`;
+
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px 16px;background:#060A0E;font-family:'Inter',-apple-system,sans-serif;max-width:600px;margin:0 auto;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:20px;font-weight:800;color:#00D4FF;letter-spacing:1px;">JARVIS AUTO-SCAN REPORT</div>
+      <div style="font-size:12px;color:#7EB8D8;margin-top:4px;">360 Booth Ireland · ${new Date(scannedAt).toLocaleString('en-IE',{timeZone:'Europe/Dublin',weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} Dublin</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:100px;background:#0C1520;border:1px solid rgba(255,68,101,.2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#FF4465;font-family:monospace;">${hotLeads.length}</div>
+        <div style="font-size:10px;color:#7EB8D8;letter-spacing:.8px;">HOT LEADS</div>
+      </div>
+      <div style="flex:1;min-width:100px;background:#0C1520;border:1px solid rgba(240,165,0,.2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#F0A500;font-family:monospace;">${warnLeads.length}</div>
+        <div style="font-size:10px;color:#7EB8D8;letter-spacing:.8px;">WARM LEADS</div>
+      </div>
+      <div style="flex:1;min-width:100px;background:#0C1520;border:1px solid rgba(0,212,255,.15);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#00D4FF;font-family:monospace;">${leads.length}</div>
+        <div style="font-size:10px;color:#7EB8D8;letter-spacing:.8px;">TOTAL FOUND</div>
+      </div>
+    </div>
+    ${hotLeads.length ? `<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#FF4465;text-transform:uppercase;margin-bottom:10px;">🔴 Hot Leads — Contact First</div>${hotLeads.slice(0,5).map(card).join('')}` : ''}
+    ${warnLeads.length ? `<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#F0A500;text-transform:uppercase;margin-bottom:10px;margin-top:16px;">🟡 Warm Leads</div>${warnLeads.slice(0,4).map(card).join('')}` : ''}
+    ${leads.length === 0 ? '<div style="text-align:center;padding:32px;color:#2E4A62;font-size:14px;">No leads with contact info found this run.</div>' : ''}
+    <div style="margin-top:24px;padding-top:14px;border-top:1px solid rgba(0,212,255,.07);text-align:center;font-size:11px;color:#2E4A62;">
+      Powered by Jarvis × 360 Booth Intelligence · Exa · Groq LLaMA 3.3 70B<br>Open <a href="https://360-booth-ireland.vercel.app" style="color:#00D4FF;">your dashboard</a> to review all leads.
+    </div>
+  </body></html>`;
+
+  const subject = hotLeads.length > 0
+    ? `🔴 ${hotLeads.length} hot lead${hotLeads.length > 1 ? 's' : ''} — Jarvis Auto-Scan ${new Date().toLocaleDateString('en-IE',{timeZone:'Europe/Dublin'})}`
+    : `📊 Jarvis Auto-Scan — ${leads.length} leads found`;
+
+  for (const to of TO_ADDRESSES) {
+    await fetch(RESEND_BASE, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: FROM_ADDRESS, to, subject, html }),
+    });
+  }
+}
+
 // ── Next run date calculator ───────────────────────────────────────────────
 function calcNextRun(scheduleType, fromDate = new Date()) {
   const d = new Date(fromDate);
@@ -252,15 +308,18 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Auth: Vercel sends CRON_SECRET in Authorization header for cron jobs.
-  // Also allow manual POST from dashboard with dashboard_trigger flag.
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers.authorization || '';
+  // Auth: three valid callers —
+  //  1. Vercel cron  → sends X-Vercel-Cron:1 header (always present for cron invocations)
+  //  2. CRON_SECRET  → Authorization: Bearer <secret> (optional extra guard)
+  //  3. Dashboard    → POST body contains { dashboard_trigger: true }
+  const cronSecret       = process.env.CRON_SECRET;
+  const authHeader       = req.headers.authorization || '';
+  const isVercelCron     = req.headers['x-vercel-cron'] === '1';
   const isDashboardTrigger = req.body?.dashboard_trigger === true;
-  const isCronCall = cronSecret && authHeader === `Bearer ${cronSecret}`;
+  const isCronCall       = isVercelCron || (cronSecret && authHeader === `Bearer ${cronSecret}`);
 
   if (!isCronCall && !isDashboardTrigger) {
-    return res.status(401).json({ error: 'Unauthorised' });
+    return res.status(401).json({ error: 'Unauthorised — send X-Vercel-Cron:1 or dashboard_trigger:true' });
   }
 
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -343,16 +402,30 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Write to Supabase event_leads table + send WhatsApp alert
+    // Write to Supabase event_leads table
     if (leads.length) {
       await supabasePost('event_leads', leads, SERVICE_KEY);
-      sendWhatsAppAlert(
-        leads,
-        process.env.TWILIO_ACCOUNT_SID,
-        process.env.TWILIO_AUTH_TOKEN,
-        process.env.TWILIO_WHATSAPP_FROM,
-        process.env.TWILIO_WHATSAPP_TO
-      ); // non-blocking
+    }
+
+    const hotLeads  = leads.filter(l => (l.lead_score || 0) >= 80);
+    const warnLeads = leads.filter(l => (l.lead_score || 0) >= 55 && (l.lead_score || 0) < 80);
+    const scannedAt = new Date().toISOString();
+
+    // Send WhatsApp alert (non-blocking — non-fatal)
+    sendWhatsAppAlert(
+      leads,
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+      process.env.TWILIO_WHATSAPP_FROM,
+      process.env.TWILIO_WHATSAPP_TO
+    );
+
+    // Send email report via Resend (non-blocking — non-fatal)
+    const RESEND_KEY = process.env.RESEND_API_KEY;
+    if (RESEND_KEY && leads.length) {
+      sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt, RESEND_KEY).catch(e =>
+        console.warn('[auto-scan] Email report failed (non-fatal):', e.message)
+      );
     }
 
     // Update scan_config: last_run_at + next_run_at
