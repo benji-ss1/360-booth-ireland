@@ -1432,6 +1432,9 @@ function showApp(){
   document.getElementById('login-screen').style.display='none'
   document.getElementById('app').classList.add('on')
   loadSettingsForm(); updateBadges(); updateNextRunDisplay(); renderOverview()
+  // Re-arm any scheduled scan that was set before page load
+  const _pendingScan=DB.cfg().nextScanOverride
+  if(_pendingScan && new Date(_pendingScan)>new Date()) armScheduledScan(_pendingScan)
   // Set initial active mobile tab
   document.querySelectorAll('.mob-tab').forEach(t=>t.classList.toggle('active',t.dataset.mobtab==='agent'))
   // Sync server-side leads from auto-scan cron runs into localStorage
@@ -2340,30 +2343,61 @@ async function saveNextScanDate(){
   const dt=document.getElementById('next-scan-dt')?.value
   if(!dt){ toast('Pick a date and time first','info'); return }
   const iso=new Date(dt).toISOString()
+  const delay=new Date(iso)-new Date()
+  if(delay<0){ toast('That time is in the past — pick a future time','warn'); return }
   const cfg=DB.cfg(); cfg.nextScanOverride=iso; DB.set(DB_CFG,cfg)
-  const hint=document.getElementById('next-scan-hint')
-  const label=new Date(dt).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
-  if(hint)hint.textContent=`Next scan locked to: ${label} Dublin (GMT)`
-  // Write to Supabase so the cron job picks it up
+  // Write to Supabase so the 9am cron also picks it up as fallback
   try{
-    const r=await fetch('/api/set-scan-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({next_run_at:iso,is_active:true})})
-    if(r.ok){ toast('Next scan date saved and synced to server ✓','success') }
-    else{ toast('Saved locally — server sync failed (check Supabase key)','warn') }
-  }catch{ toast('Saved locally — server unreachable','warn') }
+    await fetch('/api/set-scan-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({next_run_at:iso,is_active:true})})
+  }catch{}
+  // Arm the browser timer — fires at exact scheduled time
+  armScheduledScan(iso)
+  const mins=Math.round(delay/60000)
+  toast(`Auto-scan armed — fires in ${mins < 1 ? 'under a minute' : mins+'m'} ⚡`,'success')
   updateNextRunDisplay()
+}
+
+// ── SCHEDULED SCAN TIMER ─────────────────────────────────────
+let _scanTimer=null
+let _countdownInterval=null
+
+function armScheduledScan(isoDate){
+  if(_scanTimer){ clearTimeout(_scanTimer); _scanTimer=null }
+  if(_countdownInterval){ clearInterval(_countdownInterval); _countdownInterval=null }
+  if(!isoDate) return
+  const delay=new Date(isoDate)-new Date()
+  if(delay<=0) return  // already past — don't fire stale scans
+
+  _scanTimer=setTimeout(()=>{
+    _scanTimer=null
+    if(_countdownInterval){ clearInterval(_countdownInterval); _countdownInterval=null }
+    const hint=document.getElementById('next-scan-hint')
+    if(hint)hint.textContent='⚡ Auto-scanning now…'
+    toast('⚡ Scheduled auto-scan firing now…','info')
+    // Clear the override so it doesn't re-arm on next page load
+    const cfg=DB.cfg(); delete cfg.nextScanOverride; DB.set(DB_CFG,cfg)
+    runAutoScanNow()
+  }, delay)
+
+  // Live countdown every second
+  function tick(){
+    const remaining=new Date(isoDate)-new Date()
+    if(remaining<=0){ clearInterval(_countdownInterval); return }
+    const m=Math.floor(remaining/60000)
+    const s=Math.floor((remaining%60000)/1000)
+    const label=new Date(isoDate).toLocaleString('en-IE',{timeZone:'Europe/Dublin',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+    const hint=document.getElementById('next-scan-hint')
+    if(hint)hint.textContent=`⏱ Armed — fires in ${m}m ${s < 10 ? '0'+s : s}s · ${label} Dublin`
+  }
+  tick()
+  _countdownInterval=setInterval(tick,1000)
 }
 
 function loadNextScanDate(){
   const cfg=DB.cfg()
   if(cfg.nextScanOverride){
     const el=document.getElementById('next-scan-dt')
-    if(el){
-      const d=new Date(cfg.nextScanOverride)
-      // datetime-local format: YYYY-MM-DDTHH:MM
-      el.value=d.toISOString().slice(0,16)
-    }
-    const hint=document.getElementById('next-scan-hint')
-    if(hint)hint.textContent=`Locked to: ${new Date(cfg.nextScanOverride).toLocaleDateString('en-IE',{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`
+    if(el) el.value=new Date(cfg.nextScanOverride).toISOString().slice(0,16)
   }
 }
 
