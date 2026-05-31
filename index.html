@@ -1076,14 +1076,58 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
   .kpi-val{font-size:22px}
   .a-title{font-size:26px}
   .leads-toolbar-row{flex-wrap:wrap}
-  /* Compact Iron Man on small phones */
   .im-hero{width:120px;height:158px}
   .im-svg{width:84px}
   .arc-reactor{width:20px;height:20px;top:38%}
-  /* Full-width actions */
   .ov-actions{flex-direction:column;align-items:stretch}
   .ov-actions .btn{width:100%;justify-content:center}
 }
+
+/* ── MacBook / small laptop (900–1280px) ─────────────────────── */
+@media(min-width:769px) and (max-width:1280px){
+  #sidebar{width:190px;min-width:190px}
+  #content{padding:16px 18px}
+  .ov-kpi-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .ov-kpi-val{font-size:30px}
+  .ov-hero-title{font-size:26px}
+  .ov-grid{grid-template-columns:1fr}
+  .events-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .ss-grid,.settings-grid{grid-template-columns:1fr}
+  .leads-table th,.leads-table td{padding:8px 10px;font-size:11px}
+  #dossier-panel{width:min(480px,95vw)}
+}
+
+/* ── Mid MacBook / 13" (1024–1200px) ─────────────────────────── */
+@media(min-width:769px) and (max-width:1100px){
+  .ov-kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .pipeline-board{gap:10px}
+  .pipe-col{min-width:180px}
+  .events-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+}
+
+/* ── Large screen (1440px+) ──────────────────────────────────── */
+@media(min-width:1440px){
+  #sidebar{width:230px;min-width:230px}
+  #content{padding:28px 32px}
+  .ov-kpi-grid{grid-template-columns:repeat(4,1fr)}
+  .events-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+  .ov-grid{grid-template-columns:3fr 2fr}
+}
+
+/* ── Dossier panel — always properly sized ───────────────────── */
+#dossier-panel{
+  width:clamp(320px,38vw,560px);
+  max-height:100dvh;
+  overflow-y:auto;
+}
+
+/* ── Fluid type scale ────────────────────────────────────────── */
+html{font-size:clamp(13px,1vw + 10px,16px)}
+
+/* ── Prevent horizontal scroll everywhere ────────────────────── */
+body,#app{max-width:100vw;overflow-x:hidden}
+.page{min-width:0}
 </style>
 </head>
 <body>
@@ -1419,9 +1463,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
             </div>
           </div>
           <div class="prompt-or">or</div>
-          <button class="monitor-btn" onclick="runMonitor()">Scan Latest Monitor Run</button>
-          <div class="prompt-or">or</div>
-          <button class="monitor-btn" id="agent-deep-scan-btn" onclick="runDeepScan()" style="border-color:var(--blue);color:var(--blue)">🔬 Deep Scan Agent <span style="font-size:10px;opacity:.6;margin-left:4px">Render · Scout→Analyst→Closer</span></button>
+          <button class="monitor-btn" id="agent-deep-scan-btn" onclick="runDeepScan()" style="border-color:var(--blue);color:var(--blue)">🔬 Deep Scan Agent <span style="font-size:10px;opacity:.6;margin-left:4px">Render · Scout→Analyst→Closer · ~5 min</span></button>
           <div class="ss-status-box" id="agent-deep-scan-status" style="margin-top:8px;display:none"></div>
           <div class="mon-stat-card">
             <div class="mst"><div class="mst-l">Monitor</div><div class="mst-v gold">B2B Event Intelligence Ireland</div></div>
@@ -1452,7 +1494,6 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
           <div class="events-grid" id="events-grid"></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-outline" onclick="goAgentIdle()">New Search</button>
-            <button class="btn btn-ghost" onclick="runMonitor()">Rescan Monitor</button>
           </div>
         </div>
       </section>
@@ -2851,32 +2892,48 @@ function _importDeepLeads(leads){
   if(!leads||!leads.length) return 0
   const existing=DB.get(DB_LEADS)
   const seenUrls=new Set(existing.map(l=>l.source_url||l.url||'').filter(Boolean))
+  const seenTitles=new Set(existing.map(l=>(l.title||'').toLowerCase().trim()).filter(Boolean))
   let added=0
+  const now=new Date().toISOString()
   for(const l of leads){
     if(l.url&&seenUrls.has(l.url)) continue
+    const titleNorm=(l.title||'').toLowerCase().trim()
+    if(titleNorm&&seenTitles.has(titleNorm)) continue
+    const score=Number(l.lead_score)||0
+    const urgency=score>=80?'Hot':score>=55?'Warm':'Cool'
+    const key='deep_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)
     existing.unshift({
-      id:'deep_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
-      name:l.organizer||l.title||'Unknown Organiser',
+      _key:key,
+      id:key,
+      title:l.title||l.event_name||'Unknown Event',
+      name:l.organizer||l.title||'Unknown Event',
+      organizer:l.organizer||'',
       company:l.organizer||'',
       email:l.email||'',
       phone:l.phone||'',
       stage:'New',
-      score:l.lead_score||0,
-      urgency:l.urgency||'Warm',
+      status:'New',
+      lead_score:score,
+      score:score,
+      urgency:urgency,
       source:'Deep Scan Agent',
+      domain:l.domain||'',
+      url:l.url||'',
       source_url:l.url||'',
-      event_name:l.title||'',
+      event_name:l.title||l.event_name||'',
       event_type:l.event_type||'',
-      attendees:l.attendees_tier||'Unknown',
+      attendees_tier:l.attendees_tier||l.attendees||'Unknown',
       relevance:l.relevance||'',
       action:l.action||'',
       booth_history:l.booth_history||false,
       booth_competitor:l.booth_competitor||null,
       email_subject:l.email_subject||'',
       email_body:l.email_body||'',
-      addedAt:new Date().toISOString(),
+      firstSeen:now,
+      addedAt:now,
     })
     seenUrls.add(l.url||'')
+    seenTitles.add(titleNorm)
     added++
   }
   DB.set(DB_LEADS,existing)
@@ -4149,57 +4206,116 @@ function openLeadDossier(key){
   const email=l.email||l.email_inferred||''
   const hasReminder=l.followup_due&&new Date(l.followup_due).getTime()>Date.now()
   const reminderLabel=hasReminder?new Date(l.followup_due).toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'}):null
+  const domain=l.domain||''
+  const cleanDomain=domain.replace(/^www\./,'').split('/')[0]
+  const logoUrl=cleanDomain?`https://logo.clearbit.com/${cleanDomain}`:`https://ui-avatars.com/api/?name=${encodeURIComponent(l.organizer||l.title||'E')}&background=1C2128&color=D4614A&size=64`
+  const seenDate=l.firstSeen||l.addedAt||l.scan_run_at||''
+  const seenLabel=seenDate?new Date(seenDate).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}):''
 
   document.getElementById('dossier-title').textContent=(l.title||'Lead Dossier').slice(0,60)
   document.getElementById('dossier-body').innerHTML=`
-    <div class="dossier-section">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-        <span class="badge badge-${(l.urgency||'cool').toLowerCase()}">${l.urgency||''}</span>
-        <span style="font:700 22px var(--mono);color:${fc}">${sc}/100</span>
-        <span class="type-chip">${esc(l.event_type||'')}</span>
-        ${l.booth_history?`<span class="competitor-badge">◈ ${esc(l.booth_competitor||'Used booth before')}</span>`:''}
-        ${hasReminder?`<span class="reminder-badge">⏰ Follow-up ${esc(reminderLabel)}</span>`:''}
+
+    <!-- HERO BANNER -->
+    <div style="background:linear-gradient(135deg,var(--s2) 0%,rgba(212,97,74,.06) 100%);border-radius:10px;padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:14px">
+        <img src="${logoUrl}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(l.organizer||'E')}&background=1C2128&color=D4614A&size=64'" style="width:56px;height:56px;border-radius:10px;object-fit:contain;background:var(--bg1);border:1px solid var(--border);flex-shrink:0">
+        <div style="flex:1;min-width:0">
+          <div style="font:700 15px var(--font);color:var(--t1);line-height:1.3;margin-bottom:4px">${esc(l.title||'Unknown Event')}</div>
+          <div style="font:400 12px var(--font);color:var(--t3)">${esc(l.organizer||cleanDomain||'Unknown Organiser')}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <span class="badge badge-${(l.urgency||'cool').toLowerCase()}">${l.urgency||'—'}</span>
+            <span style="font:700 18px var(--mono);color:${fc};text-shadow:0 0 8px ${fc}40">${sc}/100</span>
+            ${l.event_type?`<span class="type-chip">${esc(l.event_type)}</span>`:''}
+          </div>
+        </div>
+      </div>
+      ${l.booth_history?`<div style="margin-top:10px;padding:8px 10px;border-radius:6px;background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2);font:400 11px var(--font);color:#f85149">◈ Previously used a booth: ${esc(l.booth_competitor||'photo booth hire detected')}</div>`:''}
+      ${hasReminder?`<div style="margin-top:8px;padding:6px 10px;border-radius:6px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);font:400 11px var(--font);color:var(--warn)">⏰ Follow-up due: ${esc(reminderLabel)}</div>`:''}
+    </div>
+
+    <!-- SCORE BAR -->
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font:600 10px var(--mono);color:var(--t4);letter-spacing:.08em">LEAD SCORE</span>
+        <span style="font:700 10px var(--mono);color:${fc}">${sc >= 80?'HOT LEAD':sc>=55?'WARM LEAD':'COOL LEAD'}</span>
+      </div>
+      <div style="height:5px;background:var(--s2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${sc}%;background:${fc};border-radius:3px;transition:width .6s ease"></div>
       </div>
     </div>
 
+    <!-- EVENT INTELLIGENCE -->
     <div class="dossier-section">
-      <div class="dossier-section-title"><span>Intelligence</span></div>
-      <div class="dossier-row"><div class="dossier-key">Organiser</div><div class="dossier-val">${esc(l.organizer||'—')}</div></div>
+      <div class="dossier-section-title"><span>Event Intelligence</span></div>
+      <div class="dossier-row"><div class="dossier-key">Organiser</div><div class="dossier-val">${esc(l.organizer||'Not identified')}</div></div>
+      <div class="dossier-row"><div class="dossier-key">Event Type</div><div class="dossier-val">${esc(l.event_type||'—')}</div></div>
       <div class="dossier-row"><div class="dossier-key">Attendees</div><div class="dossier-val">${esc(l.attendees_tier||'Unknown')}</div></div>
-      <div class="dossier-row"><div class="dossier-key">Domain</div><div class="dossier-val">${esc(l.domain||'—')}</div></div>
-      ${l.url?`<div class="dossier-row"><div class="dossier-key">Source</div><div class="dossier-val"><a href="${esc(l.url)}" target="_blank" rel="noopener">View event page</a></div></div>`:''}
-      ${l.relevance?`<div class="dossier-row"><div class="dossier-key">Why fits</div><div class="dossier-val" style="font-style:italic;color:var(--t3)">${esc(l.relevance)}</div></div>`:''}
-      ${l.action?`<div class="dossier-row"><div class="dossier-key">Action</div><div class="dossier-val" style="color:var(--brand)">→ ${esc(l.action)}</div></div>`:''}
+      ${l.event_date?`<div class="dossier-row"><div class="dossier-key">Date</div><div class="dossier-val">${esc(l.event_date)}</div></div>`:''}
+      ${l.venue?`<div class="dossier-row"><div class="dossier-key">Venue</div><div class="dossier-val">${esc(l.venue)}</div></div>`:''}
+      <div class="dossier-row"><div class="dossier-key">Source</div><div class="dossier-val">${cleanDomain?`<a href="${esc(l.url||'#')}" target="_blank" rel="noopener">${esc(cleanDomain)}</a>`:'—'}</div></div>
+      ${seenLabel?`<div class="dossier-row"><div class="dossier-key">Found</div><div class="dossier-val" style="color:var(--t4)">${esc(seenLabel)}</div></div>`:''}
+      ${l.source?`<div class="dossier-row"><div class="dossier-key">Via</div><div class="dossier-val" style="color:var(--blue)">${esc(l.source)}</div></div>`:''}
     </div>
 
+    <!-- AI BRIEF -->
+    ${l.relevance||l.action?`
+    <div class="dossier-section">
+      <div class="dossier-section-title"><span>AI Brief</span></div>
+      ${l.relevance?`<div style="padding:10px 12px;border-radius:8px;background:rgba(63,185,80,.06);border-left:3px solid var(--green);font:400 12px var(--font);color:var(--t2);margin-bottom:8px;line-height:1.5">${esc(l.relevance)}</div>`:''}
+      ${l.action?`<div style="padding:10px 12px;border-radius:8px;background:rgba(212,97,74,.06);border-left:3px solid var(--brand);font:400 12px var(--font);color:var(--t2);line-height:1.5"><span style="font-weight:700;color:var(--brand)">→ Next step: </span>${esc(l.action)}</div>`:''}
+    </div>`:''}
+
+    <!-- CONTACT -->
     <div class="dossier-section">
       <div class="dossier-section-title"><span>Contact</span></div>
-      ${email?`<div class="dossier-row"><div class="dossier-key">Email</div><div class="dossier-val"><a href="mailto:${esc(email)}">${esc(email)}</a> ${l.email?'<span class="ctag ctag-found" style="font-size:9px">Found</span>':'<span class="ctag ctag-est" style="font-size:9px">Est.</span>'} <button class="copy-btn" onclick="cp(this,'${esc(email)}')">Copy</button></div></div>`:'<div class="dossier-row"><div class="dossier-key">Email</div><div class="dossier-val" style="color:var(--t4)">Not found</div></div>'}
-      ${l.phone?`<div class="dossier-row"><div class="dossier-key">Phone</div><div class="dossier-val"><a href="tel:${esc(l.phone.replace(/\s/g,''))}">${esc(l.phone)}</a> <button class="copy-btn" onclick="cp(this,'${esc(l.phone)}')">Copy</button></div></div>`:''}
-      ${l.contact_hint&&!email&&!l.phone?`<div class="dossier-row"><div class="dossier-key">Hint</div><div class="dossier-val" style="font-size:11px;color:var(--t3)">${esc(l.contact_hint)}</div></div>`:''}
+      ${email?`
+        <div class="dossier-row">
+          <div class="dossier-key">Email</div>
+          <div class="dossier-val">
+            <a href="mailto:${esc(email)}">${esc(email)}</a>
+            <span class="ctag ${l.email?'ctag-found':'ctag-est'}" style="font-size:9px;margin-left:4px">${l.email?'FOUND':'Est.'}</span>
+            <button class="copy-btn" onclick="cp(this,'${esc(email)}')" style="margin-left:4px">Copy</button>
+          </div>
+        </div>`:`<div class="dossier-row"><div class="dossier-key">Email</div><div class="dossier-val" style="color:var(--t4)">Not found — generate cold email below</div></div>`}
+      ${l.phone?`
+        <div class="dossier-row">
+          <div class="dossier-key">Phone</div>
+          <div class="dossier-val">
+            <a href="tel:${esc(l.phone.replace(/\s/g,''))}">${esc(l.phone)}</a>
+            <button class="copy-btn" onclick="cp(this,'${esc(l.phone)}')" style="margin-left:4px">Copy</button>
+          </div>
+        </div>`:''}
+      ${l.url?`<div class="dossier-row"><div class="dossier-key">Event URL</div><div class="dossier-val"><a href="${esc(l.url)}" target="_blank" rel="noopener" style="word-break:break-all;font-size:11px">View event page ↗</a></div></div>`:''}
     </div>
 
+    <!-- NOTES -->
     <div class="dossier-section">
-      <div class="dossier-section-title"><span class="notes-indicator"></span> Notes</div>
-      <textarea class="dossier-notes" id="dossier-notes-ta" placeholder="Add your private notes about this lead..."
+      <div class="dossier-section-title"><span class="notes-indicator"></span> Private Notes</div>
+      <textarea class="dossier-notes" id="dossier-notes-ta" placeholder="Add notes — Michael's thoughts, call outcome, price quoted..."
         onchange="saveLeadNote('${esc(key)}',this.value)"
         oninput="saveLeadNote('${esc(key)}',this.value)">${esc(l.notes_user||'')}</textarea>
     </div>
 
+    <!-- COLD EMAIL -->
     <div class="dossier-section">
       <div class="dossier-section-title"><span>Cold Email Draft</span></div>
-      <p style="font:400 11px var(--font);color:var(--t4);margin-bottom:8px">OBSERVE → INSIGHT → OPPORTUNITY → CTA framework</p>
-      <button class="btn btn-secondary" style="width:100%" id="dossier-email-btn" onclick="generateColdEmail('${esc(key)}')">✉ Generate Cold Email</button>
+      <div style="font:400 10px var(--mono);color:var(--t4);margin-bottom:10px;letter-spacing:.05em">OBSERVE → INSIGHT → OPPORTUNITY → CTA</div>
+      ${l.email_body?`<div style="padding:12px;border-radius:8px;background:var(--s2);border:1px solid var(--border);margin-bottom:10px">
+        <div style="font:600 11px var(--font);color:var(--t3);margin-bottom:4px">Subject: ${esc(l.email_subject||'')}</div>
+        <div style="font:400 12px var(--font);color:var(--t2);line-height:1.6;white-space:pre-line">${esc(l.email_body)}</div>
+        <button class="copy-btn" style="margin-top:8px;width:100%" onclick="cp(this,${JSON.stringify((l.email_subject?'Subject: '+l.email_subject+'\n\n':'')+l.email_body)})">Copy Full Email</button>
+      </div>`:''}
+      <button class="btn btn-secondary" style="width:100%" id="dossier-email-btn" onclick="generateColdEmail('${esc(key)}')">${l.email_body?'✉ Regenerate Email':'✉ Generate Cold Email'}</button>
       <div id="dossier-email-box" class="email-draft-box" style="margin-top:10px"></div>
     </div>
   `
   document.getElementById('dossier-footer').innerHTML=`
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-secondary" style="flex:1" onclick="setFollowUpReminder('${esc(key)}');openLeadDossier('${esc(key)}')">${hasReminder?'Update Reminder':'⏰ Set 3-Day Reminder'}</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="setFollowUpReminder('${esc(key)}');openLeadDossier('${esc(key)}')">${hasReminder?'⏰ Update Reminder':'⏰ Set 3-Day Reminder'}</button>
       ${hasReminder?`<button class="btn btn-ghost btn-sm" onclick="clearFollowUpReminder('${esc(key)}');openLeadDossier('${esc(key)}')">Clear</button>`:''}
     </div>
     <div style="display:flex;gap:8px">
-      ${email?`<button class="btn btn-primary" style="flex:1" onclick="sendLeadToWhatsApp('${esc(key)}')">WA Lead Brief</button>`:''}
+      ${email?`<button class="btn btn-primary" style="flex:1" onclick="sendLeadToWhatsApp('${esc(key)}')">📱 WA Brief</button>`:''}
       <button class="btn btn-ghost" style="flex:1" onclick="closeLeadDossier()">Close</button>
     </div>
   `
