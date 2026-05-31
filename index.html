@@ -4403,6 +4403,18 @@ function openLeadDossier(rawKey){
   const seenDate=l.firstSeen||l.addedAt||l.scan_run_at||''
   const seenLabel=seenDate?new Date(seenDate).toLocaleDateString('en-IE',{day:'numeric',month:'short',year:'numeric'}):''
 
+  const _notesHist=(l.notes_history&&l.notes_history.length)?l.notes_history:(l.notes_user?[{text:l.notes_user,ts:l.firstSeen||new Date().toISOString()}]:[])
+  const notesHistHTML=_notesHist.length
+    ?'<div style="margin-bottom:10px;max-height:180px;overflow-y:auto">'
+      +_notesHist.slice().reverse().map(function(n){
+        return '<div style="padding:8px 10px;border-radius:6px;background:var(--s2);border:1px solid var(--border);margin-bottom:5px">'
+          +'<div style="font:400 12px var(--font);color:var(--t2);line-height:1.5;white-space:pre-wrap">'+esc(n.text)+'</div>'
+          +'<div style="font:400 9px var(--mono);color:var(--t4);margin-top:4px">'+new Date(n.ts).toLocaleString('en-IE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'</div>'
+          +'</div>'
+      }).join('')
+      +'</div>'
+    :''
+
   document.getElementById('dossier-title').textContent=(l.title||'Lead Dossier').slice(0,60)
   document.getElementById('dossier-body').innerHTML=`
 
@@ -4494,14 +4506,7 @@ function openLeadDossier(rawKey){
     <!-- NOTES (history model — multiple timestamped entries) -->
     <div class="dossier-section">
       <div class="dossier-section-title"><span class="notes-indicator"></span> Private Notes</div>
-      ${(()=>{
-        const hist=(l.notes_history&&l.notes_history.length)?l.notes_history:(l.notes_user?[{text:l.notes_user,ts:l.firstSeen||new Date().toISOString()}]:[])
-        return hist.length?`<div style="margin-bottom:10px;max-height:180px;overflow-y:auto">${hist.slice().reverse().map(n=>`
-          <div style="padding:8px 10px;border-radius:6px;background:var(--s2);border:1px solid var(--border);margin-bottom:5px">
-            <div style="font:400 12px var(--font);color:var(--t2);line-height:1.5;white-space:pre-wrap">${esc(n.text)}</div>
-            <div style="font:400 9px var(--mono);color:var(--t4);margin-top:4px">${new Date(n.ts).toLocaleString('en-IE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
-          </div>`).join('')}</div>`:''}
-      })()}
+      ${notesHistHTML}
       <textarea class="dossier-notes" id="dossier-notes-ta" placeholder="Add a note — call outcome, price quoted, next steps..."></textarea>
       <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:6px" onclick="_saveNoteToDossier('${esc(key)}')">Save Note</button>
     </div>
