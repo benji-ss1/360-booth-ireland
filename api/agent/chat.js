@@ -41,18 +41,81 @@ module.exports = async function handler(req, res) {
 
   const { message = '', context = {}, searchWeb = false, intent = false, history = [], isFirstMessage = false, mode = 'chat', lead = {} } = req.body || {};
 
+  // ── REMINDER NOTIFICATION MODE ───────────────────────────────
+  if (mode === 'reminder') {
+    const { reminderType = 'Follow-up', reminderNote = '', daysUntil = 3 } = req.body || {};
+    const RESEND_KEY   = process.env.RESEND_API_KEY;
+    const TWILIO_SID   = process.env.TWILIO_ACCOUNT_SID;
+    const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+    const TWILIO_FROM  = process.env.TWILIO_WHATSAPP_FROM;
+    const TWILIO_TO    = process.env.TWILIO_WHATSAPP_TO;
+    const leadName     = lead.title || lead.organizer || 'Lead';
+    const dueDate      = new Date(Date.now() + daysUntil * 24 * 60 * 60 * 1000);
+    const dueDateStr   = dueDate.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const results      = { email: false, wa: false, dueDate: dueDate.toISOString() };
+
+    if (RESEND_KEY) {
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: '360 Booth Ireland <onboarding@resend.dev>',
+            to: ['benj.sanusi@gmail.com'],
+            subject: `⏰ ${reminderType} reminder: ${leadName} — ${dueDateStr}`,
+            html: `<div style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:28px;background:#07090E;color:#E8F0FC;border-radius:12px">
+              <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin-bottom:12px">360 Booth Ireland · Reminder</div>
+              <h2 style="color:#F0F6FC;font-size:20px;margin:0 0 20px">⏰ ${reminderType} Reminder Set</h2>
+              <table style="width:100%;border-collapse:collapse">
+                <tr><td style="padding:8px 0;color:#8B949E;font-size:13px;width:80px">Lead</td><td style="padding:8px 0;font-weight:600;font-size:13px">${leadName}</td></tr>
+                <tr><td style="padding:8px 0;color:#8B949E;font-size:13px">Type</td><td style="padding:8px 0;font-size:13px">${reminderType}</td></tr>
+                <tr><td style="padding:8px 0;color:#8B949E;font-size:13px">Due</td><td style="padding:8px 0;font-weight:600;color:#C9A84C;font-size:13px">${dueDateStr} (in ${daysUntil} day${daysUntil !== 1 ? 's' : ''})</td></tr>
+                ${reminderNote ? `<tr><td style="padding:8px 0;color:#8B949E;font-size:13px;vertical-align:top">Note</td><td style="padding:8px 0;font-size:13px">${reminderNote}</td></tr>` : ''}
+              </table>
+              <a href="https://360-booth-ireland.vercel.app" style="display:inline-block;margin-top:20px;background:#C9A84C;color:#07090E;padding:11px 22px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">Open Dashboard →</a>
+            </div>`,
+          }),
+        });
+        results.email = true;
+      } catch {}
+    }
+
+    if (TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM && TWILIO_TO) {
+      try {
+        const waMsg = [
+          `⏰ *Reminder Set — ${reminderType}*`,
+          ``,
+          `📋 *Lead:* ${leadName}`,
+          `📅 *Due:* ${dueDateStr}`,
+          reminderNote ? `📝 *Note:* ${reminderNote}` : '',
+          ``,
+          `→ https://360-booth-ireland.vercel.app`,
+        ].filter(l => l !== null && l !== undefined).join('\n');
+        const creds = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString('base64');
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`, {
+          method: 'POST',
+          headers: { Authorization: `Basic ${creds}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ To: TWILIO_TO, From: TWILIO_FROM, Body: waMsg }).toString(),
+        });
+        results.wa = true;
+      } catch {}
+    }
+
+    return res.status(200).json({ ok: true, ...results });
+  }
+
   // ── EMAIL DRAFT MODE ─────────────────────────────────────────
   if (mode === 'email-draft') {
     const {
       title = '', organizer = '', event_type = '', attendees_tier = 'Unknown',
       url = '', relevance = '', action = '', booth_history = false,
-      booth_competitor = '', notes_user = '',
+      booth_competitor = '', description = '', event_date = '', venue = '',
     } = lead;
     const services = `360 Photo Booth (from €379), Selfie Magic Mirror (from €399), Magazine Vogue Booth (from €499), Vintage Photo Booth (from €399), LED Dancefloor (from €599), Balloon Arch & Backdrops (from €80), LED Heart Stand (from €149), LED Letters/Numbers (from €79), Marquee Letters (from €599)`;
-    const competitorLine = booth_history
-      ? `Note: This organiser may have used a photo booth before (${booth_competitor || 'previous hire detected'}). Acknowledge this elegantly — position 360 Booth Ireland as the premium upgrade.`
-      : 'Note: First-touch outreach — no prior booth hire detected.';
-    const draftPrompt = `You are Michael, owner of 360 Booth Ireland — premium photo/video booth hire. Write a personalised cold email using the OBSERVE→INSIGHT→OPPORTUNITY→CTA framework.
+    const boothLine = booth_history
+      ? `NOTE: This organiser may have used a photo booth before (${booth_competitor || 'previous hire detected'}). Acknowledge this warmly — position 360 Booth Ireland as the premium upgrade.`
+      : '';
+    const draftPrompt = `You are Michael, owner of 360 Booth Ireland — premium photo/video booth hire. Write a warm, personalised cold email.
 
 SERVICES: ${services}
 
@@ -61,25 +124,32 @@ TARGET LEAD:
 - Organiser: ${organizer || 'Unknown'}
 - Event Type: ${event_type}
 - Attendees: ${attendees_tier}
+${event_date ? `- Event Date: ${event_date}` : ''}
+${venue ? `- Venue: ${venue}` : ''}
+${description ? `- About this event: ${description}` : ''}
 - Why it fits: ${relevance}
-- Suggested action: ${action}
-- Notes: ${notes_user}
-${competitorLine}
+${boothLine}
 
-FRAMEWORK:
-1. OBSERVE: One specific observation about THEIR event — show you know it.
-2. INSIGHT: One sharp insight — why guests at THIS event love interactive entertainment.
-3. OPPORTUNITY: One specific 360 Booth Ireland service that fits. Mention price tier if helpful.
-4. CTA: One soft ask. "Can I send a 60-second clip?" or "Quick call this week?" — no hard commit.
+FRAMEWORK — OBSERVE → INSIGHT → OPPORTUNITY → CTA:
+1. OBSERVE: Reference a specific detail about THEIR event — show you know it
+2. INSIGHT: A genuine reason why guests at THIS event will love interactive entertainment
+3. OPPORTUNITY: One specific service that fits. Mention price tier if helpful.
+4. CTA: One easy, low-pressure ask — "Can I send you a 60-second clip?" or "Worth a quick chat this week?"
 
-RULES: Under 120 words. First name if known. No "I hope this finds you well". No exclamation marks. Calm, confident, premium tone. Subject under 8 words.
+TONE RULES:
+- Warm, human, conversational — not stiff or corporate
+- Use contractions naturally (we've, you're, it's, that's)
+- Add a friendly P.S. line at the end (a bonus tip, seasonal offer, or quick thought)
+- Subject: curiosity-driven (under 8 words), no spam words (deal/offer/free/discount/urgent)
+- Body: 110-130 words (not counting P.S.)
+- First name if organiser name known, "Hi there" if not
 
 Return JSON: {"subject":"...","body":"..."}`;
     try {
       const r = await fetch(GROQ_BASE, {
         method: 'POST',
         headers: { Authorization: `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: draftPrompt }], response_format: { type: 'json_object' }, temperature: 0.55, max_tokens: 500 }),
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: draftPrompt }], response_format: { type: 'json_object' }, temperature: 0.65, max_tokens: 600 }),
       });
       if (!r.ok) throw new Error(r.status);
       const d = await r.json();

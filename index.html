@@ -2560,15 +2560,17 @@ function renderLeadsTable(){
   renderLeadsPagination(filtered.length,totalPages)
   const sc=s=>s>=80?'var(--green)':s>=55?'var(--warn)':'var(--blue)'
   tbody.innerHTML=pageLeads.map(l=>{
+    const rowKey=esc(l._key||l.id||'')
     const status=l.status||'New'; const email=l.email||l.email_inferred||''
-    const hasNote=!!(l.notes_user||'').trim()
+    const hasNote=!!(l.notes_user||''+(l.notes_history&&l.notes_history.length?'x':'')).trim()
     const hasReminder=l.followup_due&&new Date(l.followup_due).getTime()>Date.now()
-    return `<tr style="cursor:pointer" ondblclick="openLeadDossier('${esc(l._key)}')">
+    return `<tr style="cursor:pointer" ondblclick="openLeadDossier('${rowKey}')">
       <td><div class="ltd-title" title="${esc(l.title)}" style="display:flex;align-items:center;gap:5px">
         ${esc((l.title||'').slice(0,38))}
         ${l.booth_history?`<span class="competitor-badge" style="font-size:8px;padding:1px 5px">◈ Prev</span>`:''}
         ${hasNote?`<span class="notes-indicator" title="Has notes"></span>`:''}
         ${hasReminder?`<span class="reminder-badge" style="font-size:8px;padding:1px 5px">⏰</span>`:''}
+        ${l.description?`<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(88,166,255,.1);color:var(--blue);margin-left:2px" title="Deep info available">●</span>`:''}
       </div><div class="ltd-org">${esc(l.domain||'')}</div></td>
       <td><div style="font:400 12px var(--font);color:var(--t2)">${esc(l.organizer||'—')}</div></td>
       <td>
@@ -2577,13 +2579,13 @@ function renderLeadsTable(){
       </td>
       <td><span style="font:700 14px var(--mono);color:${sc(l.lead_score)}${l.lead_score>=80?';text-shadow:0 0 8px var(--green)':l.lead_score>=55?';text-shadow:0 0 6px var(--warn)':''}">${l.lead_score}</span></td>
       <td><span class="badge badge-${(l.urgency||'cool').toLowerCase()}">${esc(l.event_type||'')}</span></td>
-      <td><select class="status-select" onchange="updateLeadStatus('${l._key}',this.value)">
+      <td><select class="status-select" onchange="updateLeadStatus('${rowKey}',this.value)">
         ${['New','Contacted','Meeting','Won','Lost'].map(s=>`<option value="${s}"${status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
       <td><span style="font:400 10px var(--mono);color:var(--t4)">${new Date(l.firstSeen||0).toLocaleDateString('en-IE')}</span></td>
-      <td><button class="btn btn-ghost btn-xs" onclick="openLeadDossier('${esc(l._key)}')" title="Full dossier + email draft">☰</button></td>
-      <td><button class="wa-btn" onclick="sendLeadToWhatsApp('${esc(l._key)}')">WA</button></td>
-      <td><button class="del-btn" onclick="deleteLead('${esc(l._key)}')" title="Delete lead">✕</button></td>
+      <td><button class="btn btn-ghost btn-xs" onclick="openLeadDossier('${rowKey}')" title="Full dossier + email draft">☰</button></td>
+      <td><button class="wa-btn" onclick="sendLeadToWhatsApp('${rowKey}')">WA</button></td>
+      <td><button class="del-btn" onclick="deleteLead('${rowKey}')" title="Delete lead">✕</button></td>
     </tr>`
   }).join('')
 }
@@ -2600,15 +2602,16 @@ function renderLeadsPagination(total,totalPages){
 function leadsGoPage(n){leadsCurrentPage=n;renderLeadsTable()}
 
 function updateLeadStatus(key,status){
-  const leads=DB.get(DB_LEADS); const l=leads.find(x=>x._key===key); if(l)l.status=status
+  const leads=DB.get(DB_LEADS); const l=leads.find(x=>x._key===key||x.id===key); if(l)l.status=status
   DB.set(DB_LEADS,leads)
   if(document.getElementById('page-pipeline')?.classList.contains('on')) renderPipeline()
   toast('Status → '+status,'info')
 }
 
 function deleteLead(key){
+  if(!key||key==='undefined') return
   const leads=DB.get(DB_LEADS)
-  const idx=leads.findIndex(l=>l._key===key); if(idx===-1)return
+  const idx=leads.findIndex(l=>l._key===key||l.id===key||l._key===(''+key)); if(idx===-1)return
   leads.splice(idx,1); DB.set(DB_LEADS,leads)
   updateBadges()
   if(document.getElementById('page-leads')?.classList.contains('on'))     renderLeadsTable()
@@ -2808,6 +2811,10 @@ async function runAutoScanNow(){
       renderHistory()
       renderLeadsTable() // always update — not just when leads page is active
       updateBadges()
+      // Auto-enrich: kick off deep research on the new leads (non-blocking)
+      const allAfterSync=DB.get(DB_LEADS)
+      const newFromScan=allAfterSync.filter(l=>l.scan_run_id===data.scanRunId&&l.url&&!l.description)
+      if(newFromScan.length) _enrichNewLeads(newFromScan).catch(()=>{})
     } else {
       statusBox.className='ss-status-box err show'
       statusBox.textContent=`Error: ${data.error||data.message||'Scan failed ('+res.status+')'}`
@@ -2819,8 +2826,62 @@ async function runAutoScanNow(){
   txt.textContent='⚡ Run Auto-Scan Now'; btn.disabled=false
 }
 
-// ── DEEP SCAN AGENT (Render — Scout → Analyst → Closer) ─────────────────
+// ── ENRICHMENT (Render /enrich — takes known leads, deepens research) ───────
 const RENDER_AGENT_URL = 'https://three60-lead-hunter.onrender.com'
+
+async function _enrichNewLeads(leads){
+  if(!leads||!leads.length) return
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal) return
+  // Only enrich leads that have a URL and no description yet
+  const toEnrich=leads.filter(l=>l.url&&!l.description).slice(0,18)
+  if(!toEnrich.length) return
+  const enrichStatus=document.getElementById('run-scan-status')
+  if(enrichStatus){ enrichStatus.className='ss-status-box ok show'; enrichStatus.textContent=`Scan done. Running deep research on ${toEnrich.length} leads — takes ~20s...` }
+  try{
+    const r=await fetch(`${RENDER_AGENT_URL}/enrich`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({leads:toEnrich}),
+      signal:AbortSignal.timeout?AbortSignal.timeout(90000):undefined
+    })
+    if(!r.ok){ console.warn('[enrich] HTTP',r.status); return }
+    const d=await r.json()
+    const enriched=d.leads||[]
+    if(!enriched.length) return
+    // Update local DB — match by _key, id, or url
+    const allLeads=DB.get(DB_LEADS)
+    let updated=0, gotEmails=0
+    for(const e of enriched){
+      const idx=allLeads.findIndex(l=>
+        (e._key&&(l._key===e._key||l.id===e._key))||
+        (e.id&&(l._key===e.id||l.id===e.id))||
+        (e.url&&l.url&&l.url===e.url)
+      )
+      if(idx===-1) continue
+      const l=allLeads[idx]
+      if(e.description) l.description=e.description
+      if(e.event_date&&!l.event_date) l.event_date=e.event_date
+      if(e.venue&&!l.venue) l.venue=e.venue
+      if(e.email&&!l.email){ l.email=e.email; gotEmails++ }
+      if(e.phone&&!l.phone) l.phone=e.phone
+      if(e.email_subject) l.email_subject=e.email_subject
+      if(e.email_body) l.email_body=e.email_body
+      if(e.lead_score>l.lead_score) l.lead_score=e.lead_score
+      if(e.urgency) l.urgency=e.urgency
+      updated++
+    }
+    DB.set(DB_LEADS,allLeads)
+    renderLeadsTable(); renderOverview(); updateBadges()
+    const coldEmails=enriched.filter(e=>e.email_body).length
+    const msg=`Deep research complete — ${updated} leads enriched${gotEmails?' · '+gotEmails+' contact'+( gotEmails!==1?'s':'')+ ' found':''}${coldEmails?' · '+coldEmails+' cold email'+(coldEmails!==1?'s':'')+' ready':''}`
+    if(enrichStatus){ enrichStatus.className='ss-status-box ok show'; enrichStatus.textContent=msg }
+    toast(`✅ ${msg}`,'success',6000)
+  }catch(err){
+    if(err.name!=='AbortError') console.warn('[enrich] Failed:',err.message)
+  }
+}
+
+// ── DEEP SCAN AGENT (Render — Scout → Analyst → Closer) ─────────────────
 let _deepScanPoller = null
 
 function _deepScanStatus(msg, type){
@@ -4156,31 +4217,71 @@ LED Letters & Numbers (from €79) — illuminated personalised letters.
 Marquee Letters (from €599) — large format lit letters for receptions.
 `.trim();
 
-// ── LEAD NOTES ────────────────────────────────────────────────
+// ── LEAD NOTES (history model — multiple timestamped entries) ─
+function appendLeadNote(key, text){
+  if(!text||!text.trim()) return false
+  const leads=DB.get(DB_LEADS)
+  const l=leads.find(x=>x._key===key||x.id===key); if(!l) return false
+  // Migrate old notes_user to notes_history
+  if(!l.notes_history) l.notes_history=[]
+  if(l.notes_user&&!l.notes_history.length){
+    l.notes_history.push({text:l.notes_user, ts:l.firstSeen||new Date().toISOString()})
+    delete l.notes_user
+  }
+  l.notes_history.push({text:text.trim(), ts:new Date().toISOString()})
+  DB.set(DB_LEADS,leads)
+  return true
+}
+
+function _saveNoteToDossier(key){
+  const ta=document.getElementById('dossier-notes-ta')
+  const text=(ta?.value||'').trim()
+  if(!text){toast('Note is empty','warn');return}
+  if(appendLeadNote(key,text)){
+    ta.value=''
+    toast('Note saved','success')
+    openLeadDossier(key)  // refresh to show new note in history
+  }
+}
+
+// ── LEAD NOTES (backwards compat) ─────────────────────────────
 function saveLeadNote(key, text){
   const leads=DB.get(DB_LEADS)
-  const l=leads.find(x=>x._key===key); if(!l)return
-  l.notes_user=text; DB.set(DB_LEADS,leads)
+  const l=leads.find(x=>x._key===key||x.id===key); if(!l)return
+  if(!l.notes_history) l.notes_history=[]
+  if(l.notes_user&&!l.notes_history.length){
+    l.notes_history.push({text:l.notes_user, ts:l.firstSeen||new Date().toISOString()})
+    delete l.notes_user
+  }
+  // Update last note in history if it's from the same session (< 5min old), else append
+  const last=l.notes_history[l.notes_history.length-1]
+  const recentEdit=last&&(Date.now()-new Date(last.ts).getTime())<5*60*1000
+  if(recentEdit) last.text=text.trim()
+  else if(text.trim()) l.notes_history.push({text:text.trim(), ts:new Date().toISOString()})
+  DB.set(DB_LEADS,leads)
 }
 
 function getLeadNote(key){
-  const l=DB.get(DB_LEADS).find(x=>x._key===key)
-  return l?.notes_user||''
+  const l=DB.get(DB_LEADS).find(x=>x._key===key||x.id===key)
+  if(!l) return ''
+  if(l.notes_history&&l.notes_history.length) return l.notes_history[l.notes_history.length-1].text
+  return l.notes_user||''
 }
 
 // ── FOLLOW-UP REMINDERS ───────────────────────────────────────
-function setFollowUpReminder(key){
+function setFollowUpReminder(key, days=3){
   const leads=DB.get(DB_LEADS)
-  const l=leads.find(x=>x._key===key); if(!l)return
-  const due=new Date(Date.now()+3*24*60*60*1000).toISOString()
+  const l=leads.find(x=>x._key===key||x.id===key); if(!l)return
+  const due=new Date(Date.now()+days*24*60*60*1000).toISOString()
   l.followup_due=due; DB.set(DB_LEADS,leads)
   toast(`Follow-up reminder set for ${new Date(due).toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})}`,'success')
 }
 
 function clearFollowUpReminder(key){
   const leads=DB.get(DB_LEADS)
-  const l=leads.find(x=>x._key===key); if(!l)return
-  delete l.followup_due; DB.set(DB_LEADS,leads)
+  const l=leads.find(x=>x._key===key||x.id===key); if(!l)return
+  delete l.followup_due; delete l.reminder_type; delete l.reminder_note
+  DB.set(DB_LEADS,leads)
 }
 
 function checkFollowUpReminders(){
@@ -4189,17 +4290,107 @@ function checkFollowUpReminders(){
   const due=leads.filter(l=>l.followup_due&&new Date(l.followup_due).getTime()<=now)
   if(!due.length)return
   due.slice(0,3).forEach(l=>{
-    toast(`⏰ Follow up: ${(l.title||'Lead').slice(0,40)}`,'warn',6000)
+    const rtype=l.reminder_type||'Follow-up'
+    toast(`⏰ ${rtype}: ${(l.title||'Lead').slice(0,40)}`,'warn',6000)
   })
   if(due.length>3) toast(`+ ${due.length-3} more follow-ups due`,'warn',5000)
+}
+
+// ── REMINDER MODAL ────────────────────────────────────────────
+let _reminderLeadKey=null
+let _reminderType='Email'
+let _reminderDays=3
+
+function openReminderModal(key){
+  _reminderLeadKey=key; _reminderType='Email'; _reminderDays=3
+  const l=DB.get(DB_LEADS).find(x=>x._key===key||x.id===key)
+  if(!l)return
+  const sub=document.getElementById('reminder-modal-sub')
+  if(sub) sub.textContent='For: '+(l.title||l.organizer||'this lead').slice(0,55)
+  const noteInput=document.getElementById('reminder-note-input')
+  if(noteInput) noteInput.value=l.reminder_note||''
+  const statusEl=document.getElementById('reminder-status')
+  if(statusEl) statusEl.textContent=''
+  // Reset pills
+  document.querySelectorAll('#reminder-type-group .pill').forEach(p=>p.classList.toggle('active',p.dataset.type==='Email'))
+  document.querySelectorAll('#reminder-days-group .pill').forEach(p=>p.classList.toggle('active',p.dataset.days==='3'))
+  // Pre-select existing type/days if set
+  if(l.reminder_type){
+    _reminderType=l.reminder_type
+    document.querySelectorAll('#reminder-type-group .pill').forEach(p=>p.classList.toggle('active',p.dataset.type===l.reminder_type))
+  }
+  const modal=document.getElementById('reminder-modal')
+  if(modal) modal.style.display='flex'
+}
+
+function closeReminderModal(){
+  const modal=document.getElementById('reminder-modal')
+  if(modal) modal.style.display='none'
+}
+
+function selectReminderType(btn,type){
+  _reminderType=type
+  document.querySelectorAll('#reminder-type-group .pill').forEach(p=>p.classList.remove('active'))
+  btn.classList.add('active')
+}
+
+function selectReminderDays(btn,days){
+  _reminderDays=days
+  document.querySelectorAll('#reminder-days-group .pill').forEach(p=>p.classList.remove('active'))
+  btn.classList.add('active')
+}
+
+async function saveReminder(){
+  const key=_reminderLeadKey
+  if(!key) return
+  const note=(document.getElementById('reminder-note-input')?.value||'').trim()
+  const btn=document.getElementById('reminder-save-btn')
+  const status=document.getElementById('reminder-status')
+  const leads=DB.get(DB_LEADS)
+  const l=leads.find(x=>x._key===key||x.id===key)
+  if(!l) return
+  // Store in local DB
+  const due=new Date(Date.now()+_reminderDays*24*60*60*1000).toISOString()
+  l.followup_due=due; l.reminder_type=_reminderType; l.reminder_note=note
+  DB.set(DB_LEADS,leads)
+  // Send notifications
+  if(btn){ btn.disabled=true; btn.textContent='Sending...' }
+  if(status){ status.style.color='var(--t4)'; status.textContent='Setting reminder and sending notifications...' }
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(!isLocal){
+    try{
+      const r=await fetch('/api/agent/chat',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mode:'reminder',lead:{title:l.title,organizer:l.organizer,email:l.email},reminderType:_reminderType,reminderNote:note,daysUntil:_reminderDays})
+      })
+      const d=await r.json()
+      if(status){
+        const sent=[]
+        if(d.email) sent.push('email')
+        if(d.wa) sent.push('WhatsApp')
+        status.style.color='var(--green)'
+        status.textContent=sent.length?`Sent via ${sent.join(' + ')}.`:'Reminder saved.'
+      }
+    }catch{}
+  } else if(status){status.style.color='var(--green)';status.textContent='Reminder saved (notifications need live Vercel).'}
+  const dueLabel=new Date(due).toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})
+  toast(`⏰ ${_reminderType} reminder set — ${dueLabel}`,'success',4000)
+  setTimeout(()=>{
+    closeReminderModal()
+    renderLeadsTable(); updateBadges()
+    if(_dossierKey===key) openLeadDossier(key)
+  },1600)
+  if(btn){ btn.disabled=false; btn.textContent='Set Reminder + Notify' }
 }
 
 // ── LEAD DOSSIER ──────────────────────────────────────────────
 let _dossierKey=null
 
-function openLeadDossier(key){
+function openLeadDossier(rawKey){
+  if(!rawKey||rawKey==='undefined') return
   const leads=DB.get(DB_LEADS)
-  const l=leads.find(x=>x._key===key); if(!l)return
+  const l=leads.find(x=>x._key===rawKey||x.id===rawKey); if(!l)return
+  const key=l._key||l.id||rawKey
   _dossierKey=key
   const sc=l.lead_score||0
   const fc=sc>=80?'var(--green)':sc>=55?'var(--warn)':'var(--blue)'
@@ -4247,15 +4438,27 @@ function openLeadDossier(key){
     <!-- EVENT INTELLIGENCE -->
     <div class="dossier-section">
       <div class="dossier-section-title"><span>Event Intelligence</span></div>
+      ${l.event_date?`<div style="margin-bottom:10px;padding:10px 14px;border-radius:8px;background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);display:flex;align-items:center;gap:10px">
+        <span style="font-size:16px">📅</span>
+        <div>
+          <div style="font:600 13px var(--font);color:var(--brand)">${esc(l.event_date)}</div>
+          <div style="font:400 10px var(--font);color:var(--t4);margin-top:1px">Event date</div>
+        </div>
+      </div>`:l.venue?`<div style="margin-bottom:10px;padding:8px 12px;border-radius:6px;background:var(--s2);border:1px solid var(--border);font:400 12px var(--font);color:var(--t3)">📍 ${esc(l.venue)}</div>`:''}
       <div class="dossier-row"><div class="dossier-key">Organiser</div><div class="dossier-val">${esc(l.organizer||'Not identified')}</div></div>
       <div class="dossier-row"><div class="dossier-key">Event Type</div><div class="dossier-val">${esc(l.event_type||'—')}</div></div>
       <div class="dossier-row"><div class="dossier-key">Attendees</div><div class="dossier-val">${esc(l.attendees_tier||'Unknown')}</div></div>
-      ${l.event_date?`<div class="dossier-row"><div class="dossier-key">Date</div><div class="dossier-val">${esc(l.event_date)}</div></div>`:''}
-      ${l.venue?`<div class="dossier-row"><div class="dossier-key">Venue</div><div class="dossier-val">${esc(l.venue)}</div></div>`:''}
+      ${l.event_date&&l.venue?`<div class="dossier-row"><div class="dossier-key">Venue</div><div class="dossier-val">${esc(l.venue)}</div></div>`:''}
       <div class="dossier-row"><div class="dossier-key">Source</div><div class="dossier-val">${cleanDomain?`<a href="${esc(l.url||'#')}" target="_blank" rel="noopener">${esc(cleanDomain)}</a>`:'—'}</div></div>
       ${seenLabel?`<div class="dossier-row"><div class="dossier-key">Found</div><div class="dossier-val" style="color:var(--t4)">${esc(seenLabel)}</div></div>`:''}
-      ${l.source?`<div class="dossier-row"><div class="dossier-key">Via</div><div class="dossier-val" style="color:var(--blue)">${esc(l.source)}</div></div>`:''}
     </div>
+
+    <!-- ABOUT THIS EVENT (description from deep research) -->
+    ${l.description?`
+    <div class="dossier-section">
+      <div class="dossier-section-title"><span>About this Event</span><span style="font:400 9px var(--mono);color:var(--t4);margin-left:8px;letter-spacing:.05em">DEEP RESEARCH</span></div>
+      <div style="padding:12px;border-radius:8px;background:rgba(88,166,255,.05);border:1px solid rgba(88,166,255,.12);font:400 12px var(--font);color:var(--t2);line-height:1.65">${esc(l.description)}</div>
+    </div>`:''}
 
     <!-- AI BRIEF -->
     ${l.relevance||l.action?`
@@ -4288,22 +4491,28 @@ function openLeadDossier(key){
       ${l.url?`<div class="dossier-row"><div class="dossier-key">Event URL</div><div class="dossier-val"><a href="${esc(l.url)}" target="_blank" rel="noopener" style="word-break:break-all;font-size:11px">View event page ↗</a></div></div>`:''}
     </div>
 
-    <!-- NOTES -->
+    <!-- NOTES (history model — multiple timestamped entries) -->
     <div class="dossier-section">
       <div class="dossier-section-title"><span class="notes-indicator"></span> Private Notes</div>
-      <textarea class="dossier-notes" id="dossier-notes-ta" placeholder="Add notes — Michael's thoughts, call outcome, price quoted..."
-        onchange="saveLeadNote('${esc(key)}',this.value)"
-        oninput="saveLeadNote('${esc(key)}',this.value)">${esc(l.notes_user||'')}</textarea>
+      ${(()=>{
+        const hist=(l.notes_history&&l.notes_history.length)?l.notes_history:(l.notes_user?[{text:l.notes_user,ts:l.firstSeen||new Date().toISOString()}]:[])
+        return hist.length?`<div style="margin-bottom:10px;max-height:180px;overflow-y:auto">${hist.slice().reverse().map(n=>`
+          <div style="padding:8px 10px;border-radius:6px;background:var(--s2);border:1px solid var(--border);margin-bottom:5px">
+            <div style="font:400 12px var(--font);color:var(--t2);line-height:1.5;white-space:pre-wrap">${esc(n.text)}</div>
+            <div style="font:400 9px var(--mono);color:var(--t4);margin-top:4px">${new Date(n.ts).toLocaleString('en-IE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+          </div>`).join('')}</div>`:''}
+      })()}
+      <textarea class="dossier-notes" id="dossier-notes-ta" placeholder="Add a note — call outcome, price quoted, next steps..."></textarea>
+      <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:6px" onclick="_saveNoteToDossier('${esc(key)}')">Save Note</button>
     </div>
 
     <!-- COLD EMAIL -->
     <div class="dossier-section">
       <div class="dossier-section-title"><span>Cold Email Draft</span></div>
-      <div style="font:400 10px var(--mono);color:var(--t4);margin-bottom:10px;letter-spacing:.05em">OBSERVE → INSIGHT → OPPORTUNITY → CTA</div>
       ${l.email_body?`<div style="padding:12px;border-radius:8px;background:var(--s2);border:1px solid var(--border);margin-bottom:10px">
-        <div style="font:600 11px var(--font);color:var(--t3);margin-bottom:4px">Subject: ${esc(l.email_subject||'')}</div>
-        <div style="font:400 12px var(--font);color:var(--t2);line-height:1.6;white-space:pre-line">${esc(l.email_body)}</div>
-        <button class="copy-btn" style="margin-top:8px;width:100%" onclick="cp(this,${JSON.stringify((l.email_subject?'Subject: '+l.email_subject+'\n\n':'')+l.email_body)})">Copy Full Email</button>
+        <div style="font:600 11px var(--font);color:var(--brand);margin-bottom:6px">Subject: ${esc(l.email_subject||'')}</div>
+        <div style="font:400 12px var(--font);color:var(--t2);line-height:1.65;white-space:pre-line">${esc(l.email_body)}</div>
+        <button class="copy-btn" style="margin-top:10px;width:100%" onclick="cp(this,${JSON.stringify((l.email_subject?'Subject: '+l.email_subject+'\n\n':'')+l.email_body)})">Copy Full Email</button>
       </div>`:''}
       <button class="btn btn-secondary" style="width:100%" id="dossier-email-btn" onclick="generateColdEmail('${esc(key)}')">${l.email_body?'✉ Regenerate Email':'✉ Generate Cold Email'}</button>
       <div id="dossier-email-box" class="email-draft-box" style="margin-top:10px"></div>
@@ -4311,7 +4520,7 @@ function openLeadDossier(key){
   `
   document.getElementById('dossier-footer').innerHTML=`
     <div style="display:flex;gap:8px;margin-bottom:8px">
-      <button class="btn btn-secondary" style="flex:1" onclick="setFollowUpReminder('${esc(key)}');openLeadDossier('${esc(key)}')">${hasReminder?'⏰ Update Reminder':'⏰ Set 3-Day Reminder'}</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="openReminderModal('${esc(key)}')">${hasReminder?`⏰ Update Reminder <span style="font-size:9px;opacity:.7">${esc(reminderLabel)}</span>`:'⏰ Set Reminder'}</button>
       ${hasReminder?`<button class="btn btn-ghost btn-sm" onclick="clearFollowUpReminder('${esc(key)}');openLeadDossier('${esc(key)}')">Clear</button>`:''}
     </div>
     <div style="display:flex;gap:8px">
@@ -4333,7 +4542,7 @@ function closeLeadDossier(){
 
 async function generateColdEmail(key){
   const leads=DB.get(DB_LEADS)
-  const l=leads.find(x=>x._key===key); if(!l)return
+  const l=leads.find(x=>x._key===key||x.id===key); if(!l)return
   const btn=document.getElementById('dossier-email-btn')
   const box=document.getElementById('dossier-email-box')
   if(btn){ btn.disabled=true; btn.textContent='Generating...' }
@@ -4349,7 +4558,8 @@ async function generateColdEmail(key){
         title:l.title, organizer:l.organizer, event_type:l.event_type,
         attendees_tier:l.attendees_tier, url:l.url, relevance:l.relevance,
         action:l.action, booth_history:l.booth_history||false,
-        booth_competitor:l.booth_competitor||'', notes_user:l.notes_user||'',
+        booth_competitor:l.booth_competitor||'',
+        description:l.description||'', event_date:l.event_date||'', venue:l.venue||'',
       }})
     })
     const d=await r.json()
@@ -4431,6 +4641,47 @@ setInterval(async()=>{
     </div>
     <div class="dossier-body" id="dossier-body"></div>
     <div class="dossier-footer" id="dossier-footer"></div>
+  </div>
+</div>
+
+<!-- REMINDER MODAL -->
+<div id="reminder-modal" style="position:fixed;inset:0;z-index:9100;display:none;align-items:center;justify-content:center">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px)" onclick="closeReminderModal()"></div>
+  <div style="position:relative;z-index:1;background:var(--s1);border:1px solid var(--border-s);border-radius:var(--r-xl);padding:28px 24px;width:440px;max-width:92vw;box-shadow:0 28px 72px rgba(0,0,0,.8)">
+    <div style="font:700 17px var(--font);color:var(--t1);margin-bottom:4px">⏰ Set Follow-up Reminder</div>
+    <div style="font:400 12px var(--font);color:var(--t3);margin-bottom:20px" id="reminder-modal-sub">You'll get an email + WhatsApp immediately and when it's due.</div>
+
+    <div style="margin-bottom:14px">
+      <div style="font:600 10px var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:7px">Reminder Type</div>
+      <div class="pill-group" id="reminder-type-group">
+        <button class="pill" data-type="Call" onclick="selectReminderType(this,'Call')">📞 Call</button>
+        <button class="pill active" data-type="Email" onclick="selectReminderType(this,'Email')">✉ Email</button>
+        <button class="pill" data-type="Offer" onclick="selectReminderType(this,'Offer')">🎯 Send Offer</button>
+        <button class="pill" data-type="Meeting" onclick="selectReminderType(this,'Meeting')">🤝 Meeting</button>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font:600 10px var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:7px">What are you reminding yourself?</div>
+      <textarea id="reminder-note-input" class="field" style="width:100%;height:68px;padding:10px 12px;resize:none" placeholder="e.g. Follow up on the quote sent, mention the summer availability..."></textarea>
+    </div>
+
+    <div style="margin-bottom:22px">
+      <div style="font:600 10px var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:7px">Remind me in</div>
+      <div class="pill-group" id="reminder-days-group">
+        <button class="pill" data-days="1" onclick="selectReminderDays(this,1)">1 day</button>
+        <button class="pill" data-days="2" onclick="selectReminderDays(this,2)">2 days</button>
+        <button class="pill active" data-days="3" onclick="selectReminderDays(this,3)">3 days</button>
+        <button class="pill" data-days="5" onclick="selectReminderDays(this,5)">5 days</button>
+        <button class="pill" data-days="7" onclick="selectReminderDays(this,7)">1 week</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="reminder-save-btn" style="flex:1" onclick="saveReminder()">Set Reminder + Notify</button>
+      <button class="btn btn-ghost" onclick="closeReminderModal()">Cancel</button>
+    </div>
+    <div id="reminder-status" style="margin-top:10px;font:400 11px var(--font);color:var(--t4);text-align:center;min-height:16px"></div>
   </div>
 </div>
 
