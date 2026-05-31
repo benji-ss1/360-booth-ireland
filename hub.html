@@ -3569,7 +3569,7 @@ async function fetchAndSeedGroqKey(){
   if(storage.getItem('b360_groq_key'))return; // already have it
   try{
     const token=authSession?.access_token;if(!token)return;
-    const r=await fetch('/api/get-keys',{headers:{Authorization:'Bearer '+token}});
+    const r=await fetch('/api/get-leads?mode=keys',{headers:{Authorization:'Bearer '+token}});
     if(!r.ok)return;
     const d=await r.json();
     if(d.groqKey){
