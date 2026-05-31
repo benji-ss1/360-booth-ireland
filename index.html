@@ -1420,6 +1420,9 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
           </div>
           <div class="prompt-or">or</div>
           <button class="monitor-btn" onclick="runMonitor()">Scan Latest Monitor Run</button>
+          <div class="prompt-or">or</div>
+          <button class="monitor-btn" id="agent-deep-scan-btn" onclick="runDeepScan()" style="border-color:var(--blue);color:var(--blue)">🔬 Deep Scan Agent <span style="font-size:10px;opacity:.6;margin-left:4px">Render · Scout→Analyst→Closer</span></button>
+          <div class="ss-status-box" id="agent-deep-scan-status" style="margin-top:8px;display:none"></div>
           <div class="mon-stat-card">
             <div class="mst"><div class="mst-l">Monitor</div><div class="mst-v gold">B2B Event Intelligence Ireland</div></div>
             <div class="mst"><div class="mst-l">Frequency</div><div class="mst-v" id="mon-freq-display">Every week</div></div>
@@ -2779,19 +2782,34 @@ async function runAutoScanNow(){
 const RENDER_AGENT_URL = 'https://three60-lead-hunter.onrender.com'
 let _deepScanPoller = null
 
+function _deepScanStatus(msg, type){
+  const boxes=['deep-scan-status','agent-deep-scan-status']
+  const colors={info:'rgba(88,166,255,.08)',ok:'rgba(63,185,80,.1)',err:'rgba(248,81,73,.08)'}
+  const textColors={info:'var(--blue)',ok:'var(--green)',err:'var(--red,#f85149)'}
+  boxes.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return
+    el.style.cssText=`display:block;padding:10px 14px;border-radius:8px;font-size:12px;margin-top:6px;background:${colors[type]||colors.info};color:${textColors[type]||textColors.info}`
+    el.textContent=msg
+  })
+}
+
 async function runDeepScan(){
   const btn=document.getElementById('deep-scan-btn')
   const txt=document.getElementById('deep-scan-btn-text')
-  const statusBox=document.getElementById('deep-scan-status')
+  const agentBtn=document.getElementById('agent-deep-scan-btn')
   const lastRun=document.getElementById('deep-scan-last-run')
-  btn.disabled=true; txt.textContent='Waking up agent...'
-  statusBox.style.cssText='display:block;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:10px;background:rgba(88,166,255,.08);color:var(--blue)'
-  statusBox.textContent='Waking up Render agent — free tier may take up to 60s...'
+  function _resetDeepBtns(){
+    if(btn){ btn.disabled=false; txt.textContent='🔬 Run Deep Scan' }
+    if(agentBtn) agentBtn.disabled=false
+  }
+  if(btn){ btn.disabled=true; txt.textContent='Waking up...' }
+  if(agentBtn) agentBtn.disabled=true
+  _deepScanStatus('Waking up Render agent — free tier may take up to 60s...','info')
   try{
     const r=await fetch(`${RENDER_AGENT_URL}/scan`,{method:'POST'})
     if(!r.ok && r.status!==409) throw new Error(`HTTP ${r.status}`)
-    txt.textContent='🔬 Scanning... (~3–5 min)'
-    statusBox.textContent='Scout searching events → Analyst scoring leads → Closer writing cold emails...'
+    if(txt) txt.textContent='🔬 Scanning...'
+    _deepScanStatus('Scout searching events → Analyst scoring → Closer writing cold emails...','info')
     let attempts=0
     clearInterval(_deepScanPoller)
     _deepScanPoller=setInterval(async()=>{
@@ -2805,30 +2823,27 @@ async function runDeepScan(){
           const hot=leads.filter(l=>l.lead_score>=80).length
           const warm=leads.filter(l=>l.lead_score>=55&&l.lead_score<80).length
           const added=_importDeepLeads(leads)
-          statusBox.style.background='rgba(63,185,80,.1)'; statusBox.style.color='var(--green)'
-          statusBox.textContent=`Done — ${leads.length} leads (${hot} hot, ${warm} warm). ${added} new added to your database.`
-          txt.textContent='🔬 Run Deep Scan'; btn.disabled=false
-          lastRun.textContent=`Last run: ${new Date().toLocaleString('en-IE')}`
+          _deepScanStatus(`Done — ${leads.length} leads (${hot} hot, ${warm} warm). ${added} new added to your database.`,'ok')
+          if(lastRun) lastRun.textContent=`Last run: ${new Date().toLocaleString('en-IE')}`
+          _resetDeepBtns()
           toast(`Deep scan done: ${hot} hot · ${warm} warm · ${added} new leads`,'success',5000)
           await syncServerLeads(); renderLeadsTable(); renderOverview(); updateBadges()
         } else if(pd.status==='error'){
           clearInterval(_deepScanPoller); _deepScanPoller=null
-          statusBox.style.background='rgba(248,81,73,.08)'; statusBox.style.color='var(--red,#f85149)'
-          statusBox.textContent=`Error: ${pd.error||'Scan failed — check Render logs'}`
-          txt.textContent='🔬 Run Deep Scan'; btn.disabled=false
+          _deepScanStatus(`Error: ${pd.error||'Scan failed — check Render logs'}`,'err')
+          _resetDeepBtns()
         } else if(attempts>=25){
           clearInterval(_deepScanPoller); _deepScanPoller=null
-          statusBox.textContent='Taking longer than expected — check Render dashboard for status.'
-          txt.textContent='🔬 Run Deep Scan'; btn.disabled=false
+          _deepScanStatus('Taking longer than expected — check Render dashboard.','err')
+          _resetDeepBtns()
         } else {
-          statusBox.textContent=`Running... ${attempts*20}s — Scout→Analyst→Closer pipeline active`
+          _deepScanStatus(`Running... ${attempts*20}s — Scout→Analyst→Closer active`,'info')
         }
-      }catch(e){ if(attempts>=25){clearInterval(_deepScanPoller);txt.textContent='🔬 Run Deep Scan';btn.disabled=false} }
+      }catch(e){ if(attempts>=25){clearInterval(_deepScanPoller);_resetDeepBtns()} }
     },20000)
   }catch(e){
-    statusBox.style.background='rgba(248,81,73,.08)'; statusBox.style.color='var(--red,#f85149)'
-    statusBox.textContent=`Could not reach Render agent: ${e.message}`
-    txt.textContent='🔬 Run Deep Scan'; btn.disabled=false
+    _deepScanStatus(`Could not reach Render agent: ${e.message}`,'err')
+    _resetDeepBtns()
   }
 }
 

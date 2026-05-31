@@ -1,13 +1,14 @@
-// 360 Booth Ireland — Two-way Jarvis WhatsApp AI
+// 360 Booth Ireland — Two-way WhatsApp via Twilio
 //
-// SETUP (one-time, 2 minutes):
-//   Twilio Console → Messaging → Try it out → Send a WhatsApp message
-//   Under "When a message comes in" set URL to:
+// TWILIO SETUP (one-time):
+//   Console → Messaging → Try it out → Send a WhatsApp message
+//   Under "When a message comes in" set Webhook URL to:
 //     https://360-booth-ireland.vercel.app/api/whatsapp-webhook
-//   Method: HTTP POST  → Save
+//   Method: HTTP POST → Save
 //
-// After that, any WhatsApp message sent TO +1 415 523 8886 from your
-// number gets processed by Jarvis and replied to automatically.
+// Every inbound reply is saved to Supabase whatsapp_messages (direction=inbound).
+// Jarvis auto-replies and that reply is also saved (direction=outbound).
+// The dashboard polls /api/agent/messages every 7s and shows both.
 
 const SUPABASE_URL = 'https://kcjmmiifemdarknrvpas.supabase.co';
 const GROQ_BASE    = 'https://api.groq.com/openai/v1/chat/completions';
@@ -21,16 +22,39 @@ async function sbGet(path, key) {
   return r.ok ? r.json() : [];
 }
 
-// ── Twilio reply (send outbound message) ──────────────────────
-async function twilioReply(body, sid, token, from, to) {
-  const url = `${TWILIO_BASE}/Accounts/${sid}/Messages.json`;
-  const params = new URLSearchParams({ To: to, From: from, Body: body.slice(0, 1600) });
+async function sbInsert(table, key, data) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) {
+    const errText = await r.text().catch(() => '');
+    console.error(`[sbInsert] ${table} failed HTTP ${r.status}: ${errText.slice(0, 200)}`);
+  }
+  return r.ok;
+}
+
+// ── Twilio send ───────────────────────────────────────────────
+async function twilioSend(body, sid, token, from, to) {
+  const url  = `${TWILIO_BASE}/Accounts/${sid}/Messages.json`;
+  const form = new URLSearchParams({ To: to, From: from, Body: body.slice(0, 1600) });
   const creds = Buffer.from(`${sid}:${token}`).toString('base64');
-  await fetch(url, {
+  const r = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Basic ${creds}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
+    body: form.toString(),
   });
+  if (r.ok) {
+    const d = await r.json();
+    return d.sid || null;
+  }
+  return null;
 }
 
 // ── Format leads for WhatsApp ─────────────────────────────────
@@ -38,56 +62,42 @@ function formatLeads(leads, limit = 5) {
   if (!leads.length) return 'No leads found.';
   return leads.slice(0, limit).map((l, i) => {
     const score = l.lead_score || 0;
-    const tag = score >= 80 ? '🔴' : score >= 55 ? '🟡' : '🔵';
+    const tag   = score >= 80 ? '🔴' : score >= 55 ? '🟡' : '🔵';
     const lines = [`${i + 1}. ${tag} *${l.name || 'Event Lead'}* — ${score}/100`];
     if (l.event_name && l.event_name !== l.name) lines.push(`   ${l.event_name}`);
-    if (l.email) lines.push(`   ✉ ${l.email}`);
-    if (l.phone) lines.push(`   📞 ${l.phone}`);
+    if (l.email)  lines.push(`   ✉ ${l.email}`);
+    if (l.phone)  lines.push(`   📞 ${l.phone}`);
     return lines.join('\n');
   }).join('\n\n');
 }
 
-// ── Groq AI reply with full context ──────────────────────────
-async function groqReply(userMsg, leads, scans, groqKey) {
+// ── Groq AI reply ─────────────────────────────────────────────
+async function groqReply(userMsg, leads, groqKey) {
   const hot  = leads.filter(l => (l.lead_score || 0) >= 80);
   const warm = leads.filter(l => (l.lead_score || 0) >= 55 && (l.lead_score || 0) < 80);
   const topLeads = leads.slice(0, 8).map(l =>
-    `${l.name || 'Lead'} | score:${l.lead_score || 0} | email:${l.email || 'none'} | phone:${l.phone || 'none'} | event:${l.event_name || ''}`
+    `${l.name || 'Lead'} | score:${l.lead_score || 0} | email:${l.email || 'none'} | phone:${l.phone || 'none'}`
   ).join('\n');
-  const lastScan = scans[0];
-  const scanSummary = lastScan
-    ? `Last scan: ${new Date(lastScan.scan_run_at || lastScan.created_at || Date.now()).toLocaleDateString('en-IE')} — found ${leads.length} total leads`
-    : 'No scans yet.';
 
-  const system = `You are Jarvis, the AI intelligence officer for 360 Booth Ireland — a premium 360-degree photo booth and selfie mirror hire company based in Ireland.
+  const system = `You are 360 — Michael's AI intelligence officer for 360 Booth Ireland, a premium 360° photo/video booth hire company.
 
-CURRENT DATA:
-- Hot leads (score ≥80): ${hot.length}
-- Warm leads (score 55-79): ${warm.length}
-- Total leads: ${leads.length}
-- ${scanSummary}
-
+LIVE DATA: ${hot.length} hot leads (≥80) · ${warm.length} warm · ${leads.length} total
 TOP LEADS:
 ${topLeads || 'None yet.'}
 
 RULES:
-- Reply via WhatsApp so keep it concise and formatted with *bold* and bullet points
-- Always address the owner as Benji
-- For lead lookups, show name, score, email/phone
-- For scans, tell them when the last one ran and how many leads were found
-- If asked to run a scan, say you've queued it and they'll get a full report shortly
-- Suggest next actions (who to contact first, etc.)
-- Sign off with "— Jarvis 360 Booth 🤖" on complex replies`;
+- This is WhatsApp — keep replies concise, use *bold* and emoji naturally
+- Address the owner as Michael
+- Show lead name, score, email/phone when asked
+- Suggest the next best action
+- Sign complex replies with "— 360 🤖"`;
 
   const r = await fetch(GROQ_BASE, {
     method: 'POST',
     headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: userMsg },
-      ],
+      messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }],
       temperature: 0.4,
       max_tokens: 400,
     }),
@@ -101,52 +111,65 @@ RULES:
 function detectIntent(msg) {
   const m = msg.toLowerCase();
   if (/\b(run scan|scan now|find leads|search leads|start scan)\b/.test(m)) return 'scan';
-  if (/\b(hot leads?|best leads?|top leads?|urgent|priority)\b/.test(m)) return 'hot';
-  if (/\b(all leads?|lead list|show leads?|how many leads?)\b/.test(m)) return 'all';
-  if (/\b(pipeline|status|stats|summary|report)\b/.test(m)) return 'summary';
-  if (/\b(hello|hi jarvis|hey jarvis|good morning|good evening|good afternoon)\b/.test(m)) return 'greeting';
+  if (/\b(hot leads?|best leads?|top leads?|urgent|priority)\b/.test(m))     return 'hot';
+  if (/\b(all leads?|lead list|show leads?|how many leads?)\b/.test(m))       return 'all';
+  if (/\b(pipeline|status|stats|summary|report)\b/.test(m))                  return 'summary';
+  if (/\b(hi|hello|hey 360|good morning|good evening|good afternoon)\b/.test(m)) return 'greeting';
   return 'ai';
 }
 
 // ── Main handler ──────────────────────────────────────────────
 module.exports = async function handler(req, res) {
-  // Twilio always sends POST; respond with empty TwiML immediately (200 required)
   res.setHeader('Content-Type', 'text/xml');
-  if (req.method !== 'POST') return res.status(200).end('<?xml version="1.0"?><Response/>');
+
+  if (req.method !== 'POST') {
+    return res.status(200).end('<?xml version="1.0"?><Response/>');
+  }
 
   const inboundFrom = req.body?.From || '';
   const inboundBody = (req.body?.Body || '').trim();
-  if (!inboundBody || !inboundFrom) return res.status(200).end('<?xml version="1.0"?><Response/>');
+  const twilioMsgSid = req.body?.MessageSid || null;
 
-  // Respond to Twilio immediately (must be fast) — send the reply async
-  res.status(200).end('<?xml version="1.0"?><Response/>');
+  if (!inboundBody || !inboundFrom) {
+    return res.status(200).end('<?xml version="1.0"?><Response/>');
+  }
 
-  // Now process and reply in background
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const GROQ_KEY    = process.env.GROQ_API_KEY;
   const TWILIO_SID  = process.env.TWILIO_ACCOUNT_SID;
   const TWILIO_TOK  = process.env.TWILIO_AUTH_TOKEN;
-  const WA_FROM     = process.env.TWILIO_WHATSAPP_FROM; // sandbox number
-  const WA_TO       = inboundFrom;                      // reply to whoever messaged
+  const WA_FROM     = process.env.TWILIO_WHATSAPP_FROM;
 
+  // ── 1. Persist inbound message immediately (before anything else) ──
+  if (SERVICE_KEY) {
+    sbInsert('whatsapp_messages', SERVICE_KEY, {
+      direction:   'inbound',
+      body:        inboundBody,
+      from_number: inboundFrom,
+      to_number:   WA_FROM || 'sandbox',
+      twilio_sid:  twilioMsgSid,
+      label:       'Reply',
+    }).catch(() => {});
+  }
+
+  // ── 2. Respond to Twilio immediately (must be fast) ──
+  res.status(200).end('<?xml version="1.0"?><Response/>');
+
+  // ── 3. Build reply + save outbound async ──
   if (!SERVICE_KEY || !GROQ_KEY || !TWILIO_SID || !TWILIO_TOK || !WA_FROM) return;
 
   try {
-    // Fetch context
-    const [leads, scans] = await Promise.all([
-      sbGet('event_leads?order=scan_run_at.desc&limit=50&select=*', SERVICE_KEY),
-      sbGet('scan_config?id=eq.main&select=*', SERVICE_KEY),
-    ]);
+    const leads = await sbGet('event_leads?order=scan_run_at.desc&limit=50&select=*', SERVICE_KEY);
+    const arr   = leads || [];
+    const hot   = arr.filter(l => (l.lead_score || 0) >= 80);
+    const warm  = arr.filter(l => (l.lead_score || 0) >= 55 && (l.lead_score || 0) < 80);
 
     const intent = detectIntent(inboundBody);
-    const hot    = (leads || []).filter(l => (l.lead_score || 0) >= 80);
-    const warm   = (leads || []).filter(l => (l.lead_score || 0) >= 55 && (l.lead_score || 0) < 80);
     let reply;
 
     if (intent === 'scan') {
-      reply = `⚡ *Scan queued, Benji.*\n\nI'll run a full Exa + Groq search for Irish event leads right now. You'll get a detailed WhatsApp report and email once it's done (~30 seconds).\n\n— Jarvis 360 Booth 🤖`;
-      // Fire scan in background
-      fetch(`https://360-booth-ireland.vercel.app/api/auto-scan`, {
+      reply = `⚡ *Scan queued, Michael.*\n\nRunning a full Exa + Groq search right now — you'll get a WhatsApp report and email in ~30 seconds.\n\n— 360 🤖`;
+      fetch('https://360-booth-ireland.vercel.app/api/auto-scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dashboard_trigger: true }),
@@ -154,27 +177,39 @@ module.exports = async function handler(req, res) {
 
     } else if (intent === 'hot') {
       reply = hot.length
-        ? `🔴 *${hot.length} Hot Lead${hot.length > 1 ? 's' : ''} — Contact Now*\n\n${formatLeads(hot, 5)}\n\n— Jarvis 360 Booth 🤖`
-        : `No hot leads right now, Benji. ${warm.length} warm leads available.\n\nRun a scan to find new ones: just say *"run scan"*`;
+        ? `🔴 *${hot.length} Hot Lead${hot.length > 1 ? 's' : ''} — Contact Now*\n\n${formatLeads(hot, 5)}\n\n— 360 🤖`
+        : `No hot leads right now, Michael. ${warm.length} warm leads in the pipeline.\n\nSay *"run scan"* to find new ones.`;
 
     } else if (intent === 'all') {
-      reply = `📊 *${(leads || []).length} Total Leads*\n🔴 ${hot.length} hot · 🟡 ${warm.length} warm\n\n${formatLeads(leads || [], 5)}\n\n🔗 https://360-booth-ireland.vercel.app`;
+      reply = `📊 *${arr.length} Total Leads*\n🔴 ${hot.length} hot · 🟡 ${warm.length} warm\n\n${formatLeads(arr, 5)}\n\n🔗 https://360-booth-ireland.vercel.app`;
 
     } else if (intent === 'summary') {
-      reply = `📊 *360 Booth Ireland — Pipeline Summary*\n\n🔴 Hot leads: ${hot.length}\n🟡 Warm leads: ${warm.length}\n📋 Total: ${(leads || []).length}\n💰 Pipeline est: €${(hot.length * 1200).toLocaleString()}\n\n${hot.length ? `Top priority: *${hot[0]?.name || 'Event Lead'}* (${hot[0]?.lead_score || 0}/100)` : 'Run a scan to find new leads.'}\n\n— Jarvis 360 Booth 🤖`;
+      reply = `📊 *360 Booth Ireland — Pipeline*\n\n🔴 Hot: ${hot.length}\n🟡 Warm: ${warm.length}\n📋 Total: ${arr.length}\n💰 Est. value: €${(hot.length * 750).toLocaleString()}\n\n${hot.length ? `Top pick: *${hot[0]?.name || 'Lead'}* (${hot[0]?.lead_score || 0}/100)` : 'Run a scan to find leads.'}\n\n— 360 🤖`;
 
     } else if (intent === 'greeting') {
-      const hour = new Date().getHours();
-      const time = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
-      reply = `Good ${time}, Benji! 👋\n\n*Jarvis 360 Booth — online and ready.*\n\n🔴 ${hot.length} hot leads · 🟡 ${warm.length} warm\n\nWhat would you like to do?\n• *hot leads* — see your top leads\n• *run scan* — find new leads now\n• *summary* — pipeline overview\n• Or just ask me anything\n\n— Jarvis 🤖`;
+      const h    = new Date().getHours();
+      const time = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+      reply = `Good ${time}, Michael! 👋\n\n*360 — online and ready.*\n🔴 ${hot.length} hot · 🟡 ${warm.length} warm leads\n\nWhat would you like?\n• *hot leads* — see top leads\n• *run scan* — find new leads\n• *summary* — pipeline overview\n• Or just ask anything`;
 
     } else {
-      // Send to Groq for general AI response
-      reply = await groqReply(inboundBody, leads || [], scans || [], GROQ_KEY);
-      if (!reply) reply = `I received your message, Benji. Try asking about your *hot leads*, *pipeline summary*, or say *"run scan"* to find new leads.\n\n— Jarvis 360 Booth 🤖`;
+      reply = await groqReply(inboundBody, arr, GROQ_KEY);
+      if (!reply) reply = `Got your message, Michael. Try:\n• *hot leads* • *run scan* • *summary*\n\n— 360 🤖`;
     }
 
-    await twilioReply(reply, TWILIO_SID, TWILIO_TOK, WA_FROM, WA_TO);
+    // ── 4. Send reply via Twilio ──
+    const outSid = await twilioSend(reply, TWILIO_SID, TWILIO_TOK, WA_FROM, inboundFrom);
+
+    // ── 5. Persist outbound reply to Supabase ──
+    if (SERVICE_KEY) {
+      await sbInsert('whatsapp_messages', SERVICE_KEY, {
+        direction:   'outbound',
+        body:        reply,
+        from_number: WA_FROM,
+        to_number:   inboundFrom,
+        twilio_sid:  outSid,
+        label:       '360',
+      });
+    }
   } catch (err) {
     console.error('[whatsapp-webhook]', err.message);
   }

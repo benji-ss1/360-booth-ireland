@@ -39,8 +39,111 @@ module.exports = async function handler(req, res) {
   const GROQ_KEY = process.env.GROQ_API_KEY;
   if (!GROQ_KEY) return res.status(500).json({ error: 'Missing GROQ_API_KEY' });
 
-  const { message = '', context = {}, searchWeb = false } = req.body || {};
+  const { message = '', context = {}, searchWeb = false, intent = false, history = [], isFirstMessage = false, mode = 'chat', lead = {} } = req.body || {};
+
+  // ── EMAIL DRAFT MODE ─────────────────────────────────────────
+  if (mode === 'email-draft') {
+    const {
+      title = '', organizer = '', event_type = '', attendees_tier = 'Unknown',
+      url = '', relevance = '', action = '', booth_history = false,
+      booth_competitor = '', notes_user = '',
+    } = lead;
+    const services = `360 Photo Booth (from €379), Selfie Magic Mirror (from €399), Magazine Vogue Booth (from €499), Vintage Photo Booth (from €399), LED Dancefloor (from €599), Balloon Arch & Backdrops (from €80), LED Heart Stand (from €149), LED Letters/Numbers (from €79), Marquee Letters (from €599)`;
+    const competitorLine = booth_history
+      ? `Note: This organiser may have used a photo booth before (${booth_competitor || 'previous hire detected'}). Acknowledge this elegantly — position 360 Booth Ireland as the premium upgrade.`
+      : 'Note: First-touch outreach — no prior booth hire detected.';
+    const draftPrompt = `You are Michael, owner of 360 Booth Ireland — premium photo/video booth hire. Write a personalised cold email using the OBSERVE→INSIGHT→OPPORTUNITY→CTA framework.
+
+SERVICES: ${services}
+
+TARGET LEAD:
+- Event: ${title}
+- Organiser: ${organizer || 'Unknown'}
+- Event Type: ${event_type}
+- Attendees: ${attendees_tier}
+- Why it fits: ${relevance}
+- Suggested action: ${action}
+- Notes: ${notes_user}
+${competitorLine}
+
+FRAMEWORK:
+1. OBSERVE: One specific observation about THEIR event — show you know it.
+2. INSIGHT: One sharp insight — why guests at THIS event love interactive entertainment.
+3. OPPORTUNITY: One specific 360 Booth Ireland service that fits. Mention price tier if helpful.
+4. CTA: One soft ask. "Can I send a 60-second clip?" or "Quick call this week?" — no hard commit.
+
+RULES: Under 120 words. First name if known. No "I hope this finds you well". No exclamation marks. Calm, confident, premium tone. Subject under 8 words.
+
+Return JSON: {"subject":"...","body":"..."}`;
+    try {
+      const r = await fetch(GROQ_BASE, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: draftPrompt }], response_format: { type: 'json_object' }, temperature: 0.55, max_tokens: 500 }),
+      });
+      if (!r.ok) throw new Error(r.status);
+      const d = await r.json();
+      const p = JSON.parse(d.choices[0].message.content);
+      return res.status(200).json({ subject: p.subject || '', body: p.body || '' });
+    } catch (e) {
+      return res.status(500).json({ error: 'Email draft failed: ' + e.message });
+    }
+  }
+
   if (!message.trim()) return res.status(400).json({ error: 'message is required' });
+
+  // ── INTENT MODE — voice command classification ───────────────
+  // Returns structured JSON so the frontend can execute dashboard actions.
+  if (intent) {
+    const pages = ['overview','agent','pipeline','history','leads','messages','chat','settings'];
+    const { totalLeads=0, hotLeads=0, warmLeads=0, topHot=[], lastScan=null } = context;
+    const intentPrompt = `You are 360, the intent classifier for a 360° photo booth CRM dashboard (360 Booth Ireland).
+The owner spoke this voice command: "${message}"
+
+LIVE CONTEXT:
+- Total leads: ${totalLeads} | Hot (≥80): ${hotLeads} | Warm (55-79): ${warmLeads}
+- Top hot leads: ${topHot.map(l=>`${l.title} (${l.score}/100${l.email?', '+l.email:''})`).join('; ')||'none yet'}
+- Last scan: ${lastScan?`${new Date(lastScan.date).toLocaleDateString('en-IE')}, found ${lastScan.found} leads`:'never run'}
+
+PAGES (use exact key): overview, agent, pipeline, history, leads, messages, chat, settings
+- leads = "contacts", "database", "lead list", "all leads"
+- messages = "whatsapp", "comms"
+- agent = "intelligence", "intel", "monitor", "scanner"
+- history = "scan history", "logs", "audit"
+- overview = "home", "main", "dashboard"
+
+ACTIONS:
+- navigate: any variation of "show me", "open", "go to", "take me to", "pull up", "where are my"
+- scan: "run a scan", "run that scanner", "find me leads", "search for leads", "do a scan", "start scanning"
+- whatsapp: "send me", "text me", "ping me", "message me", "drop me a WhatsApp", "send on WhatsApp"
+- email: "email me", "send email report", "email report"
+- speak: questions about data, counts, pipeline, who to contact, general questions
+
+For whatsapp content, generate a well-formatted WhatsApp message based on the command and live context.
+Keep all "reply" fields to 1 SHORT sentence (under 12 words) — this is spoken out loud.
+
+Return ONLY valid JSON (no markdown):
+{"action":"navigate|scan|whatsapp|speak|email","page":"<page key if navigate>","reply":"<short spoken reply>","content":"<formatted whatsapp body if action=whatsapp>"}`;
+
+    try {
+      const groqRes = await fetch(GROQ_BASE, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: intentPrompt }],
+          temperature: 0.1,
+          max_tokens: 200,
+          response_format: { type: 'json_object' },
+        }),
+      });
+      const data = await groqRes.json();
+      const raw = data.choices?.[0]?.message?.content || '{}';
+      return res.status(200).json(JSON.parse(raw));
+    } catch (e) {
+      return res.status(200).json({ action: 'speak', reply: "I heard you. Try: show me the database, run scan, or hot leads." });
+    }
+  }
 
   const shouldSearch = EXA_KEY && (searchWeb || WEB_SEARCH_RX.test(message));
   const webResults = shouldSearch ? await exaWebSearch(message, EXA_KEY) : [];
@@ -63,25 +166,35 @@ module.exports = async function handler(req, res) {
     .join(', ');
 
   const systemPrompt = [
-    'You are Jarvis, the AI intelligence officer for 360 Booth Ireland — a premium 360° photo/video booth hire company.',
+    'You are 360 — the personal AI business intelligence officer for Michael, owner of 360 Booth Ireland.',
+    '360 Booth Ireland is a premium 360° photo/video booth hire company based in Ireland.',
     'Services: 360 Booth (€800–€2,000/event) and Selfie Mirror (€500–€1,200/event).',
-    'Target clients: corporate events, galas, awards nights, product launches, weddings, charity balls across Ireland.',
+    'Clients: corporate events, galas, awards nights, product launches, weddings, charity balls across Ireland.',
     '',
-    '=== LIVE DASHBOARD DATA ===',
-    `Total leads: ${totalLeads}`,
-    `Hot leads (≥80): ${hotLeads.length}`,
-    `Warm leads (55–79): ${warmLeads}`,
+    '=== YOUR PERSONALITY ===',
+    'You are warm, sharp, and confident — like a highly capable EA and business advisor rolled into one.',
+    'You speak to Michael like a trusted colleague: direct, insightful, occasionally witty, never robotic.',
+    'You use natural language: contractions, short punchy sentences, clear structure.',
+    'You ask follow-up questions when you need more context. You celebrate wins.',
+    'Format long answers with clear sections. Use **bold** for key names and numbers.',
+    'Keep responses focused — 2–4 paragraphs max unless a breakdown is needed.',
+    isFirstMessage ? 'This is the first message of this chat. Open with a warm personal greeting to Michael, then dive into his question.' : '',
+    '',
+    '=== LIVE DASHBOARD ===',
+    `Total leads: ${totalLeads} | Hot (≥80): ${hotLeads.length} | Warm (55–79): ${warmLeads}`,
     `Pipeline: ${pipelineSummary || 'empty'}`,
     lastScan
       ? `Last scan: ${new Date(lastScan.ts).toLocaleDateString('en-IE')} — ${lastScan.total || 0} events, ${lastScan.hot || 0} hot`
-      : 'Last scan: none',
+      : 'Last scan: not yet run',
     topHot ? `\nTop hot leads:\n${topHot}` : '',
     webResults.length
-      ? `\n=== WEB SEARCH RESULTS ===\n${webResults.map((r, i) => `[${i+1}] ${r.title}\n${r.url}\n${r.snippet}`).join('\n\n')}`
+      ? `\n=== WEB RESULTS ===\n${webResults.map((r, i) => `[${i+1}] ${r.title}\n${r.url}\n${r.snippet}`).join('\n\n')}`
       : '',
-    '',
-    'Keep answers concise, direct, and actionable. Use *asterisks* for bold. Reference specific leads and data when relevant.',
   ].filter(Boolean).join('\n');
+
+  // Build message thread: system + history (last 10 turns) + new user message
+  const conversationHistory = (Array.isArray(history) ? history.slice(-10) : [])
+    .filter(m => m.role && m.content);
 
   try {
     const groqRes = await fetch(GROQ_BASE, {
@@ -91,10 +204,11 @@ module.exports = async function handler(req, res) {
         model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: systemPrompt },
+          ...conversationHistory,
           { role: 'user', content: message },
         ],
-        temperature: 0.35,
-        max_tokens: 700,
+        temperature: 0.55,
+        max_tokens: 900,
       }),
     });
     if (!groqRes.ok) {

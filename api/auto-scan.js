@@ -7,43 +7,146 @@ const EXA_BASE    = 'https://api.exa.ai';
 const GROQ_BASE   = 'https://api.groq.com/openai/v1/chat/completions';
 const TWILIO_BASE = 'https://api.twilio.com/2010-04-01';
 
-const DEFAULT_QUERIES = [
+// ── Rolling scan window ───────────────────────────────────────────────────────
+// Always: 2 months ahead → 14 months ahead (12-month window).
+// Gives enough lead time to book and never resurfaces events that are too close.
+// May 2026 → July 2026–July 2027 | Aug 2026 → Oct 2026–Oct 2027 | etc.
+function getScanWindow() {
+  const now = new Date();
+  const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 1));
+  const endDate   = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 12, 1));
+  const years     = [...new Set([startDate.getUTCFullYear(), endDate.getUTCFullYear()])].sort();
+  return {
+    startDate,
+    endDate,
+    years,
+    startISO: startDate.toISOString().slice(0, 10),
+    endISO:   endDate.toISOString().slice(0, 10),
+  };
+}
+
+// Query templates — year(s) injected at runtime by buildDefaultQueries()
+const QUERY_TEMPLATES = [
   // Corporate & Awards
-  'corporate awards ceremony gala dinner Ireland 2026',
-  'company end of year party Dublin Cork Galway 2026',
-  'corporate awards night black tie Ireland 2026',
-  'business awards gala ceremony Dublin 2026',
+  'corporate awards ceremony gala dinner Ireland',
+  'company end of year party Dublin Cork Galway',
+  'corporate awards night black tie Ireland',
+  'business awards gala ceremony Dublin',
+  'annual awards dinner business Ireland Cork Galway',
+  'employee recognition awards gala Ireland',
   // Conferences & Summits
-  'tech conference summit Dublin Ireland 2026 evening reception',
-  'industry conference gala dinner Ireland 2026',
-  'professional association annual dinner awards Ireland 2026',
-  'business summit conference networking Dublin 2026',
+  'tech conference summit Dublin Ireland evening reception',
+  'industry conference gala dinner Ireland',
+  'professional association annual dinner awards Ireland',
+  'business summit conference networking Dublin',
+  'pharma biotech annual conference gala Ireland',
+  'fintech finance summit gala dinner Dublin',
+  'legal professional dinner awards Ireland',
   // Weddings
-  'wedding reception venue hire Dublin Cork Galway 2026',
-  'luxury wedding reception Ireland 2026',
-  'wedding entertainment hire Ireland 2026',
+  'wedding reception venue hire Dublin Cork Galway',
+  'luxury wedding reception Ireland',
+  'wedding entertainment hire Ireland',
+  'wedding venue booking Ireland Cork Limerick',
   // Product Launches & Brand Events
-  'product launch event party Dublin Ireland 2026',
-  'brand activation launch party Ireland 2026',
-  'company milestone anniversary celebration Ireland 2026',
+  'product launch event party Dublin Ireland',
+  'brand activation launch party Ireland',
+  'company milestone anniversary celebration Ireland',
+  'new office opening celebration Ireland',
+  'rebranding launch party corporate Ireland',
   // Charity & Galas
-  'charity gala ball fundraiser dinner Ireland 2026',
-  'black tie charity ball auction dinner Ireland 2026',
+  'charity gala ball fundraiser dinner Ireland',
+  'black tie charity ball auction dinner Ireland',
+  'charity ball ticket gala Ireland Cork Dublin',
+  'fundraiser gala dinner auction Ireland',
   // Sports & Social Clubs
-  'golf club annual dinner dance awards Ireland 2026',
-  'sports club gala dinner awards night Ireland 2026',
+  'golf club annual dinner dance awards Ireland',
+  'sports club gala dinner awards night Ireland',
+  'GAA club annual dinner dance Ireland',
+  'rugby club gala dinner awards Ireland',
   // Venue & Hospitality
-  'hotel ballroom gala event hire Dublin Cork 2026',
-  'premium event venue hire celebration Ireland 2026',
+  'hotel ballroom gala event hire Dublin Cork',
+  'premium event venue hire celebration Ireland',
+  'venue hire corporate event Galway Limerick Waterford',
+  // City-Specific Queries
+  'gala dinner awards night Dublin',
+  'corporate event awards ceremony Cork',
+  'black tie event gala Galway',
+  'awards dinner celebration Limerick Ireland',
+  'corporate gala event Waterford Kilkenny',
+  // Sector-Specific
+  'healthcare medical annual conference gala Ireland',
+  'construction property awards dinner Ireland',
+  'retail fashion brand launch Ireland',
+  'hospitality tourism awards Ireland',
+  'media entertainment industry awards Ireland',
+  // Social Media Workaround — Facebook/Instagram events indexed by Exa
+  'site:facebook.com/events corporate gala party Ireland',
+  'site:facebook.com/events awards dinner Ireland Cork Dublin',
+  'site:facebook.com/events charity ball Ireland',
+  'site:eventbrite.ie gala awards corporate dinner Ireland',
+  'site:lovin.ie corporate event gala awards party Ireland',
+  // Instagram/PR indirect — PR sites carry IG-announced events
+  'site:businesspost.ie event launch gala awards corporate',
+  'site:siliconrepublic.com event launch party Dublin Ireland',
+  'site:irishexaminer.com gala awards fundraiser event Ireland',
+  'site:independent.ie corporate event awards gala dinner',
+  // LinkedIn Events workaround
+  'site:linkedin.com/events Ireland corporate gala awards',
 ];
+
+// Builds queries with the correct years for the rolling window.
+// When the window spans two calendar years, both years are queried.
+function buildDefaultQueries(years) {
+  const queries = [];
+  for (const template of QUERY_TEMPLATES) {
+    for (const year of years) {
+      queries.push(`${template} ${year}`);
+    }
+  }
+  return queries;
+}
 
 const EVENT_DOMAINS = [
   'eventbrite.ie', 'eventbrite.com', 'ticketmaster.ie',
   'meetup.com', 'lovin.ie', 'entertainment.ie',
   'irishvenues.com', 'weddingsonline.ie', 'confex.com',
+  'facebook.com', 'linkedin.com',
+  'businesspost.ie', 'siliconrepublic.com', 'irishexaminer.com',
+  'independent.ie', 'businessworld.ie', 'irishtimes.com',
 ];
 
 // ── Supabase REST helpers ──────────────────────────────────────────────────
+
+// Normalise a company/event name for fuzzy dedup comparison
+function normName(s) {
+  return (s || '').toLowerCase()
+    .replace(/\b(the|a|an|&|and|of|in|at|for|by|ltd|limited|plc|llc|inc)\b/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
+// Fetch fingerprints of all existing leads to skip duplicates.
+// Returns a Set of: email values + normName(event_name) + URLs extracted from notes.
+async function fetchExistingFingerprints(serviceKey) {
+  const prints = new Set();
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/event_leads?select=email,event_name,notes&limit=2000`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
+    if (!res.ok) return prints;
+    const rows = await res.json();
+    for (const r of (rows || [])) {
+      if (r.email) prints.add(r.email.trim().toLowerCase());
+      if (r.event_name) prints.add(normName(r.event_name));
+      // Extract URL from notes field: "Source: https://..."
+      const urlMatch = (r.notes || '').match(/Source:\s*(https?:\/\/[^\s|]+)/);
+      if (urlMatch) prints.add(urlMatch[1].trim().toLowerCase());
+    }
+  } catch (e) { /* non-fatal */ }
+  return prints;
+}
+
 async function supabaseGet(path, serviceKey) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: {
@@ -57,7 +160,7 @@ async function supabaseGet(path, serviceKey) {
 }
 
 async function supabasePost(table, body, serviceKey) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
       apikey: serviceKey,
@@ -67,6 +170,11 @@ async function supabasePost(table, body, serviceKey) {
     },
     body: JSON.stringify(body),
   });
+  if (!r.ok) {
+    const errText = await r.text().catch(() => '');
+    console.error(`[supabasePost] ${table} failed HTTP ${r.status}: ${errText.slice(0, 300)}`);
+  }
+  return r;
 }
 
 async function supabasePatch(table, match, body, serviceKey) {
@@ -107,9 +215,13 @@ function inferService(t) {
   return '360 Booth';
 }
 
+const GENERIC_EMAIL_RX = /^(info|hello|contact|support|admin|noreply|no-reply|enquir|press|media|office|reception|team|sales|booking|events?|general|mail|post|web|webmaster|editor|feedback)@/i;
+
 function emailFallback(text) {
-  const m = (text || '').match(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/);
-  return m ? m[0] : null;
+  // Find ALL emails in text, prefer non-generic ones first
+  const all = (text || '').match(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/g) || [];
+  const specific = all.filter(e => !GENERIC_EMAIL_RX.test(e));
+  return (specific[0] || all[0]) || null;
 }
 
 function phoneFallback(text) {
@@ -117,16 +229,13 @@ function phoneFallback(text) {
   return m ? m[0].replace(/[\s\-]/g, '') : null;
 }
 
-async function exaSearch(query, exaKey) {
-  // Look back 6 months — event pages are published well before the event date
-  const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+async function exaSearch(query, exaKey, numResults = 15) {
   try {
     const res = await fetch(`${EXA_BASE}/search`, {
       method: 'POST',
       headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query, type: 'auto', numResults: 10,
-        startPublishedDate: sixMonthsAgo,
+        query, type: 'auto', numResults,
         contents: { highlights: true },
       }),
     });
@@ -136,13 +245,13 @@ async function exaSearch(query, exaKey) {
   } catch { return []; }
 }
 
-async function exaContents(urls, exaKey) {
+async function exaContents(urls, exaKey, maxCharacters = 4000) {
   if (!urls.length) return {};
   try {
     const res = await fetch(`${EXA_BASE}/contents`, {
       method: 'POST',
       headers: { 'x-api-key': exaKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: urls, text: { maxCharacters: 4000 } }),
+      body: JSON.stringify({ ids: urls, text: { maxCharacters } }),
     });
     if (!res.ok) return {};
     const data = await res.json();
@@ -152,43 +261,72 @@ async function exaContents(urls, exaKey) {
   } catch { return {}; }
 }
 
-async function extractWithGroq(text, title, url, groqKey) {
-  if (!text || text.length < 100) return null;
+async function extractWithGroq(text, title, url, groqKey, scanWindowStart, scanWindowEnd) {
+  // Even with minimal text, attempt extraction using the page title
+  const content = (text && text.length >= 80) ? text.slice(0, 3500) : title;
+  if (!content) return null;
+  const todayISO       = new Date().toISOString().slice(0, 10);
+  const windowStartISO = (scanWindowStart || new Date()).toISOString().slice(0, 10);
+  const windowEndISO   = (scanWindowEnd   || new Date(Date.now() + 365*24*3600*1000)).toISOString().slice(0, 10);
   try {
     const res = await fetch(GROQ_BASE, {
       method: 'POST',
       headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: `Extract event organiser contacts as JSON: {"organizer_name":null,"email":null,"phone":null,"event_name":"","event_date":null,"venue":null,"event_type":"wedding|corporate|birthday|party|fundraiser|conference|other"}\nContent: ${text.slice(0, 3000)}` }],
-        temperature: 0.1, max_tokens: 250,
+        messages: [{ role: 'user', content: `You are extracting an event lead for a 360° photo booth hire company in Ireland. Today is ${todayISO}. We are only interested in events happening between ${windowStartISO} and ${windowEndISO}.\nFrom the content below, extract as much as possible into JSON. Make your best guess for event_type from context clues.\nReturn: {"organizer_name":null,"email":null,"phone":null,"event_name":"","event_date":null,"venue":null,"event_type":"wedding|corporate|birthday|party|fundraiser|conference|gala|awards|other"}\nRULES FOR event_date:\n- Always return a full ISO date (YYYY-MM-DD) or null.\n- If only month+year is visible, use the 1st of that month (e.g. "August 2026" → "2026-08-01").\n- If only month+day is visible with no year, choose the year that falls within ${windowStartISO} to ${windowEndISO}. If no valid year fits, return null.\n- If the event date is before ${windowStartISO} or after ${windowEndISO}, still return the actual date — it will be filtered out downstream.\n- If no date is mentioned, return null.\nIf the page is a venue, hotel, or event space — set organizer_name to the venue name.\nContent:\n${content}` }],
+        temperature: 0.1, max_tokens: 300,
         response_format: { type: 'json_object' },
       }),
     });
     if (!res.ok) return null;
     const data = await res.json();
     const p = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-    if (!p.email) p.email = emailFallback(text);
-    if (!p.phone) p.phone = phoneFallback(text);
+    if (!p.email) p.email = emailFallback(text || '');
+    if (!p.phone) p.phone = phoneFallback(text || '');
+    // If Groq returned nothing useful, use the title as event_name
+    if (!p.event_name && title) p.event_name = title.slice(0, 120);
     p.source_url = url;
     return p;
   } catch {
-    return { organizer_name: null, email: emailFallback(text), phone: phoneFallback(text), event_name: title, event_date: null, venue: null, event_type: 'other', source_url: url };
+    return { organizer_name: null, email: emailFallback(text||''), phone: phoneFallback(text||''), event_name: title||'', event_date: null, venue: null, event_type: 'other', source_url: url };
   }
 }
 
 function computeLeadScore(e) {
-  let score = 30;
-  if (e.email && e.phone) score += 35;
-  else if (e.email) score += 25;
-  else if (e.phone) score += 15;
+  let score = 35; // base
+  // Contact info — email+phone is the gold tier
+  if (e.email && e.phone)   score += 40; // 75+ before event type → hot after type bonus
+  else if (e.email)          score += 22; // email only → still hot with good event type
+  else if (e.phone)          score += 10; // phone only → warm with good event type
+  // Event type bonus
   const type = (e.event_type || '').toLowerCase();
-  if (['corporate', 'conference', 'fundraiser', 'gala', 'awards'].some(t => type.includes(t))) score += 30;
-  else if (type === 'wedding') score += 25;
-  else if (['birthday', 'party', 'other'].some(t => type.includes(t))) score += 15;
+  if (['corporate', 'conference', 'fundraiser', 'gala', 'awards'].some(t => type.includes(t))) score += 28;
+  else if (type === 'wedding') score += 22;
+  else if (['birthday', 'party'].some(t => type.includes(t))) score += 12;
+  else score += 8;
   if (e.venue) score += 8;
   if (e.event_date) score += 7;
   return Math.min(score, 100);
+}
+
+// Signals that a page/event is already closed, sold out, or past
+const CLOSED_RX = /\b(bookings?\s+(are\s+)?(now\s+)?closed|booking\s+closed|tickets?\s+(are\s+)?no\s+longer\s+available|event\s+has\s+(passed|ended|concluded)|this\s+event\s+is\s+over|registrations?\s+(are\s+)?closed|sold[\s-]out|event\s+(already\s+)?took\s+place|event\s+was\s+held)\b/i;
+
+function isPageClosed(text) {
+  return CLOSED_RX.test(text || '');
+}
+
+// Returns true if the event date falls within the scan window (or is unknown).
+// Rejects events that are in the past OR too soon (before scanWindowStart).
+function isEventInWindow(eventDate, scanWindowStart) {
+  if (!eventDate) return true; // no date = keep (venue/organiser pages etc.)
+  try {
+    const iso = eventDate.length === 7 ? eventDate + '-01' : eventDate;
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return true; // unparseable → keep to be safe
+    return d >= scanWindowStart;
+  } catch { return true; }
 }
 
 function mapToLead(e, scanRunId) {
@@ -220,8 +358,82 @@ function mapToLead(e, scanRunId) {
   };
 }
 
+// ── Enrich leads with no contact info — 3-tier approach ──────────────────
+// Tier 1: Fetch homepage + /contact + /about at 8000 chars (catches footers)
+// Tier 2: Groq reads the page text if regex found nothing
+// Tier 3: Exa web search for "[org name] email contact Ireland" — like web-searching for their email
+// Zero hallucination — only extracts from real fetched page content.
+async function enrichLeadContacts(leads, exaKey, groqKey) {
+  const noContact = leads.filter(l => !l.email && !l.phone);
+  if (!noContact.length) return;
+
+  // Map origin → lead for batch processing
+  const leadByOrigin = {};
+  for (const l of noContact) {
+    const m = (l.notes || '').match(/Source:\s*(https?:\/\/[^\s|]+)/);
+    if (!m) continue;
+    try {
+      const origin = new URL(m[1]).origin;
+      if (!leadByOrigin[origin]) leadByOrigin[origin] = l;
+    } catch {}
+  }
+  if (!Object.keys(leadByOrigin).length) return;
+
+  // TIER 1: Batch fetch homepage + contact pages with 8000 chars (footers are at the bottom)
+  const tier1Urls = [];
+  for (const origin of Object.keys(leadByOrigin)) {
+    for (const path of ['/', '/contact', '/contact-us', '/about', '/about-us']) {
+      tier1Urls.push(origin + path);
+    }
+  }
+  const cm = await exaContents(tier1Urls, exaKey, 8000);
+
+  const stillMissing = [];
+  for (const [origin, l] of Object.entries(leadByOrigin)) {
+    const text = ['/', '/contact', '/contact-us', '/about', '/about-us']
+      .map(p => cm[origin + p]?.text || '')
+      .join('\n');
+
+    const email = emailFallback(text);
+    const phone = phoneFallback(text);
+    if (email) l.email = email;
+    if (phone) l.phone = phone;
+
+    // TIER 2: Groq reads the page text if regex found nothing
+    if (!l.email && !l.phone && text.length > 150) {
+      try {
+        const extracted = await extractWithGroq(text.slice(0, 3000), l.event_name, origin + '/contact', groqKey);
+        if (extracted?.email) l.email = extracted.email;
+        if (extracted?.phone) l.phone = extracted.phone;
+      } catch {}
+    }
+
+    if (l.email || l.phone) { l.lead_score = computeLeadScore(l); continue; }
+    stillMissing.push(l);
+  }
+
+  if (!stillMissing.length) return;
+
+  // TIER 3: Exa web search — search the open web for the organiser's contact details
+  // This is the equivalent of searching Google for their email.
+  await Promise.all(stillMissing.map(async (l) => {
+    try {
+      const q = `"${(l.event_name || l.name || '').slice(0, 60)}" email contact Ireland`;
+      const searchHits = await exaSearch(q, exaKey, 4);
+      if (!searchHits.length) return;
+      const hitContent = await exaContents(searchHits.map(r => r.url), exaKey, 3000);
+      const allText = Object.values(hitContent).map(c => c?.text || '').join('\n');
+      const email = emailFallback(allText);
+      const phone = phoneFallback(allText);
+      if (email) l.email = email;
+      if (phone) l.phone = phone;
+      if (l.email || l.phone) l.lead_score = computeLeadScore(l);
+    } catch {}
+  }));
+}
+
 // ── WhatsApp alert after scan ─────────────────────────────────────────────
-async function sendWhatsAppAlert(leads, hotLeads, warnLeads, sid, token, from, to, scannedAt) {
+async function sendWhatsAppAlert(leads, hotLeads, warnLeads, sid, token, from, to, scannedAt, serviceKey) {
   if (!sid || !token || !from || !to) return;
   try {
     const dublinTime = new Date(scannedAt).toLocaleString('en-IE', {
@@ -229,48 +441,63 @@ async function sendWhatsAppAlert(leads, hotLeads, warnLeads, sid, token, from, t
       hour: '2-digit', minute: '2-digit',
     });
     const lines = [
-      '*⚡ Jarvis Auto-Scan — 360 Booth Ireland*',
-      dublinTime + ' Dublin',
+      '⚡ *360 Scan — 360 Booth Ireland*',
+      `🕐 ${dublinTime}`,
       '',
-      `🔴 ${hotLeads.length} hot  🟡 ${warnLeads.length} warm  📊 ${leads.length} total found`,
+      `✅ *${leads.length} NEW lead${leads.length !== 1 ? 's' : ''} added* (deduped — no repeats)`,
+      `🔴 ${hotLeads.length} hot  🟡 ${warnLeads.length} warm`,
     ];
 
     if (hotLeads.length) {
-      lines.push('', '━━━━━━━━━━━━━━━━━━━━', '🔥 *HOT LEADS — Contact Now*');
-      hotLeads.slice(0, 3).forEach((l, i) => {
+      lines.push('', '━━━━━━━━━━━━━━', '🔥 *HOT — Contact Today*');
+      hotLeads.forEach((l, i) => {
         lines.push('');
-        lines.push(`${i + 1}. *${l.event_name || l.name}*`);
-        lines.push(`   Score: ${l.lead_score}/100`);
+        lines.push(`${i + 1}. *${l.event_name || l.name}* — ${l.lead_score}/100`);
+        if (l.event_type) lines.push(`   📌 ${l.event_type}`);
         if (l.event_date) lines.push(`   📅 ${l.event_date}`);
-        if (l.venue) lines.push(`   📍 ${l.venue}`);
-        if (l.name && l.event_name) lines.push(`   Organiser: ${l.name}`);
-        if (l.email) lines.push(`   ✉ ${l.email}`);
-        if (l.phone) lines.push(`   📞 ${l.phone}`);
+        if (l.venue)      lines.push(`   📍 ${l.venue}`);
+        if (l.name && l.event_name) lines.push(`   👤 ${l.name}`);
+        if (l.email)      lines.push(`   ✉ ${l.email}`);
+        if (l.phone)      lines.push(`   📞 ${l.phone}`);
       });
-    } else if (warnLeads.length) {
-      lines.push('', '━━━━━━━━━━━━━━━━━━━━', '🟡 *Warm Leads*');
-      warnLeads.slice(0, 2).forEach((l, i) => {
-        lines.push('');
+    }
+    if (warnLeads.length) {
+      lines.push('', '🟡 *Warm Leads*');
+      warnLeads.forEach((l, i) => {
         lines.push(`${i + 1}. *${l.event_name || l.name}* — ${l.lead_score}/100`);
         if (l.email) lines.push(`   ✉ ${l.email}`);
         if (l.phone) lines.push(`   📞 ${l.phone}`);
       });
-    } else if (!leads.length) {
-      lines.push('', 'No leads with contact info found this run.');
+    }
+    if (!leads.length) {
+      lines.push('', '📭 No new leads this run (all already in database).');
     }
 
-    lines.push('', '━━━━━━━━━━━━━━━━━━━━');
+    lines.push('', '━━━━━━━━━━━━━━');
     lines.push('🔗 https://360-booth-ireland.vercel.app');
 
     const body = lines.join('\n').slice(0, 1600);
     const url = `${TWILIO_BASE}/Accounts/${sid}/Messages.json`;
     const params = new URLSearchParams({ To: to, From: from, Body: body });
     const credentials = Buffer.from(`${sid}:${token}`).toString('base64');
-    await fetch(url, {
+    const twilioRes = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
     });
+    const twilioData = twilioRes.ok ? await twilioRes.json().catch(() => ({})) : {};
+
+    // Save the outbound alert to whatsapp_messages so the dashboard can display it
+    if (serviceKey) {
+      await supabasePost('whatsapp_messages', {
+        direction:   'outbound',
+        body,
+        from_number: from,
+        to_number:   to,
+        twilio_sid:  twilioData.sid || null,
+        label:       '360 Scan',
+      }, serviceKey).catch(() => {});
+    }
   } catch (err) {
     console.warn('[auto-scan] WhatsApp alert failed (non-fatal):', err.message);
   }
@@ -281,7 +508,7 @@ const RESEND_BASE  = 'https://api.resend.com/emails';
 // onboarding@resend.dev (sandbox) only delivers to the Resend account owner.
 // Send only to that address until a custom domain is verified on Resend.
 const TO_ADDRESSES = ['benj.sanusi@gmail.com'];
-const FROM_ADDRESS = 'Jarvis 360 Booth <onboarding@resend.dev>';
+const FROM_ADDRESS = '360 Booth Ireland <onboarding@resend.dev>';
 
 async function sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt, resendKey) {
   const dublinDate = new Date(scannedAt).toLocaleString('en-IE', {
@@ -322,7 +549,7 @@ async function sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt,
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark light">
-<title>Jarvis Auto-Scan Report</title>
+<title>360 Auto-Scan Report</title>
 </head>
 <body style="margin:0;padding:0;background-color:#07090E;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" bgcolor="#07090E" style="background-color:#07090E">
@@ -338,7 +565,7 @@ async function sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt,
     <table width="100%" cellpadding="0" cellspacing="0">
     <tr>
       <td>
-        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin-bottom:8px">360 Booth Ireland · Jarvis Intelligence</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#C9A84C;text-transform:uppercase;margin-bottom:8px">360 Booth Ireland · Intelligence OS</div>
         <div style="font-size:24px;font-weight:800;color:#F0F6FC;letter-spacing:-0.5px;line-height:1.2">Auto-Scan Report</div>
         <div style="font-size:12px;color:#6E7681;margin-top:6px">${dublinDate} · Dublin</div>
       </td>
@@ -401,7 +628,7 @@ async function sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt,
 
   <!-- Footer -->
   <tr><td bgcolor="#06090D" style="background-color:#06090D;padding:16px 28px;text-align:center;border:1px solid rgba(255,255,255,.04);border-top:none;border-radius:0 0 12px 12px">
-    <div style="font-size:10px;color:#30363D;letter-spacing:.5px">Powered by Jarvis × 360 Booth Intelligence · Exa · Groq LLaMA 3.3 70B</div>
+    <div style="font-size:10px;color:#30363D;letter-spacing:.5px">Powered by 360 Booth Intelligence · Exa · Groq LLaMA 3.3 70B</div>
   </td></tr>
 
 </table>
@@ -411,10 +638,10 @@ async function sendEmailReport(leads, hotLeads, warnLeads, scanRunId, scannedAt,
 </html>`;
 
   const subject = hotLeads.length > 0
-    ? `🔴 ${hotLeads.length} hot lead${hotLeads.length > 1 ? 's' : ''} — Jarvis · ${new Date(scannedAt).toLocaleDateString('en-IE',{timeZone:'Europe/Dublin',day:'numeric',month:'short'})}`
+    ? `🔴 ${hotLeads.length} hot lead${hotLeads.length > 1 ? 's' : ''} — 360 ·${new Date(scannedAt).toLocaleDateString('en-IE',{timeZone:'Europe/Dublin',day:'numeric',month:'short'})}`
     : leads.length > 0
-    ? `📊 ${leads.length} lead${leads.length > 1 ? 's' : ''} found — Jarvis Auto-Scan`
-    : `⚡ Jarvis Auto-Scan ran — 0 leads with contact info`;
+    ? `📊 ${leads.length} lead${leads.length > 1 ? 's' : ''} found — 360 Auto-Scan`
+    : `⚡ 360 Auto-Scan ran — 0 leads with contact info`;
 
   for (const to of TO_ADDRESSES) {
     await fetch(RESEND_BASE, {
@@ -496,17 +723,22 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // Build queries from config
-  const queries = [...DEFAULT_QUERIES];
+  // Build queries using the rolling 12-month window
+  const { startDate: winStart, endDate: winEnd, years: winYears, startISO: winStartISO, endISO: winEndISO } = getScanWindow();
+  const queries = buildDefaultQueries(winYears);
   const customTerms = config?.custom_terms || '';
   if (customTerms) {
     customTerms.split(',').map(t => t.trim()).filter(Boolean).forEach(term => {
-      queries.push(`${term} events Ireland`);
+      for (const year of winYears) queries.push(`${term} events Ireland ${year}`);
     });
   }
+  console.log(`[auto-scan] window: ${winStartISO} → ${winEndISO} | years: ${winYears.join(', ')} | queries: ${queries.length}`);
 
   try {
     const scanRunId = uid();
+
+    // Fetch existing fingerprints to avoid cross-scan duplicates
+    const existingPrints = await fetchExistingFingerprints(SERVICE_KEY);
 
     // Run searches
     const allResults = [];
@@ -514,47 +746,111 @@ module.exports = async function handler(req, res) {
       allResults.push(...(await exaSearch(q, EXA_KEY)));
     }
 
-    // Deduplicate + cap
+    // Deduplicate within this scan by URL, and against existing Supabase records
     const seen = new Set();
     const unique = allResults.filter(r => {
-      if (seen.has(r.url)) return false;
-      seen.add(r.url);
+      const urlKey = (r.url || '').trim().toLowerCase();
+      if (seen.has(urlKey)) return false;
+      if (existingPrints.has(urlKey)) return false; // already in database
+      seen.add(urlKey);
       return true;
-    }).slice(0, 30);
+    }).slice(0, 60);
 
     const contentMap = await exaContents(unique.map(r => r.url), EXA_KEY);
 
-    // Extract leads
-    const leads = [];
-    for (let i = 0; i < unique.length; i += 5) {
-      const batch = unique.slice(i, i + 5);
+    // Extract leads — keep anything with a recognisable event name (no email required)
+    async function extractBatch(batch) {
       const extracted = await Promise.all(
-        batch.map(r => extractWithGroq(contentMap[r.url]?.text || '', r.title, r.url, GROQ_KEY))
+        batch.map(r => {
+          const text = contentMap[r.url]?.text || '';
+          // Skip pages that signal the event is already closed or past
+          if (isPageClosed(text) || isPageClosed(r.title)) return null;
+          return extractWithGroq(text, r.title, r.url, GROQ_KEY, winStart, winEnd);
+        })
       );
       for (const e of extracted) {
+        if (!e) continue;
+        const emailKey = (e.email || '').trim().toLowerCase();
+        const nameKey  = normName(e.event_name);
+        if (emailKey && existingPrints.has(emailKey)) continue;
+        if (nameKey.length > 4 && existingPrints.has(nameKey)) continue;
+        // Accept lead if it has an event name OR organizer name (contact info optional)
+        if (!e.event_name && !e.organizer_name) continue;
+        // Drop events outside the rolling window (too soon or too old)
+        if (!isEventInWindow(e.event_date, winStart)) continue;
         const lead = mapToLead(e, scanRunId);
-        if (lead && (lead.email || lead.phone)) leads.push(lead);
+        if (!lead) continue;
+        // Only save Hot (≥80) and Warm (55-79) — Cool leads have no actionable value
+        if (lead.lead_score < 55) continue;
+        leads.push(lead);
+        if (emailKey) existingPrints.add(emailKey);
+        if (nameKey.length > 4) existingPrints.add(nameKey);
       }
     }
 
-    // Write to Supabase event_leads table
+    const leads = [];
+    for (let i = 0; i < unique.length; i += 6) {
+      await extractBatch(unique.slice(i, i + 6));
+      if (leads.length >= 12) break; // enough for a good scan report
+    }
+
+    // ── Fallback sweep — if < 2 leads, broaden search with simpler queries ──
+    if (leads.length < 2) {
+      const FALLBACK_TEMPLATES = [
+        'awards gala dinner Ireland',
+        'corporate event entertainment hire Dublin',
+        'wedding entertainment photo booth Ireland',
+        'charity fundraiser gala ball Ireland',
+        'hotel venue event hire Cork Galway Dublin',
+      ];
+      const FALLBACK_QUERIES = FALLBACK_TEMPLATES.flatMap(t => winYears.map(y => `${t} ${y}`));
+      const fallbackResults = [];
+      for (const q of FALLBACK_QUERIES) {
+        fallbackResults.push(...(await exaSearch(q, EXA_KEY, 12)));
+      }
+      const fallbackSeen = new Set(unique.map(r => r.url));
+      const fallbackUnique = fallbackResults.filter(r => {
+        const k = (r.url || '').toLowerCase();
+        if (fallbackSeen.has(k) || existingPrints.has(k)) return false;
+        fallbackSeen.add(k);
+        return true;
+      }).slice(0, 30);
+      if (fallbackUnique.length) {
+        const fbContentMap = await exaContents(fallbackUnique.map(r => r.url), EXA_KEY);
+        // Merge into contentMap
+        Object.assign(contentMap, fbContentMap);
+        for (let i = 0; i < fallbackUnique.length; i += 6) {
+          await extractBatch(fallbackUnique.slice(i, i + 6));
+          if (leads.length >= 8) break;
+        }
+      }
+    }
+
+    // Enrich leads that have no email/phone via their contact/about pages
+    await enrichLeadContacts(leads, EXA_KEY, GROQ_KEY);
+
+    // Write only genuinely new leads to Supabase
     if (leads.length) {
-      await supabasePost('event_leads', leads, SERVICE_KEY);
+      const insertRes = await supabasePost('event_leads', leads, SERVICE_KEY);
+      if (!insertRes.ok) {
+        console.error('[auto-scan] Lead insert failed — check Supabase schema matches mapToLead()');
+      }
     }
 
     const hotLeads  = leads.filter(l => (l.lead_score || 0) >= 80);
     const warnLeads = leads.filter(l => (l.lead_score || 0) >= 55 && (l.lead_score || 0) < 80);
     const scannedAt = new Date().toISOString();
 
-    // Send WhatsApp alert (non-blocking — non-fatal)
-    sendWhatsAppAlert(
+    // Send WhatsApp alert — awaited so Vercel doesn't terminate before Supabase save
+    await sendWhatsAppAlert(
       leads, hotLeads, warnLeads,
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN,
       process.env.TWILIO_WHATSAPP_FROM,
       process.env.TWILIO_WHATSAPP_TO,
-      scannedAt
-    );
+      scannedAt,
+      SERVICE_KEY
+    ).catch(e => console.warn('[auto-scan] WhatsApp alert outer catch:', e.message));
 
     // Send email report via Resend (always — so you know the cron actually ran)
     const RESEND_KEY = process.env.RESEND_API_KEY;
