@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>360 Booth — Lead Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
@@ -152,7 +152,11 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 
 /* ── APP SHELL ──────────────────────────────────────────────── */
 #app{display:none;height:100vh;flex-direction:row}
-#app.on{display:flex}
+#app.on{
+  display:flex;
+  box-shadow:inset 0 0 0 1px rgba(201,168,76,.12),inset 0 0 80px 0 rgba(201,168,76,.05);
+  outline:1px solid rgba(201,168,76,.09);
+}
 #sidebar{width:var(--sidebar-w);background:var(--sidebar);border-right:1px solid var(--sidebar-border);
   display:flex;flex-direction:column;flex-shrink:0;position:relative;z-index:40}
 #main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
@@ -175,6 +179,17 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .sb-item.active{background:var(--sidebar-active);color:var(--brand)}
 .sb-item.active .si-dot{background:var(--brand)}
 .si-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0}
+/* WhatsApp unread state */
+.sb-item.wa-unread{color:rgba(63,185,80,.95)!important;animation:sbWaUnread 2.4s ease-in-out infinite}
+.sb-item.wa-unread .si-dot{background:rgba(63,185,80,.9);box-shadow:0 0 6px rgba(63,185,80,.6)}
+@keyframes sbWaUnread{
+  0%,100%{background:transparent;box-shadow:none}
+  50%{background:rgba(63,185,80,.08);box-shadow:inset 0 0 0 1px rgba(63,185,80,.2),0 0 8px rgba(63,185,80,.15)}
+}
+.wa-unread-badge{display:none;margin-left:auto;background:rgba(63,185,80,.85);color:#fff;
+  font:700 9px var(--mono);border-radius:8px;padding:1px 5px;min-width:16px;text-align:center;
+  box-shadow:0 0 8px rgba(63,185,80,.4)}
+.wa-unread-badge.visible{display:inline-block}
 .sb-footer{padding:12px 14px;border-top:1px solid var(--sidebar-border);
   display:flex;align-items:center;justify-content:space-between}
 .sb-status{display:flex;align-items:center;gap:6px}
@@ -221,15 +236,38 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .ov-title{font:800 32px var(--font);color:var(--t1);line-height:1.15;margin-bottom:6px}
 .ov-sub{font:500 14px var(--font);color:var(--t3);margin-bottom:16px}
 .ov-actions{display:flex;gap:10px;flex-wrap:wrap}
-.ov-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
-.ov-kpi{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 16px;position:relative;overflow:hidden}
-.ov-kpi::before{content:'';position:absolute;inset:0;opacity:.06;border-radius:inherit}
+.ov-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.ov-kpi{
+  background:linear-gradient(145deg,var(--s1) 0%,rgba(11,16,28,.95) 100%);
+  border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:20px 18px;position:relative;overflow:hidden;
+  transform:perspective(700px) rotateX(2deg);transform-origin:bottom center;
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;
+  box-shadow:0 6px 22px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.04) inset,0 -2px 0 rgba(0,0,0,.4) inset;
+}
+.ov-kpi:hover{
+  transform:perspective(700px) rotateX(0deg) translateY(-5px);
+  box-shadow:0 16px 40px rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.07) inset;
+  border-color:var(--border-s);
+}
+.ov-kpi::before{content:'';position:absolute;inset:0;opacity:.065;border-radius:inherit;pointer-events:none}
+.ov-kpi::after{content:'';position:absolute;bottom:0;left:8%;right:8%;height:1.5px;border-radius:0 0 var(--r-lg) var(--r-lg)}
 .ov-kpi.hot::before{background:var(--red)}
 .ov-kpi.warm::before{background:var(--warn)}
 .ov-kpi.total::before{background:var(--blue)}
 .ov-kpi.revenue::before{background:var(--brand)}
-.ov-kpi-label{font:500 11px var(--font);color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
-.ov-kpi-val{font:800 32px var(--mono);line-height:1;margin-bottom:4px}
+.ov-kpi.hot::after{background:radial-gradient(ellipse,rgba(248,81,73,.8) 0%,transparent 70%)}
+.ov-kpi.warm::after{background:radial-gradient(ellipse,rgba(210,153,34,.8) 0%,transparent 70%)}
+.ov-kpi.total::after{background:radial-gradient(ellipse,rgba(88,166,255,.8) 0%,transparent 70%)}
+.ov-kpi.revenue::after{background:radial-gradient(ellipse,rgba(201,168,76,.8) 0%,transparent 70%)}
+.ov-kpi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ov-kpi-label{font:600 10px var(--font);color:var(--t3);letter-spacing:.1em;text-transform:uppercase}
+.ov-kpi-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font:700 14px var(--mono);flex-shrink:0}
+.ov-kpi.hot .ov-kpi-ico{background:rgba(248,81,73,.1);color:var(--red)}
+.ov-kpi.warm .ov-kpi-ico{background:rgba(210,153,34,.1);color:var(--warn)}
+.ov-kpi.total .ov-kpi-ico{background:rgba(88,166,255,.1);color:var(--blue)}
+.ov-kpi.revenue .ov-kpi-ico{background:rgba(201,168,76,.1);color:var(--brand)}
+.ov-kpi-val{font:800 34px var(--mono);line-height:1;margin-bottom:6px}
 .ov-kpi.hot .ov-kpi-val{color:var(--red)}
 .ov-kpi.warm .ov-kpi-val{color:var(--warn)}
 .ov-kpi.total .ov-kpi-val{color:var(--blue)}
@@ -350,6 +388,17 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
   background:var(--s3);color:var(--t3);transition:all var(--tf);letter-spacing:.04em;flex-shrink:0}
 .copy-btn:hover{background:var(--brand-muted);color:var(--brand)}
 .copy-btn.copied{background:rgba(63,185,80,.12);color:var(--green)}
+.contact-find-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
+.find-btn{font:600 9px var(--font);padding:3px 7px;border-radius:4px;text-decoration:none;letter-spacing:.03em;border:1px solid;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+.find-btn:hover{opacity:.75}
+.find-li{background:rgba(10,102,194,.1);color:#0a66c2;border-color:rgba(10,102,194,.25)}
+.find-g{background:rgba(66,133,244,.1);color:#4285f4;border-color:rgba(66,133,244,.25)}
+.find-web{background:rgba(88,166,255,.08);color:var(--blue);border-color:rgba(88,166,255,.2)}
+.lpag{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 0;border-top:1px solid var(--border)}
+.lpag-btn{font:600 12px var(--font);padding:6px 14px;border-radius:6px;background:var(--s2);border:1px solid var(--border);color:var(--t2);cursor:pointer;transition:all .15s}
+.lpag-btn:hover:not([disabled]){background:var(--s3);color:var(--t1)}
+.lpag-btn[disabled]{opacity:.35;cursor:not-allowed}
+.lpag-info{font:400 12px var(--font);color:var(--t3)}
 .ecard-foot{padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .att-tier{font:400 10px var(--mono);color:var(--t4)}
 .src-link{font:600 11px var(--font);color:var(--brand);letter-spacing:.04em}
@@ -366,10 +415,15 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .pipe-col.col-won .pipe-col-title{color:var(--green)}
 .pipe-col.col-lost .pipe-col-hdr{border-color:rgba(248,81,73,.15)}
 .pipe-col.col-lost .pipe-col-title{color:var(--t4)}
-.pipe-cards{display:flex;flex-direction:column;gap:8px;max-height:640px;overflow-y:auto;padding-right:2px}
+.pipe-cards{display:flex;flex-direction:column;gap:8px;max-height:640px;overflow-y:auto;padding-right:2px;transition:background .15s}
+.pipe-cards.drag-over{background:rgba(201,168,76,.06);border-radius:var(--r-md);outline:2px dashed rgba(201,168,76,.3)}
 .pipe-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);
-  padding:12px;cursor:pointer;transition:all var(--tf);animation:fadeUp .2s ease both}
+  padding:12px;cursor:grab;transition:all var(--tf);animation:fadeUp .2s ease both}
+.pipe-card:active{cursor:grabbing}
 .pipe-card:hover{border-color:var(--border-s);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.pipe-card.dragging{opacity:.4;transform:scale(.97)}
+.pipe-col.col-booked .pipe-col-hdr{border-color:rgba(201,168,76,.25)}
+.pipe-col.col-booked .pipe-col-title{color:var(--brand)}
 .pc-title{font:500 12px var(--font);color:var(--t1);line-height:1.3;margin-bottom:6px}
 .pc-domain{font:400 10px var(--font);color:var(--t4);margin-bottom:8px}
 .pc-score{font:700 20px var(--mono);text-align:right}
@@ -381,6 +435,10 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
   transition:all 100ms ease}
 .pc-move-btn:hover{background:var(--brand-muted);color:var(--brand);border-color:rgba(201,168,76,.3)}
 .pc-move-btn:disabled{opacity:.3;cursor:not-allowed}
+.pc-del-btn{width:20px;height:20px;border-radius:4px;font:700 13px var(--font);line-height:1;
+  background:transparent;color:var(--t4);border:1px solid transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 100ms}
+.pc-del-btn:hover{background:rgba(248,81,73,.12);color:var(--red);border-color:rgba(248,81,73,.25)}
 .pipe-empty{padding:20px;text-align:center;font:400 11px var(--font);color:var(--t4);
   border:1px dashed var(--border);border-radius:var(--r-md)}
 
@@ -389,6 +447,56 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 .history-item{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);
   padding:16px;cursor:pointer;transition:all var(--tf)}
 .history-item:hover{border-color:var(--border-s)}
+
+/* ── LEAD DOSSIER MODAL ─────────────────────────────────────── */
+#lead-dossier{position:fixed;inset:0;z-index:8000;display:none;align-items:flex-start;justify-content:flex-end}
+#lead-dossier.on{display:flex}
+#dossier-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)}
+#dossier-panel{position:relative;z-index:1;width:520px;max-width:100vw;height:100vh;
+  background:var(--s1);border-left:1px solid var(--border-s);
+  display:flex;flex-direction:column;overflow:hidden;
+  animation:dossierIn .25s ease both}
+@keyframes dossierIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.dossier-header{padding:20px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.dossier-title{font:700 16px var(--font);color:var(--t1);line-height:1.3;flex:1}
+.dossier-close{width:30px;height:30px;border-radius:6px;background:var(--s2);border:1px solid var(--border);
+  color:var(--t3);font-size:16px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;transition:all var(--tf)}
+.dossier-close:hover{background:var(--s3);color:var(--t1)}
+.dossier-body{flex:1;overflow-y:auto;padding:16px 20px}
+.dossier-section{margin-bottom:18px}
+.dossier-section-title{font:700 10px var(--font);color:var(--t3);letter-spacing:.1em;text-transform:uppercase;
+  margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.dossier-row{display:flex;gap:8px;margin-bottom:5px;align-items:flex-start;font:400 12px var(--font);color:var(--t2);line-height:1.45}
+.dossier-key{color:var(--t4);width:90px;flex-shrink:0;font-size:11px;padding-top:1px}
+.dossier-val{flex:1}
+.dossier-val a{color:var(--blue)}
+.competitor-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;
+  font:600 10px var(--font);letter-spacing:.04em;background:rgba(248,81,73,.10);color:var(--red);
+  border:1px solid rgba(248,81,73,.25)}
+.dossier-notes{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:10px 12px;font:400 12px var(--font);color:var(--t1);resize:vertical;min-height:72px;
+  transition:border-color var(--tf);line-height:1.55}
+.dossier-notes:focus{border-color:rgba(201,168,76,.45)}
+.dossier-notes::placeholder{color:var(--t4)}
+.dossier-footer{padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:8px}
+.email-draft-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);
+  padding:14px;font:400 12px var(--font);color:var(--t2);line-height:1.6;white-space:pre-wrap;
+  max-height:280px;overflow-y:auto;display:none}
+.email-draft-box.on{display:block}
+.email-subj{font:700 12px var(--font);color:var(--brand);margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.reminder-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;
+  font:600 9px var(--font);background:rgba(210,153,34,.12);color:var(--warn);
+  border:1px solid rgba(210,153,34,.25);letter-spacing:.04em}
+.notes-indicator{width:6px;height:6px;border-radius:50%;background:var(--brand);display:inline-block}
+
+/* ── PIPE CARD NOTES ────────────────────────────────────────── */
+.pc-notes-ta{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:6px 8px;font:400 10px var(--font);color:var(--t2);resize:none;height:44px;
+  margin-top:6px;line-height:1.5;transition:border-color var(--tf)}
+.pc-notes-ta:focus{border-color:rgba(201,168,76,.4);outline:none}
+.pc-notes-ta::placeholder{color:var(--t4)}
 .hi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
 .hi-mode{font:700 10px var(--mono);color:var(--brand);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
 .hi-query{font:500 13px var(--font);color:var(--t1)}
@@ -533,24 +641,215 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 @keyframes coreGlow{0%,100%{box-shadow:0 0 32px rgba(88,166,255,.5),0 0 64px rgba(88,166,255,.22),inset 0 0 24px rgba(88,166,255,.18)}50%{box-shadow:0 0 52px rgba(88,166,255,.78),0 0 96px rgba(88,166,255,.35),inset 0 0 32px rgba(88,166,255,.25)}}
 
 /* ── IRON MAN JARVIS GIF ─────────────────────────────────────── */
-.jarvis-gif-wrap{position:relative;width:180px;height:220px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.jarvis-gif{width:100%;height:100%;object-fit:contain;
-  filter:drop-shadow(0 0 18px rgba(88,166,255,.8)) drop-shadow(0 0 40px rgba(56,189,248,.45)) brightness(1.08);
-  animation:jarvisFloat 5s ease-in-out infinite}
-.jarvis-gif-scan{position:absolute;inset:0;pointer-events:none;overflow:hidden;
-  background:linear-gradient(0deg,transparent 0%,rgba(88,166,255,.06) 50%,transparent 100%);
-  animation:gifScanMove 4s linear infinite}
-.jarvis-gif-glow{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
-  width:120px;height:16px;border-radius:50%;
-  background:rgba(88,166,255,.35);filter:blur(12px);
-  animation:jarvisFloat 5s ease-in-out infinite}
-.jarvis-gif-rings{position:absolute;inset:-10px;pointer-events:none}
-.jarvis-gif-ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(88,166,255,.2);animation:ringPulse 3s ease-in-out infinite}
-.jarvis-gif-ring:nth-child(1){inset:-8px;animation-delay:0s}
-.jarvis-gif-ring:nth-child(2){inset:-18px;animation-delay:.6s;border-color:rgba(56,189,248,.12)}
-.jarvis-gif-ring:nth-child(3){inset:-30px;animation-delay:1.2s;border-color:rgba(88,166,255,.07)}
-@keyframes jarvisFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-@keyframes gifScanMove{0%{background-position:0 -100%}100%{background-position:0 200%}}
+/* ── IRON MAN CSS FIGURE ───────────────────────────────────────── */
+:root{
+  --gold: #D97706;
+  --gold-glow: rgba(217,119,6,.7);
+  --gold-soft: rgba(217,119,6,.25);
+  --gold-dim:  rgba(217,119,6,.1);
+}
+.im-hero{
+  position:relative;width:200px;height:260px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  animation:imFloat 5s ease-in-out infinite;
+}
+/* Outer golden bubble rings */
+.im-bubble{position:absolute;inset:0;pointer-events:none}
+.im-ring{
+  position:absolute;border-radius:50%;
+  border:1px solid var(--gold-soft);
+  animation:imBubblePulse 3s ease-in-out infinite;
+}
+.im-ring-1{inset:10px;border:1.5px solid var(--gold-glow);animation-duration:2.4s}
+.im-ring-2{inset:-4px;border-color:rgba(217,119,6,.35);animation-delay:.6s}
+.im-ring-3{inset:-18px;border-color:rgba(217,119,6,.15);animation-delay:1.2s}
+.im-ring-4{inset:-34px;border-color:rgba(217,119,6,.07);animation-delay:1.8s}
+@keyframes imBubblePulse{
+  0%,100%{opacity:.6;transform:scale(1)}
+  50%{opacity:1;transform:scale(1.03)}
+}
+/* SVG figure */
+.im-svg{
+  width:140px;height:auto;overflow:visible;
+  filter:drop-shadow(0 0 8px var(--gold-glow))
+         drop-shadow(0 0 20px rgba(217,119,6,.4));
+}
+/* Shared part style */
+.im-part{
+  fill:rgba(217,119,6,.12);
+  stroke:var(--gold);
+  stroke-width:1;
+  stroke-linejoin:round;
+}
+.im-detail{fill:none;stroke:var(--gold-glow);stroke-width:.5}
+.im-eye{fill:var(--gold);animation:imEyeFlicker 4s ease-in-out infinite}
+@keyframes imEyeFlicker{0%,90%,100%{opacity:1}92%{opacity:.3}95%{opacity:1}97%{opacity:.5}}
+
+/* Animated body groups */
+.im-g-head{
+  transform-box:fill-box;transform-origin:50% 90%;
+  animation:imHead 5s ease-in-out infinite;
+}
+@keyframes imHead{0%,100%{transform:rotate(0deg)}30%{transform:rotate(1.5deg)}70%{transform:rotate(-1.2deg)}}
+
+.im-g-arm-l{
+  transform-box:fill-box;transform-origin:90% 8%;
+  animation:imArmL 4s ease-in-out infinite;
+}
+@keyframes imArmL{0%,100%{transform:rotate(0deg)}40%{transform:rotate(-10deg)}70%{transform:rotate(-14deg)}}
+
+.im-g-arm-r{
+  transform-box:fill-box;transform-origin:10% 8%;
+  animation:imArmR 4s ease-in-out infinite .6s;
+}
+@keyframes imArmR{0%,100%{transform:rotate(0deg)}40%{transform:rotate(10deg)}70%{transform:rotate(14deg)}}
+
+.im-g-leg-l{
+  transform-box:fill-box;transform-origin:70% 5%;
+  animation:imLegL 6s ease-in-out infinite;
+}
+@keyframes imLegL{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-4deg)}}
+
+.im-g-leg-r{
+  transform-box:fill-box;transform-origin:30% 5%;
+  animation:imLegR 6s ease-in-out infinite .5s;
+}
+@keyframes imLegR{0%,100%{transform:rotate(0deg)}50%{transform:rotate(4deg)}}
+
+@keyframes imFloat{
+  0%,100%{transform:translateY(0)}
+  33%{transform:translateY(-9px)}
+  66%{transform:translateY(-5px)}
+}
+/* Arc Reactor */
+.arc-reactor{
+  position:absolute;
+  /* positioned on chest — roughly 38% from top */
+  top:38%;left:50%;transform:translate(-50%,-50%);
+  width:34px;height:34px;
+}
+.arc-r{
+  position:absolute;border-radius:50%;
+  border:1.5px solid var(--gold);
+  animation:arcSpin 4s linear infinite;
+}
+.arc-r-1{inset:0;animation-duration:5s;border-color:rgba(217,119,6,.9)}
+.arc-r-2{inset:5px;animation-duration:3s;animation-direction:reverse;border-color:rgba(217,119,6,.7)}
+.arc-r-3{inset:10px;animation-duration:7s;border-color:rgba(217,119,6,.5)}
+@keyframes arcSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.arc-hex{
+  position:absolute;inset:8px;
+  background:conic-gradient(
+    rgba(217,119,6,.3) 0deg,transparent 60deg,
+    rgba(217,119,6,.3) 120deg,transparent 180deg,
+    rgba(217,119,6,.3) 240deg,transparent 300deg,
+    rgba(217,119,6,.3) 360deg
+  );
+  border-radius:50%;
+  animation:arcHexSpin 8s linear infinite;
+}
+@keyframes arcHexSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.arc-core{
+  position:absolute;
+  inset:12px;border-radius:50%;
+  background:radial-gradient(circle,rgba(217,119,6,1) 0%,rgba(255,180,50,.8) 40%,rgba(217,119,6,.3) 70%,transparent 100%);
+  animation:arcCorePulse 1.8s ease-in-out infinite;
+  box-shadow:0 0 8px 3px rgba(217,119,6,.8),0 0 20px 6px rgba(217,119,6,.4);
+}
+@keyframes arcCorePulse{0%,100%{opacity:.7;transform:scale(.9)}50%{opacity:1;transform:scale(1.1)}}
+
+.im-floor-glow{
+  position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+  width:90px;height:14px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(217,119,6,.5) 0%,transparent 70%);
+  filter:blur(6px);
+  animation:imFloat 5s ease-in-out infinite;
+}
+/* Active state — when Jarvis speaks */
+.im-hero.active .arc-core{animation-duration:.6s}
+.im-hero.active .arc-r-1{border-color:rgba(255,160,20,1)}
+.im-hero.active .im-eye{opacity:1;fill:#fff}
+@keyframes gifScanMove{}
+
+/* ── JARVIS LISTENING OVERLAY — deep royal blue + gold accents ── */
+#jarvis-glow-overlay{
+  position:fixed;inset:0;pointer-events:none;z-index:9000;
+  opacity:0;transition:opacity .4s ease;
+}
+#jarvis-glow-overlay.idle{
+  opacity:1;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(12,40,180,.2),
+    inset 0 0 40px 8px rgba(12,40,180,.06),
+    inset 0 0 0 1px rgba(201,168,76,.1);
+}
+#jarvis-glow-overlay.listening{
+  opacity:1;
+  animation:jarvisGlowPulse 1.1s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 0 3px rgba(12,40,180,.98),
+    inset 0 0 0 7px rgba(201,168,76,.45),
+    inset 0 0 70px 22px rgba(12,40,180,.55),
+    inset 0 0 160px 55px rgba(12,40,180,.24),
+    0 0 90px 18px rgba(12,40,180,.4),
+    0 0 0 3px rgba(201,168,76,.3);
+}
+#jarvis-glow-overlay.speaking{
+  opacity:1;
+  animation:jarvisGlowSpeak .8s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 0 2px rgba(12,40,180,.88),
+    inset 0 0 0 5px rgba(201,168,76,.55),
+    inset 0 0 55px 15px rgba(12,40,180,.45),
+    inset 0 0 130px 44px rgba(12,40,180,.2);
+}
+@keyframes jarvisGlowPulse{
+  0%,100%{box-shadow:inset 0 0 0 3px rgba(12,40,180,.98),inset 0 0 0 7px rgba(201,168,76,.45),inset 0 0 70px 22px rgba(12,40,180,.55),inset 0 0 160px 55px rgba(12,40,180,.24),0 0 90px 18px rgba(12,40,180,.4),0 0 0 3px rgba(201,168,76,.3)}
+  50%{box-shadow:inset 0 0 0 5px rgba(12,40,180,1),inset 0 0 0 10px rgba(201,168,76,.65),inset 0 0 110px 38px rgba(12,40,180,.72),inset 0 0 280px 90px rgba(12,40,180,.38),0 0 130px 28px rgba(12,40,180,.58),0 0 0 5px rgba(201,168,76,.5)}
+}
+@keyframes jarvisGlowSpeak{
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(12,40,180,.88),inset 0 0 0 5px rgba(201,168,76,.55),inset 0 0 55px 15px rgba(12,40,180,.45),inset 0 0 130px 44px rgba(12,40,180,.2)}
+  50%{box-shadow:inset 0 0 0 3px rgba(12,40,180,1),inset 0 0 0 7px rgba(201,168,76,.75),inset 0 0 90px 26px rgba(12,40,180,.62),inset 0 0 220px 66px rgba(12,40,180,.32)}
+}
+/* waveform bar */
+#jarvis-wave-bar{
+  position:fixed;bottom:0;left:0;right:0;height:40px;
+  pointer-events:none;z-index:9001;
+  opacity:0;transition:opacity .3s ease;
+}
+#jarvis-wave-bar.active{opacity:1}
+#jarvis-wave-canvas{display:block;width:100%;height:40px}
+/* mic status pill — sleek dark chip with icon */
+#jarvis-status-pill{
+  position:fixed;bottom:46px;left:50%;transform:translateX(-50%);
+  background:rgba(4,6,14,.94);
+  border:1px solid rgba(12,40,180,.7);
+  border-radius:8px;
+  padding:6px 14px 6px 10px;
+  font:700 10px var(--mono);
+  color:rgba(130,160,255,.95);
+  letter-spacing:.14em;text-transform:uppercase;
+  pointer-events:none;z-index:9002;
+  opacity:0;transition:opacity .3s ease;
+  white-space:nowrap;
+  backdrop-filter:blur(12px);
+  box-shadow:0 4px 24px rgba(12,40,180,.4),inset 0 1px 0 rgba(255,255,255,.05),0 0 0 1px rgba(201,168,76,.2);
+  display:flex;align-items:center;gap:8px;
+}
+#jarvis-status-pill.active{opacity:1}
+#jarvis-status-pill svg{flex-shrink:0;color:rgba(201,168,76,.9)}
+#voice-cancel-btn{
+  display:none;position:fixed;top:14px;right:14px;z-index:9010;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  color:#fff;font-size:22px;line-height:1;cursor:pointer;
+  backdrop-filter:blur(8px);
+  transition:background .15s,transform .15s;
+}
+#voice-cancel-btn:hover{background:rgba(255,68,101,.35);transform:scale(1.08)}
+#voice-cancel-btn.active{display:flex;align-items:center;justify-content:center}
 
 /* ── GLITCH TEXT ─────────────────────────────────────────────── */
 @keyframes glitch{
@@ -661,7 +960,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 #mob-tabs{display:none}
 #mob-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:299;backdrop-filter:blur(3px)}
 #mob-drawer{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar);border-top:1px solid var(--sidebar-border);z-index:301;border-radius:20px 20px 0 0;padding:12px 0 env(safe-area-inset-bottom,16px);transform:translateY(100%);transition:transform .3s cubic-bezier(.16,1,.3,1)}
-#mob-drawer.open{transform:translateY(0)}
+#mob-drawer.open{transform:translateY(0);display:block}
 .mob-drawer-handle{width:32px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 16px}
 .mob-drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:0 12px}
 .mob-drawer-item{display:flex;align-items:center;gap:10px;padding:14px 12px;border-radius:10px;cursor:pointer;transition:background .15s}
@@ -682,30 +981,44 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
     height:64px;
     padding-bottom:env(safe-area-inset-bottom,0);
     background:var(--sidebar);
-    border-top:1px solid rgba(255,255,255,.08);
+    border-top:1px solid rgba(201,168,76,.15);
     z-index:200;
+    box-shadow:0 -1px 0 rgba(201,168,76,.08),0 -8px 24px rgba(0,0,0,.4);
   }
   .mob-tab{
     flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
     cursor:pointer;border:none;background:none;padding:0;
-    color:rgba(255,255,255,.45);transition:color .15s;position:relative
+    color:rgba(255,255,255,.4);transition:color .15s;position:relative
   }
   .mob-tab.active{color:var(--brand)}
-  .mob-tab.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:var(--brand);border-radius:0 0 2px 2px}
+  .mob-tab.active::before{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;background:var(--brand);border-radius:0 0 3px 3px;box-shadow:0 0 8px var(--brand-glow)}
   .mob-tab-ico{font-size:20px;line-height:1}
-  .mob-tab-lbl{font:500 10px var(--font);letter-spacing:.02em}
+  .mob-tab-lbl{font:600 9px var(--font);letter-spacing:.04em;text-transform:uppercase}
   .mob-tab-badge{position:absolute;top:8px;right:calc(50% - 16px);background:var(--red);color:#fff;font:700 9px var(--mono);border-radius:6px;padding:1px 4px;min-width:14px;text-align:center;display:none}
   .mob-tab-badge.visible{display:block}
+  #mob-badge-messages.visible{background:rgba(63,185,80,.85);box-shadow:0 0 6px rgba(63,185,80,.4)}
+  #mob-badge-leads.visible{background:rgba(88,166,255,.85);box-shadow:0 0 6px rgba(88,166,255,.3)}
 
-  /* App shell on mobile */
-  #app{flex-direction:column}
-  #main{width:100%}
-  #content{padding-bottom:80px} /* room for tab bar */
-  #topbar{padding:0 16px;height:52px}
+  /* Drawer visible on mobile */
+  #mob-drawer{display:block}
+
+  /* App shell on mobile — safe area for iOS notch */
+  #app{flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+  #main{width:100%;display:flex;flex-direction:column;height:calc(100vh - env(safe-area-inset-top,0))}
+  #content{flex:1;min-height:0;overflow-y:auto;padding:16px;padding-bottom:84px}
+  #topbar{padding:0 16px;height:52px;flex-shrink:0}
   #topbar .tb-right{display:none}
 
+  /* Pages with fixed height need tab-bar room + iOS safe area */
+  #page-messages,#page-chat{height:calc(100vh - env(safe-area-inset-top,0) - 52px - 64px)!important}
+
+  /* Iron Man — scale for tablet/phone */
+  .im-hero{width:160px;height:210px}
+  .im-svg{width:112px}
+  .arc-reactor{width:28px;height:28px;top:38%}
+
   /* Content adjustments */
-  .kpi-grid,.ov-kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi-grid,.ov-kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
   .ov-grid{grid-template-columns:1fr}
   .events-grid{grid-template-columns:1fr}
   .settings-grid{grid-template-columns:1fr}
@@ -716,22 +1029,60 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
   .chat-history{display:none}
   #page-chat{flex-direction:column}
   .chat-compose{padding:8px 12px 12px}
-  .ov-hero{flex-direction:column;gap:16px;text-align:center}
+  .ov-hero{flex-direction:column;gap:12px;text-align:center;margin-bottom:20px}
   .ov-actions{justify-content:center}
+  #voice-cancel-btn{top:calc(env(safe-area-inset-top,0) + 10px);right:10px}
+
+  /* 3D KPI — reduce tilt on mobile */
+  .ov-kpi{transform:perspective(600px) rotateX(1deg)}
+  .ov-kpi:hover{transform:perspective(600px) rotateX(0deg) translateY(-3px)}
+
+  /* Jarvis status pill — above tab bar on mobile */
+  #jarvis-status-pill{bottom:76px}
 
   /* Leads table on mobile — card layout */
   .leads-table thead{display:none}
   .leads-table tbody tr{display:block;background:var(--s1);border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:8px;padding:10px 12px}
   .leads-table td{display:flex;align-items:center;gap:6px;padding:4px 0;border:none;font-size:12px}
   .leads-table td::before{content:attr(data-label);font:600 10px var(--font);color:var(--t4);text-transform:uppercase;letter-spacing:.06em;min-width:60px;flex-shrink:0}
+
+  /* Pipeline mobile — scrollable columns */
+  .pipeline-board{min-height:0;padding-bottom:80px}
+  .pipe-col{min-width:180px;width:180px}
+  .pipe-cards{max-height:none}
+
+  /* History mobile — compact cards */
+  .scan-card{padding:12px 14px}
+
+  /* Leads toolbar — stack on mobile */
+  .leads-toolbar-row{flex-wrap:wrap;gap:6px}
+  .leads-toolbar-row .field{min-width:0!important;width:100%!important}
+  .leads-toolbar-row .btn{font-size:11px;padding:6px 10px}
+
+  /* Settings — full width fields */
+  .settings-grid .field,.settings-grid select{width:100%}
+
+  /* Overview — tighten hero section */
+  .ov-hero-title{font-size:22px}
+  .ov-hero-sub{font-size:12px}
+  .ov-quick-grid{grid-template-columns:1fr 1fr}
+  .ov-activity-list{max-height:200px;overflow-y:auto}
 }
 @media(max-width:480px){
-  #content{padding:12px;padding-bottom:80px}
+  #content{padding:12px;padding-bottom:84px}
   .kpi-grid,.ov-kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
-  .kpi,.ov-kpi{padding:12px}
-  .kpi-val,.ov-kpi-val{font-size:22px}
+  .kpi,.ov-kpi{padding:14px 12px}
+  .ov-kpi-val{font-size:26px}
+  .kpi-val{font-size:22px}
   .a-title{font-size:26px}
   .leads-toolbar-row{flex-wrap:wrap}
+  /* Compact Iron Man on small phones */
+  .im-hero{width:120px;height:158px}
+  .im-svg{width:84px}
+  .arc-reactor{width:20px;height:20px;top:38%}
+  /* Full-width actions */
+  .ov-actions{flex-direction:column;align-items:stretch}
+  .ov-actions .btn{width:100%;justify-content:center}
 }
 </style>
 </head>
@@ -765,13 +1116,13 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 <div id="boot-overlay" style="position:relative;overflow:hidden">
   <canvas id="boot-canvas"></canvas>
   <div class="boot-arc" style="position:relative;z-index:2"></div>
-  <div class="boot-greeting" id="boot-greeting" style="position:relative;z-index:2;opacity:0;transition:opacity .5s ease">JARVIS v2.1 — INITIALISING...</div>
+  <div class="boot-greeting" id="boot-greeting" style="position:relative;z-index:2;opacity:0;transition:opacity .5s ease">360 v2.1 — INITIALISING...</div>
   <div class="boot-lines" style="position:relative;z-index:2">
     <div class="boot-line" id="bl1"><div class="bl-dot"></div><div class="bl-text">CONNECTING TO EXA INTELLIGENCE NETWORK...</div></div>
     <div class="boot-line" id="bl2"><div class="bl-dot"></div><div class="bl-text">LOADING LEAD DATABASE...</div></div>
     <div class="boot-line" id="bl3"><div class="bl-dot"></div><div class="bl-text">CALIBRATING GROQ AI — LLAMA 3.3 70B...</div></div>
     <div class="boot-line" id="bl4"><div class="bl-dot"></div><div class="bl-text">SCANNING IRELAND B2B INTELLIGENCE GRID...</div></div>
-    <div class="boot-line" id="bl5"><div class="bl-dot"></div><div class="bl-text">ALL SYSTEMS ONLINE. WELCOME BACK, BENJI.</div></div>
+    <div class="boot-line" id="bl5"><div class="bl-dot"></div><div class="bl-text">ALL SYSTEMS ONLINE. WELCOME BACK, MICHAEL.</div></div>
   </div>
   <div class="boot-progress" style="position:relative;z-index:2"><div class="boot-fill" id="boot-fill"></div></div>
 </div>
@@ -781,6 +1132,19 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 
 <!-- APP -->
 <div id="app">
+<!-- Jarvis listening overlay — shows on voice activation -->
+<div id="jarvis-glow-overlay"></div>
+<div id="jarvis-wave-bar"><canvas id="jarvis-wave-canvas"></canvas></div>
+<button id="voice-cancel-btn" onclick="cancelVoice()" aria-label="Cancel voice">×</button>
+<div id="jarvis-status-pill">
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <line x1="12" y1="19" x2="12" y2="23"/>
+    <line x1="8" y1="23" x2="16" y2="23"/>
+  </svg>
+  <span>LISTENING</span>
+</div>
 
   <!-- SIDEBAR -->
   <nav id="sidebar">
@@ -793,11 +1157,11 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
     </div>
     <div class="sb-nav">
       <div class="sb-section-label">Overview</div>
-      <div class="sb-item" onclick="goPage('overview')" data-page="overview">
+      <div class="sb-item active" onclick="goPage('overview')" data-page="overview">
         <div class="si-dot" style="background:var(--brand)"></div> Dashboard
       </div>
       <div class="sb-section-label" style="margin-top:4px">Intelligence</div>
-      <div class="sb-item active" onclick="goPage('agent')" data-page="agent">
+      <div class="sb-item" onclick="goPage('agent')" data-page="agent">
         <div class="si-dot"></div> Agent
       </div>
       <div class="sb-item" onclick="goPage('pipeline')" data-page="pipeline">
@@ -813,9 +1177,10 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
         <span class="si-count" id="sb-leads-count">0</span>
       </div>
       <div class="sb-section-label" style="margin-top:4px">Comms</div>
-      <div class="sb-item" onclick="goPage('messages')" data-page="messages">
+      <div class="sb-item" onclick="goPage('messages')" data-page="messages" id="sb-item-messages">
         <div class="si-dot"></div> WhatsApp
-        <span class="si-count" id="sb-msgs-count">0</span>
+        <span class="wa-unread-badge" id="wa-unread-badge"></span>
+        <span class="si-count" id="sb-msgs-count" style="display:none">0</span>
       </div>
       <div class="sb-item" onclick="goPage('chat')" data-page="chat" style="color:rgba(88,166,255,.7)">
         <div class="si-dot" style="background:rgba(88,166,255,.4)"></div> AI Chat
@@ -842,7 +1207,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
           <span></span><span></span><span></span>
         </button>
         <div class="tb-title" id="tb-title">Intelligence Agent</div>
-        <div class="tb-tag" id="tb-badge">JARVIS</div>
+        <div class="tb-tag" id="tb-badge">360</div>
       </div>
       <div class="tb-right">
         <div class="tb-dot"></div>
@@ -854,36 +1219,98 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
     <div id="content">
 
       <!-- OVERVIEW PAGE -->
-      <section id="page-overview" class="page particle-wrap">
+      <section id="page-overview" class="page on particle-wrap">
         <canvas class="particle-canvas" id="ov-particles"></canvas>
         <div class="matrix-overlay"></div>
         <div class="ov-hero">
-          <div class="jarvis-gif-wrap" id="overview-holo">
-            <div class="jarvis-gif-rings">
-              <div class="jarvis-gif-ring"></div>
-              <div class="jarvis-gif-ring"></div>
-              <div class="jarvis-gif-ring"></div>
+          <div class="im-hero" id="overview-holo">
+            <div class="im-bubble">
+              <div class="im-ring im-ring-1"></div>
+              <div class="im-ring im-ring-2"></div>
+              <div class="im-ring im-ring-3"></div>
+              <div class="im-ring im-ring-4"></div>
             </div>
-            <img src="/_.gif" class="jarvis-gif" alt="Jarvis">
-            <div class="jarvis-gif-scan"></div>
-            <div class="jarvis-gif-glow"></div>
+            <svg class="im-svg" viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg">
+              <g class="im-g-head">
+                <polygon class="im-part" points="35,2 65,2 68,24 58,32 42,32 32,24"/>
+                <polygon class="im-eye" points="36,15 44,11 44,19"/>
+                <polygon class="im-eye" points="64,15 56,11 56,19"/>
+                <line class="im-detail" x1="32" y1="21" x2="68" y2="21"/>
+                <line class="im-detail" x1="50" y1="2" x2="50" y2="21"/>
+              </g>
+              <rect class="im-part" x="43" y="32" width="14" height="8" rx="2"/>
+              <polygon class="im-part" points="20,40 80,40 82,92 50,96 18,92"/>
+              <line class="im-detail" x1="20" y1="58" x2="80" y2="58"/>
+              <line class="im-detail" x1="20" y1="76" x2="80" y2="76"/>
+              <line class="im-detail" x1="50" y1="40" x2="50" y2="92"/>
+              <circle class="im-detail" cx="50" cy="65" r="9"/>
+              <rect class="im-part" x="18" y="36" width="10" height="14" rx="2"/>
+              <rect class="im-part" x="72" y="36" width="10" height="14" rx="2"/>
+              <g class="im-g-arm-l">
+                <polygon class="im-part" points="20,40 9,46 5,74 16,78 20,48"/>
+                <rect class="im-part" x="4" y="78" width="14" height="22" rx="3"/>
+                <rect class="im-part" x="3" y="100" width="16" height="9" rx="2"/>
+              </g>
+              <g class="im-g-arm-r">
+                <polygon class="im-part" points="80,40 91,46 95,74 84,78 80,48"/>
+                <rect class="im-part" x="82" y="78" width="14" height="22" rx="3"/>
+                <rect class="im-part" x="81" y="100" width="16" height="9" rx="2"/>
+              </g>
+              <rect class="im-part" x="24" y="94" width="52" height="12" rx="3"/>
+              <g class="im-g-leg-l">
+                <rect class="im-part" x="26" y="105" width="20" height="30" rx="3"/>
+                <rect class="im-part" x="25" y="134" width="22" height="8" rx="2"/>
+                <rect class="im-part" x="26" y="141" width="20" height="22" rx="3"/>
+                <polygon class="im-part" points="24,163 47,163 49,170 22,170"/>
+              </g>
+              <g class="im-g-leg-r">
+                <rect class="im-part" x="54" y="105" width="20" height="30" rx="3"/>
+                <rect class="im-part" x="53" y="134" width="22" height="8" rx="2"/>
+                <rect class="im-part" x="54" y="141" width="20" height="22" rx="3"/>
+                <polygon class="im-part" points="51,163 74,163 78,170 53,170"/>
+              </g>
+            </svg>
+            <div class="arc-reactor">
+              <div class="arc-r arc-r-1"></div>
+              <div class="arc-r arc-r-2"></div>
+              <div class="arc-r arc-r-3"></div>
+              <div class="arc-hex"></div>
+              <div class="arc-core"></div>
+            </div>
+            <div class="im-floor-glow"></div>
           </div>
           <div class="ov-hero-text">
-            <div class="ov-title glitch" id="ov-greeting">Good morning, Benji</div>
+            <div class="ov-title glitch" id="ov-greeting">Good morning, Michael</div>
             <div class="ov-sub" id="ov-sub">Here's your intelligence summary for today.</div>
             <div class="ov-actions">
               <button class="btn btn-primary btn-sm" onclick="goPage('agent')">Run Scan</button>
               <button class="btn btn-outline btn-sm" onclick="goPage('leads')">Lead Database</button>
-              <button class="btn btn-ghost btn-sm" onclick="goPage('chat')">Ask Jarvis</button>
+              <button class="btn btn-ghost btn-sm" onclick="goPage('chat')">Ask 360</button>
             </div>
           </div>
         </div>
 
         <div class="ov-kpi-grid" id="ov-kpis">
-          <div class="ov-kpi hot"><div class="ov-kpi-label">Hot Leads</div><div class="ov-kpi-val" id="ov-hot">0</div><div class="ov-kpi-delta">Score ≥ 80</div></div>
-          <div class="ov-kpi warm"><div class="ov-kpi-label">Warm Leads</div><div class="ov-kpi-val" id="ov-warm">0</div><div class="ov-kpi-delta">Score 55–79</div></div>
-          <div class="ov-kpi total"><div class="ov-kpi-label">Total Leads</div><div class="ov-kpi-val" id="ov-total">0</div><div class="ov-kpi-delta">In database</div></div>
-          <div class="ov-kpi revenue"><div class="ov-kpi-label">Pipeline Value</div><div class="ov-kpi-val" id="ov-revenue">€0</div><div class="ov-kpi-delta">Hot leads × €1,200 avg</div></div>
+          <div class="ov-kpi hot">
+            <div class="ov-kpi-header"><div class="ov-kpi-label">Hot Leads</div><div class="ov-kpi-ico">●</div></div>
+            <div class="ov-kpi-val" id="ov-hot">0</div>
+            <div class="ov-kpi-delta">Score ≥ 80</div>
+          </div>
+          <div class="ov-kpi warm">
+            <div class="ov-kpi-header"><div class="ov-kpi-label">Warm Leads</div><div class="ov-kpi-ico">◑</div></div>
+            <div class="ov-kpi-val" id="ov-warm">0</div>
+            <div class="ov-kpi-delta">Score 55–79</div>
+          </div>
+          <div class="ov-kpi total">
+            <div class="ov-kpi-header"><div class="ov-kpi-label">Total Leads</div><div class="ov-kpi-ico">◎</div></div>
+            <div class="ov-kpi-val" id="ov-total">0</div>
+            <div class="ov-kpi-delta">In database</div>
+          </div>
+          <div class="ov-kpi revenue">
+            <div class="ov-kpi-header"><div class="ov-kpi-label">Pipeline Value</div><div class="ov-kpi-ico">◈</div></div>
+            <div class="ov-kpi-val" id="ov-revenue">€0</div>
+            <div class="ov-kpi-delta">Hot leads × €750 avg</div>
+          </div>
         </div>
 
         <div class="ov-grid">
@@ -916,7 +1343,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
       </section>
 
       <!-- AGENT PAGE -->
-      <section id="page-agent" class="page on particle-wrap">
+      <section id="page-agent" class="page particle-wrap">
         <canvas class="particle-canvas" id="agent-particles"></canvas>
         <div class="matrix-overlay"></div>
         <div id="a-idle" class="on">
@@ -927,15 +1354,61 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
               <div class="a-sub">Autonomous lead discovery for 360 Booth Ireland</div>
               <div class="jarvis-greeting" id="greeting"></div>
             </div>
-            <div class="jarvis-gif-wrap" id="jarvis-holo">
-              <div class="jarvis-gif-rings">
-                <div class="jarvis-gif-ring"></div>
-                <div class="jarvis-gif-ring"></div>
-                <div class="jarvis-gif-ring"></div>
+            <div class="im-hero" id="jarvis-holo">
+              <div class="im-bubble">
+                <div class="im-ring im-ring-1"></div>
+                <div class="im-ring im-ring-2"></div>
+                <div class="im-ring im-ring-3"></div>
+                <div class="im-ring im-ring-4"></div>
               </div>
-              <img src="/_.gif" class="jarvis-gif" alt="Jarvis">
-              <div class="jarvis-gif-scan"></div>
-              <div class="jarvis-gif-glow"></div>
+              <svg class="im-svg" viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg">
+                <g class="im-g-head">
+                  <polygon class="im-part" points="35,2 65,2 68,24 58,32 42,32 32,24"/>
+                  <polygon class="im-eye" points="36,15 44,11 44,19"/>
+                  <polygon class="im-eye" points="64,15 56,11 56,19"/>
+                  <line class="im-detail" x1="32" y1="21" x2="68" y2="21"/>
+                  <line class="im-detail" x1="50" y1="2" x2="50" y2="21"/>
+                </g>
+                <rect class="im-part" x="43" y="32" width="14" height="8" rx="2"/>
+                <polygon class="im-part" points="20,40 80,40 82,92 50,96 18,92"/>
+                <line class="im-detail" x1="20" y1="58" x2="80" y2="58"/>
+                <line class="im-detail" x1="20" y1="76" x2="80" y2="76"/>
+                <line class="im-detail" x1="50" y1="40" x2="50" y2="92"/>
+                <circle class="im-detail" cx="50" cy="65" r="9"/>
+                <rect class="im-part" x="18" y="36" width="10" height="14" rx="2"/>
+                <rect class="im-part" x="72" y="36" width="10" height="14" rx="2"/>
+                <g class="im-g-arm-l">
+                  <polygon class="im-part" points="20,40 9,46 5,74 16,78 20,48"/>
+                  <rect class="im-part" x="4" y="78" width="14" height="22" rx="3"/>
+                  <rect class="im-part" x="3" y="100" width="16" height="9" rx="2"/>
+                </g>
+                <g class="im-g-arm-r">
+                  <polygon class="im-part" points="80,40 91,46 95,74 84,78 80,48"/>
+                  <rect class="im-part" x="82" y="78" width="14" height="22" rx="3"/>
+                  <rect class="im-part" x="81" y="100" width="16" height="9" rx="2"/>
+                </g>
+                <rect class="im-part" x="24" y="94" width="52" height="12" rx="3"/>
+                <g class="im-g-leg-l">
+                  <rect class="im-part" x="26" y="105" width="20" height="30" rx="3"/>
+                  <rect class="im-part" x="25" y="134" width="22" height="8" rx="2"/>
+                  <rect class="im-part" x="26" y="141" width="20" height="22" rx="3"/>
+                  <polygon class="im-part" points="24,163 47,163 49,170 22,170"/>
+                </g>
+                <g class="im-g-leg-r">
+                  <rect class="im-part" x="54" y="105" width="20" height="30" rx="3"/>
+                  <rect class="im-part" x="53" y="134" width="22" height="8" rx="2"/>
+                  <rect class="im-part" x="54" y="141" width="20" height="22" rx="3"/>
+                  <polygon class="im-part" points="51,163 74,163 78,170 53,170"/>
+                </g>
+              </svg>
+              <div class="arc-reactor">
+                <div class="arc-r arc-r-1"></div>
+                <div class="arc-r arc-r-2"></div>
+                <div class="arc-r arc-r-3"></div>
+                <div class="arc-hex"></div>
+                <div class="arc-core"></div>
+              </div>
+              <div class="im-floor-glow"></div>
             </div>
           </div>
           <div class="prompt-card">
@@ -1023,7 +1496,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 
         <div class="leads-toolbar">
           <div class="leads-toolbar-row">
-            <input class="field" type="text" id="leads-search" placeholder="Search by event, organiser, email..." oninput="renderLeadsTable()" style="flex:1;min-width:200px">
+            <input class="field" type="text" id="leads-search" placeholder="Search by event, organiser, email..." oninput="leadsCurrentPage=0;renderLeadsTable()" style="flex:1;min-width:200px">
             <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="Export to CSV">Export CSV</button>
             <button class="btn btn-outline btn-sm" onclick="clearVisibleLeads()" title="Delete filtered leads" style="border-color:rgba(248,81,73,.3);color:var(--red)">Clear Visible</button>
             <button class="btn btn-ghost btn-sm" onclick="clearAllLeads()" title="Delete all leads" style="color:var(--t4);font-size:11px">Clear All</button>
@@ -1045,6 +1518,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
                 <button class="pill" data-val="New" onclick="setPillFilter('status','New',this)">New</button>
                 <button class="pill" data-val="Contacted" onclick="setPillFilter('status','Contacted',this)">Contacted</button>
                 <button class="pill" data-val="Meeting" onclick="setPillFilter('status','Meeting',this)">Meeting</button>
+                <button class="pill" data-val="Booked" onclick="setPillFilter('status','Booked',this)">Booked</button>
                 <button class="pill" data-val="Won" onclick="setPillFilter('status','Won',this)">Won</button>
                 <button class="pill" data-val="Lost" onclick="setPillFilter('status','Lost',this)">Lost</button>
               </div>
@@ -1071,6 +1545,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
             <tbody id="leads-tbody"></tbody>
           </table>
         </div>
+        <div id="leads-pagination"></div>
         <div id="leads-empty" class="empty-state" style="display:none">
           <div class="empty-icon">—</div>
           <div class="empty-title">No leads yet</div>
@@ -1108,7 +1583,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
           <div class="ss-card">
             <div class="ss-hdr"><div class="ss-hdr-dot"></div><div class="ss-hdr-title">Send Report Now</div></div>
             <div class="ss-body">
-              <div class="ss-hint" style="margin-bottom:14px">Jarvis will scan the latest monitor run, score all leads, and send a full HTML report to both emails immediately.</div>
+              <div class="ss-hint" style="margin-bottom:14px">360 will scan the latest monitor run, score all leads, and send a full HTML report to both emails immediately.</div>
               <div class="ss-status-box" id="send-report-status"></div>
               <button class="btn btn-outline" id="send-report-btn" onclick="sendReportNow()" style="width:100%;height:40px">
                 <span id="send-report-btn-text">Send Intel Report Now</span>
@@ -1121,6 +1596,18 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
                   <span id="run-scan-btn-text">⚡ Run Auto-Scan Now</span>
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div class="ss-card">
+            <div class="ss-hdr"><div class="ss-hdr-dot" style="background:var(--blue)"></div><div class="ss-hdr-title">Deep Scan Agent</div></div>
+            <div class="ss-body">
+              <div class="ss-hint" style="margin-bottom:10px">Full Scout → Analyst → Closer pipeline on Render. Runs 10 searches, scores with Groq, writes cold emails per lead. Takes 3–5 min. Results auto-saved to your lead database.</div>
+              <div class="ss-status-box" id="deep-scan-status"></div>
+              <button class="btn btn-outline" id="deep-scan-btn" onclick="runDeepScan()" style="width:100%;height:40px;border-color:var(--blue);color:var(--blue)">
+                <span id="deep-scan-btn-text">🔬 Run Deep Scan</span>
+              </button>
+              <div class="ss-hint" style="margin-top:8px;color:var(--t4);font-size:11px" id="deep-scan-last-run"></div>
             </div>
           </div>
 
@@ -1144,7 +1631,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
                   <input type="datetime-local" id="next-scan-dt" class="field" style="flex:1;min-width:180px">
                   <button class="btn btn-outline btn-sm" onclick="saveNextScanDate()">Set Date</button>
                 </div>
-                <div class="ss-hint" style="margin-top:6px" id="next-scan-hint">Override the cron schedule — Jarvis will skip runs until this date/time is reached.</div>
+                <div class="ss-hint" style="margin-top:6px" id="next-scan-hint">Override the cron schedule — 360 will skip runs until this date/time is reached.</div>
               </div>
               <div class="ss-info-row"><span class="ss-info-lbl">Monitor</span><span class="ss-info-val">B2B Event Intelligence Ireland</span></div>
               <div class="ss-info-row"><span class="ss-info-lbl">Status</span><span class="ss-info-val" style="color:var(--green)">Active</span></div>
@@ -1180,9 +1667,9 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
           </div>
 
           <div class="ss-card">
-            <div class="ss-hdr"><div class="ss-hdr-dot" style="background:var(--blue)"></div><div class="ss-hdr-title">Jarvis Voice</div></div>
+            <div class="ss-hdr"><div class="ss-hdr-dot" style="background:var(--blue)"></div><div class="ss-hdr-title">360 Voice</div></div>
             <div class="ss-body">
-              <div class="ss-hint" style="margin-bottom:12px">100% free — uses your browser's built-in voices. Enable voice then pick the one that sounds best. <strong style="color:var(--blue)">Daniel (British)</strong> or <strong style="color:var(--blue)">Google UK English Male</strong> are closest to Jarvis.</div>
+              <div class="ss-hint" style="margin-bottom:12px">Powered by <strong style="color:var(--blue)">Google Neural2 TTS</strong> (en-GB-Neural2-D — deep British male, free 1M chars/month). Browser voice is the fallback if the API is unavailable.</div>
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
                 <button class="btn btn-outline btn-sm" onclick="toggleVoice()" id="voice-settings-btn">Enable Voice</button>
                 <button class="btn btn-ghost btn-sm" onclick="previewVoice()">▶ Preview</button>
@@ -1194,7 +1681,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
                   <option value="">Loading voices…</option>
                 </select>
               </div>
-              <div class="ss-hint" style="margin-top:8px">Say <strong style="color:var(--blue)">"Hey Jarvis"</strong> (Chrome) to activate hands-free. Jarvis will respond and execute your command.</div>
+              <div class="ss-hint" style="margin-top:8px">Say <strong style="color:var(--blue)">"Hey 360"</strong> (Chrome) to activate hands-free. 360 will respond and execute your command.</div>
             </div>
           </div>
 
@@ -1239,7 +1726,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
             <div class="msg-header-to">
               <div class="msg-to-dot" style="font-size:13px;font-weight:700">WA</div>
               <div>
-                <div class="msg-to-name">Benji Sanusi</div>
+                <div class="msg-to-name">Michael</div>
                 <div class="msg-to-sub" style="display:flex;align-items:center;gap:5px">
                   <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 5px rgba(63,185,80,.6)"></span>
                   Online · +353 852 545 229
@@ -1287,18 +1774,18 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
         <div class="chat-main">
           <div class="chat-toolbar">
             <button class="btn btn-ghost btn-xs" onclick="toggleChatHistory()" title="Toggle history" style="padding:0 6px;font-size:16px;color:var(--blue);opacity:.7">☰</button>
-            <img src="/_.gif" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(88,166,255,.7));animation:jarvisFloat 5s ease-in-out infinite" alt="Jarvis">
-            <span style="font:600 12px var(--mono);color:var(--blue);letter-spacing:.1em">JARVIS AI</span>
+            <img src="/_.gif" style="width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(88,166,255,.7));animation:jarvisFloat 5s ease-in-out infinite" alt="360">
+            <span style="font:600 12px var(--mono);color:var(--blue);letter-spacing:.1em">360 AI</span>
             <span style="font:400 11px var(--font);color:var(--t4);margin-left:auto">Exa + LLaMA 3.3 70B</span>
             <button class="btn btn-ghost btn-xs" onclick="newChat()" style="color:var(--t3)">New</button>
           </div>
           <div class="chat-feed" id="chat-feed">
             <div class="chat-empty" id="chat-empty">
               <div style="position:relative;display:inline-block;margin-bottom:8px">
-                <img src="/_.gif" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(88,166,255,.8));animation:jarvisFloat 5s ease-in-out infinite" alt="Jarvis">
+                <img src="/_.gif" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 14px rgba(88,166,255,.8));animation:jarvisFloat 5s ease-in-out infinite" alt="360">
                 <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:60px;height:8px;border-radius:50%;background:rgba(88,166,255,.3);filter:blur(6px)"></div>
               </div>
-              <div class="chat-empty-title">Jarvis is ready</div>
+              <div class="chat-empty-title">360 is ready</div>
               <div class="chat-empty-sub">Ask about your leads, get venue ideas, find suppliers, or query any 360 booth business intelligence.</div>
             </div>
           </div>
@@ -1318,11 +1805,11 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
             <button class="chat-tool-btn" onclick="document.getElementById('chat-file-input').click()" title="Attach file">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             </button>
-            <button class="chat-tool-btn" id="voice-toggle-btn" onclick="toggleVoice()" title="Toggle Jarvis voice">
+            <button class="chat-tool-btn" id="voice-toggle-btn" onclick="toggleVoice()" title="Toggle 360 voice">
               <svg id="voice-icon-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
               <svg id="voice-icon-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
             </button>
-            <textarea class="chat-ta" id="chat-input" placeholder="Ask Jarvis anything — leads, pipeline, suppliers, pricing, venues..." rows="1"
+            <textarea class="chat-ta" id="chat-input" placeholder="Ask 360 anything — leads, pipeline, suppliers, pricing, venues..." rows="1"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
               oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
             <button class="btn btn-primary" id="chat-send-btn" onclick="sendChat()" style="height:40px;padding:0 16px;flex-shrink:0">Send</button>
@@ -1339,7 +1826,7 @@ textarea.field{height:auto;padding:10px 12px;resize:vertical}
 // API keys live in Vercel env vars — never in frontend code.
 // All Exa + Groq calls go through /api/agent/scan (server-side proxy).
 const MONITOR_ID = '01ksht4r08s1gdkmr33qw3b6j0'
-const OWNER_NAME = 'Benji'
+const OWNER_NAME = 'Michael'
 const DEFAULT_PW = '360booth'
 const DB_AUTH    = 'b360_intel_auth'
 const DB_SCANS   = 'b360_intel_scans'
@@ -1389,17 +1876,17 @@ function saveScansAndLeads(scan){
 }
 
 function updateBadges(){
-  const sc=DB.get(DB_SCANS).length; const lc=DB.get(DB_LEADS).length; const mc=DB.get(DB_MSGS,[]).length
+  const sc=DB.get(DB_SCANS).length; const lc=DB.get(DB_LEADS).length
   ;['sb-history-count'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=sc })
   ;['sb-leads-count'].forEach(id=>{ const e=document.getElementById(id); if(e)e.textContent=lc })
-  const mb=document.getElementById('sb-msgs-count'); if(mb)mb.textContent=mc
   const ssc=document.getElementById('ss-scan-count'); if(ssc)ssc.textContent=sc
   const slc=document.getElementById('ss-lead-count'); if(slc)slc.textContent=lc
   const st=document.getElementById('ss-storage')
   if(st){ const b=new Blob([JSON.stringify(localStorage)]).size; st.textContent=b>1024?Math.round(b/1024)+' KB':b+' B' }
-  // Mobile tab badge
-  const mbadge=document.getElementById('mob-badge-messages')
-  if(mbadge){ mbadge.textContent=mc>0?mc:''; mbadge.classList.toggle('visible',mc>0) }
+  // Mobile tab lead badge
+  const mobLeads=document.getElementById('mob-badge-leads')
+  if(mobLeads){ mobLeads.textContent=lc>0?lc:''; mobLeads.classList.toggle('visible',lc>0) }
+  // WA unread badge is managed by setWaUnread() — don't reset it here
 }
 
 // ── AUTH ─────────────────────────────────────────────────────
@@ -1486,7 +1973,7 @@ async function runBoot(){
     const offIco=document.getElementById('voice-icon-off'); if(offIco)offIco.style.display='none'
     const h=new Date().getHours()
     const gr=h<12?'Good morning':'Good afternoon'
-    setTimeout(()=>jarvisSpeak(`${gr}, ${OWNER_NAME}. I'm Jarvis, your intelligence officer. All systems online.`,{pitch:0.7,rate:0.85}),600)
+    setTimeout(()=>jarvisSpeak(`${gr}, ${OWNER_NAME}. I'm 360, your intelligence officer. All systems online.`,{pitch:0.7,rate:0.85}),600)
   }
 }
 
@@ -1494,14 +1981,18 @@ function showApp(){
   DB.set(DB_AUTH,{authed:true,ts:Date.now()})
   document.getElementById('login-screen').style.display='none'
   document.getElementById('app').classList.add('on')
-  loadSettingsForm(); updateBadges(); updateNextRunDisplay(); renderOverview()
+  loadSettingsForm(); updateBadges(); updateNextRunDisplay()
+  // Check follow-up reminders on every login
+  setTimeout(checkFollowUpReminders, 2000)
   // Re-arm any scheduled scan that was set before page load
   const _pendingScan=DB.cfg().nextScanOverride
   if(_pendingScan && new Date(_pendingScan)>new Date()) armScheduledScan(_pendingScan)
-  // Set initial active mobile tab
-  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.toggle('active',t.dataset.mobtab==='agent'))
+  // Always start on overview
+  goPage('overview')
   // Sync server-side leads from auto-scan cron runs into localStorage
   syncServerLeads()
+  // Start background WhatsApp poll — fires every 30s to catch inbound replies
+  startGlobalMsgPoll()
 }
 
 async function syncServerLeads(){
@@ -1513,15 +2004,56 @@ async function syncServerLeads(){
     const {leads:serverLeads=[]}=await r.json()
     if(!serverLeads.length) return
     const local=DB.get(DB_LEADS)
-    const keySet=new Set(local.map(l=>l._key))
-    let added=0
+    const keySet  =new Set(local.map(l=>l._key))
+    const emailSet=new Set(local.map(l=>(l.email||'').toLowerCase()).filter(Boolean))
+    const nameSet =new Set(local.map(l=>(l.event_name||l.title||'').toLowerCase().replace(/\s+/g,'')).filter(s=>s.length>4))
+    const newLeads=[]
     for(const sl of serverLeads){
-      if(!keySet.has(sl._key)){ local.push(sl); keySet.add(sl._key); added++ }
+      const em=(sl.email||'').toLowerCase()
+      const nm=(sl.event_name||sl.title||'').toLowerCase().replace(/\s+/g,'')
+      if(keySet.has(sl._key)) continue
+      if(em && emailSet.has(em)) continue
+      if(nm.length>4 && nameSet.has(nm)) continue
+      local.push(sl); keySet.add(sl._key)
+      if(em) emailSet.add(em)
+      if(nm.length>4) nameSet.add(nm)
+      newLeads.push(sl)
     }
-    if(added>0){
-      DB.set(DB_LEADS,local); updateBadges(); renderOverview()
-      toast(`${added} lead${added!==1?'s':''} synced from server`,'success')
-    }
+    if(!newLeads.length) return
+    DB.set(DB_LEADS,local); updateBadges()
+
+    // ── Create scan history entries — store leadKeys only (no duplicate objects) ──
+    const existingScans=DB.get(DB_SCANS)
+    const existingScanIds=new Set(existingScans.map(s=>s.id))
+    const byRun={}
+    newLeads.forEach(sl=>{
+      // Group by scan_run_id; fall back to hourly bucket from scan_run_at/firstSeen
+      const runId=sl.scan_run_id||('srv_'+((sl.scan_run_at||sl.firstSeen||'').slice(0,13).replace(/[T:]/g,'-')))
+      if(!byRun[runId])byRun[runId]={
+        id:runId, ts:sl.scan_run_at||sl.firstSeen||new Date().toISOString(),
+        leadKeys:[], mode:'auto-scan', query:'Auto-Scan (Exa + Groq)',
+      }
+      byRun[runId].leadKeys.push(sl._key)
+    })
+    Object.values(byRun).forEach(run=>{
+      if(existingScanIds.has(run.id)) return
+      const runLeads=newLeads.filter(l=>run.leadKeys.includes(l._key))
+      run.total=run.leadKeys.length
+      run.hot=runLeads.filter(e=>(e.lead_score||0)>=80).length
+      run.warm=runLeads.filter(e=>(e.lead_score||0)>=55&&(e.lead_score||0)<80).length
+      run.avgScore=runLeads.length?Math.round(runLeads.reduce((a,e)=>a+(e.lead_score||0),0)/runLeads.length):0
+      existingScans.unshift(run)
+    })
+    if(existingScans.length>50)existingScans.length=50
+    DB.set(DB_SCANS,existingScans)
+
+    // Re-render whichever pages are currently visible
+    renderOverview()
+    if(document.getElementById('page-pipeline')?.classList.contains('on')) renderPipeline()
+    if(document.getElementById('page-leads')?.classList.contains('on'))    renderLeadsTable()
+    if(document.getElementById('page-history')?.classList.contains('on'))  renderHistory()
+
+    toast(`${newLeads.length} new lead${newLeads.length!==1?'s':''} synced from server scan`,'success')
   }catch(e){ console.warn('[syncServerLeads]',e.message) }
 }
 
@@ -1534,7 +2066,7 @@ function renderOverview(){
   const msgs=DB.get(DB_MSGS)
   const hot=leads.filter(l=>l.lead_score>=80).length
   const warm=leads.filter(l=>l.lead_score>=55&&l.lead_score<80).length
-  const revenue=(hot*1200).toLocaleString('en-IE',{style:'currency',currency:'EUR',maximumFractionDigits:0})
+  const revenue=(hot*750).toLocaleString('en-IE',{style:'currency',currency:'EUR',maximumFractionDigits:0})
   // KPIs
   const el=id=>document.getElementById(id)
   if(el('ov-hot'))el('ov-hot').textContent=hot
@@ -1593,7 +2125,7 @@ function goPage(name){
   if(name==='history')renderHistory()
   if(name==='leads')renderLeadsTable()
   if(name==='pipeline')renderPipeline()
-  if(name==='messages'){ renderMessages(true); startMsgPoll() }
+  if(name==='messages'){ clearWaUnread(); renderMessages(true); startMsgPoll() }
   if(name==='chat') renderChatHistory()
   closeMobileSidebar()
 }
@@ -1689,23 +2221,27 @@ async function agentWhatsApp(message, label='Manual'){
 
 // ── RENDER RESULTS ───────────────────────────────────────────
 function renderResults(events,mode,query){
-  const sorted=[...events].sort((a,b)=>b.lead_score-a.lead_score)
-  const avg=events.length?Math.round(events.reduce((s,e)=>s+e.lead_score,0)/events.length):0
-  const hot=events.filter(e=>e.lead_score>=80).length
+  const sorted=[...events].sort((a,b)=>(b.lead_score||0)-(a.lead_score||0))
+  const avg=events.length?Math.round(events.reduce((s,e)=>s+(e.lead_score||0),0)/events.length):0
+  const hot=events.filter(e=>(e.lead_score||0)>=80).length
   const now=new Date()
+  const warm=events.filter(e=>(e.lead_score||0)>=55&&(e.lead_score||0)<80).length
   document.getElementById('res-eyebrow').textContent='Intelligence Report'
-  document.getElementById('res-headline').textContent=`${events.length} Events Analysed — ${hot} High-Value Lead${hot!==1?'s':''}`
+  document.getElementById('res-headline').textContent=`${events.length} Events Scanned — ${hot} Hot · ${warm} Warm`
   document.getElementById('res-meta').innerHTML=
     `<span>${mode==='search'?`Query: "${(query||'').slice(0,50)}"` : 'Monitor: B2B Event Intelligence Ireland'}</span>`+
     `<span>${fmtDublin(now,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} Dublin</span>`+
     `<span>LLaMA 3.3 70B</span>`
   document.getElementById('res-kpis').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Events Found</div><div class="kpi-val">${events.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Scanned</div><div class="kpi-val">${events.length}</div></div>
     <div class="kpi"><div class="kpi-label">Hot Leads</div><div class="kpi-val green">${hot}</div></div>
-    <div class="kpi"><div class="kpi-label">Avg Score</div><div class="kpi-val gold">${avg}</div></div>
+    <div class="kpi"><div class="kpi-label">Warm Leads</div><div class="kpi-val gold">${warm}</div></div>
     <div class="kpi"><div class="kpi-label">Top Type</div><div class="kpi-val sm">${sorted[0]?.event_type||'—'}</div></div>`
 
-  document.getElementById('events-grid').innerHTML=sorted.filter(e=>e.urgency!=='Skip').map((e,i)=>{
+  // Only show Hot and Warm leads — drop Cool, Skip, and anything Groq marked as past
+  const GENERIC_EMAIL_RX=/^(info|hello|contact|support|admin|noreply|no-reply|enquir|press|media|office|reception|team|sales|booking|events?|general|mail|post|web|webmaster|editor|feedback)@/i
+  const visibleEvents=sorted.filter(e=>e.urgency==='Hot'||e.urgency==='Warm')
+  document.getElementById('events-grid').innerHTML=visibleEvents.map((e,i)=>{
     const sc=e.lead_score
     const fc=sc>=80?'var(--green)':sc>=55?'var(--warn)':'var(--blue)'
     const urg=e.urgency||'Cool'
@@ -1716,7 +2252,7 @@ function renderResults(events,mode,query){
           : `<div class="ecard-img-ph" style="background:linear-gradient(135deg,var(--s3) 0%,${fc}11 100%)"><div class="ecard-img-ph-inner"><span class="ecard-img-ph-letter" style="color:${fc}">${(e.domain||e.title||'?')[0].toUpperCase()}</span><span class="ecard-img-ph-domain">${esc(e.domain||'')}</span></div></div>`
       }</div>
       <div class="ecard-body">
-        <div class="ecard-top"><div class="ecard-num">Lead ${String(i+1).padStart(2,'0')}</div><span class="badge badge-${urg.toLowerCase()}">${urg}</span></div>
+        <div class="ecard-top"><div class="ecard-num">Lead ${String(i+1).padStart(2,'0')}</div><span class="badge badge-${urg.toLowerCase()}">${urg}</span>${e.booth_history?`<span class="competitor-badge" style="margin-left:4px;font-size:9px">◈ ${esc(e.booth_competitor||'Prev booth')}</span>`:''}</div>
         <div class="ecard-title">${esc(e.title)}</div>
         <div class="ecard-domain"><div class="ddot"></div>${esc(e.domain||'—')}</div>
         <div class="type-chip">${esc(e.event_type)}</div>
@@ -1727,36 +2263,54 @@ function renderResults(events,mode,query){
       <div class="contact-sec">
         <div class="contact-ttl">Contact Intelligence</div>
         ${e.organizer?`<div class="contact-row"><div class="c-ico">Org</div><div class="c-val">${esc(e.organizer)}</div></div>`:''}
-        ${e.email?`<div class="contact-row"><div class="c-ico">@</div><div class="c-val"><a href="mailto:${esc(e.email)}">${esc(e.email)}</a></div><span class="ctag ctag-found">Found</span><button class="copy-btn" onclick="cp(this,'${esc(e.email)}')">Copy</button></div>`
-          :e.email_inferred?`<div class="contact-row"><div class="c-ico">@</div><div class="c-val est">${esc(e.email_inferred)}</div><span class="ctag ctag-est">Est.</span><button class="copy-btn" onclick="cp(this,'${esc(e.email_inferred)}')">Copy</button></div>`
-          :`<div class="contact-row"><div class="c-ico">@</div><div class="c-val none">Email not found</div></div>`}
+        ${(()=>{
+          const cleanInferred = e.email_inferred && !GENERIC_EMAIL_RX.test(e.email_inferred) ? e.email_inferred : null
+          const shortName = (e.organizer||e.title||'').replace(/\s*[-|·–—\/].*$/,'').replace(/\s{2,}/g,' ').trim().slice(0,35)
+          if(e.email)
+            return `<div class="contact-row"><div class="c-ico">@</div><div class="c-val"><a href="mailto:${esc(e.email)}">${esc(e.email)}</a></div><span class="ctag ctag-found">Found</span><button class="copy-btn" onclick="cp(this,'${esc(e.email)}')">Copy</button></div>`
+          if(cleanInferred)
+            return `<div class="contact-row"><div class="c-ico">@</div><div class="c-val est">${esc(cleanInferred)}</div><span class="ctag ctag-est">Est.</span><button class="copy-btn" onclick="cp(this,'${esc(cleanInferred)}')">Copy</button></div>`
+          return `<div class="contact-row"><div class="c-ico">@</div><div class="c-val none">Email not found</div></div>
+           <div class="contact-find-row">
+             <a class="find-btn find-li" href="https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(shortName+' Ireland')}&origin=GLOBAL_SEARCH_HEADER" target="_blank" rel="noopener">LinkedIn People</a>
+             <a class="find-btn find-g" href="https://www.google.com/search?q=${encodeURIComponent(shortName+' contact email Ireland')}" target="_blank" rel="noopener">Google</a>
+           </div>`
+        })()}
         ${e.phone?`<div class="contact-row"><div class="c-ico">Ph</div><div class="c-val"><a href="tel:${esc(e.phone.replace(/\s/g,''))}">${esc(e.phone)}</a></div><span class="ctag ctag-found">Found</span><button class="copy-btn" onclick="cp(this,'${esc(e.phone)}')">Copy</button></div>`:''}
         ${e.contact_hint&&!e.email&&!e.phone?`<div class="contact-row"><div class="c-ico">?</div><div class="c-val none" style="white-space:normal;font-size:10px">${esc(e.contact_hint)}</div></div>`:''}
       </div>
       <div class="ecard-foot">
         <div class="att-tier">${e.attendees_tier!=='Unknown'?esc(e.attendees_tier)+' attendees':''}</div>
-        ${e.url?`<a class="src-link" href="${esc(e.url)}" target="_blank" rel="noopener">View Source</a>`:''}
+        <div style="display:flex;align-items:center;gap:8px">
+          ${(()=>{ const lk=DB.get(DB_LEADS).find(l=>l.url===e.url||l.title===e.title); return lk?`<button class="btn btn-ghost btn-xs" onclick="openLeadDossier('${esc(lk._key)}')" title="Open dossier">☰ Dossier</button>`:''; })()}
+          ${e.url?`<a class="src-link" href="${esc(e.url)}" target="_blank" rel="noopener">View Source</a>`:''}
+        </div>
       </div>
     </div>`
   }).join('')
 }
 
 // ── PIPELINE ─────────────────────────────────────────────────
-const PIPE_STAGES=['New','Contacted','Meeting','Won','Lost']
-const PIPE_LABELS={'New':'New Lead','Contacted':'Contacted','Meeting':'Meeting Booked','Won':'Won','Lost':'Lost'}
+const PIPE_STAGES=['New','Contacted','Meeting','Booked','Won','Lost']
+const PIPE_LABELS={'New':'New Lead','Contacted':'Contacted','Meeting':'Meeting Booked','Booked':'Booked','Won':'Won','Lost':'Lost'}
+
+let _dragKey=null
 
 function renderPipeline(){
   const leads=DB.get(DB_LEADS)
   const board=document.getElementById('pipeline-board'); if(!board)return
   board.innerHTML=PIPE_STAGES.map(stage=>{
     const cards=leads.filter(l=>(l.status||'New')===stage)
-    const stageClass=stage==='Won'?'col-won':stage==='Lost'?'col-lost':''
+    const stageClass=stage==='Won'?'col-won':stage==='Lost'?'col-lost':stage==='Booked'?'col-booked':''
     return `<div class="pipe-col ${stageClass}">
       <div class="pipe-col-hdr">
         <span class="pipe-col-title">${PIPE_LABELS[stage]}</span>
         <span class="pipe-col-count">${cards.length}</span>
       </div>
-      <div class="pipe-cards" id="pcol-${stage}">
+      <div class="pipe-cards" id="pcol-${stage}"
+        ondragover="pipeDragOver(event)"
+        ondragleave="pipeDragLeave(event)"
+        ondrop="pipeDrop(event,'${stage}')">
         ${cards.length?cards.sort((a,b)=>b.lead_score-a.lead_score).map(l=>pipeCard(l,stage)).join('')
           :`<div class="pipe-empty">No leads</div>`}
       </div>
@@ -1764,26 +2318,64 @@ function renderPipeline(){
   }).join('')
 }
 
+function pipeDragStart(e,key){
+  _dragKey=key
+  e.dataTransfer.effectAllowed='move'
+  e.dataTransfer.setData('text/plain',key)
+  setTimeout(()=>e.target.classList.add('dragging'),0)
+}
+function pipeDragEnd(e){ e.target.classList.remove('dragging') }
+function pipeDragOver(e){
+  e.preventDefault(); e.dataTransfer.dropEffect='move'
+  e.currentTarget.classList.add('drag-over')
+}
+function pipeDragLeave(e){ e.currentTarget.classList.remove('drag-over') }
+function pipeDrop(e,stage){
+  e.preventDefault()
+  e.currentTarget.classList.remove('drag-over')
+  const key=_dragKey||e.dataTransfer.getData('text/plain')
+  _dragKey=null
+  if(!key||!PIPE_STAGES.includes(stage))return
+  moveLeadStage(key,stage)
+}
+
 function pipeCard(l,currentStage){
   const sc=l.lead_score||0
-  const fc=sc>=80?'var(--green)':sc>=55?'var(--warn)':'var(--blue)'
-  const contact=l.email||l.email_inferred||l.phone||''
+  const fc=sc>=80?'var(--red)':sc>=55?'var(--warn)':'var(--blue)'
+  const email=l.email||l.email_inferred||''; const phone=l.phone||''
   const stageIdx=PIPE_STAGES.indexOf(currentStage)
-  const canBack=stageIdx>0; const canFwd=stageIdx<PIPE_STAGES.length-1
-  return `<div class="pipe-card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-      <div class="pc-title">${esc((l.title||'').slice(0,60))}</div>
-      <div class="pc-score" style="color:${fc};flex-shrink:0${sc>=80?';text-shadow:0 0 10px '+fc+',0 0 20px '+fc+'44':sc>=55?';text-shadow:0 0 7px '+fc+'88':''}">${sc}</div>
+  const canBack=stageIdx>0&&currentStage!=='Lost'
+  const canFwd=stageIdx<PIPE_STAGES.length-1&&currentStage!=='Won'
+  const wonStyle=currentStage==='Won'?'border-color:rgba(63,185,80,.3);background:rgba(63,185,80,.04)':''
+  const hasReminder=l.followup_due&&new Date(l.followup_due).getTime()>Date.now()
+  const reminderLabel=hasReminder?new Date(l.followup_due).toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'}):null
+  const hasNote=!!(l.notes_user||'').trim()
+  return `<div class="pipe-card" draggable="true" data-key="${esc(l._key)}" style="${wonStyle}"
+    ondragstart="pipeDragStart(event,'${esc(l._key)}')"
+    ondragend="pipeDragEnd(event)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+      <div class="pc-title" style="flex:1;cursor:pointer" onclick="openLeadDossier('${esc(l._key)}')" title="Open full dossier">${esc((l.title||'').slice(0,55))}</div>
+      <div style="display:flex;align-items:flex-start;gap:4px;flex-shrink:0">
+        <div class="pc-score" style="color:${fc};font-size:18px${sc>=80?';text-shadow:0 0 8px '+fc+'88':''}">${sc}</div>
+        <button class="pc-del-btn" onclick="deleteLead('${esc(l._key)}');event.stopPropagation()" title="Delete lead">×</button>
+      </div>
     </div>
-    <div class="pc-domain">${esc(l.domain||'')}</div>
-    ${contact?`<div class="pc-contact">${esc(contact.slice(0,36))}</div>`:''}
+    ${l.organizer?`<div class="pc-domain" style="margin-bottom:3px">${esc((l.organizer||'').slice(0,40))}</div>`:''}
+    ${l.booth_history?`<div style="margin-bottom:4px"><span class="competitor-badge" style="font-size:9px">◈ ${esc(l.booth_competitor||'Used booth before')}</span></div>`:''}
+    ${hasReminder?`<div style="margin-bottom:4px"><span class="reminder-badge">⏰ ${esc(reminderLabel)}</span></div>`:''}
+    ${email?`<div class="pc-contact" style="color:rgba(88,166,255,.8)">✉ ${esc(email.slice(0,34))}</div>`:''}
+    ${phone?`<div class="pc-contact" style="margin-top:2px">📞 ${esc(phone.slice(0,20))}</div>`:''}
+    <textarea class="pc-notes-ta" placeholder="Quick note..." onchange="saveLeadNote('${esc(l._key)}',this.value)" oninput="saveLeadNote('${esc(l._key)}',this.value)">${esc(l.notes_user||'')}</textarea>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-      <span class="badge badge-${(l.urgency||'cool').toLowerCase()}" style="font-size:9px">${esc(l.event_type||'')}</span>
-      <button class="wa-btn" onclick="sendLeadToWhatsApp('${esc(l._key)}')">WA</button>
+      <span class="badge badge-${(l.urgency||'cool').toLowerCase()}" style="font-size:9px">${esc(l.event_type||l.urgency||'')}</span>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-ghost btn-xs" onclick="openLeadDossier('${esc(l._key)}')" title="Full dossier">☰</button>
+        <button class="wa-btn" onclick="sendLeadToWhatsApp('${esc(l._key)}')">WA</button>
+      </div>
     </div>
     <div class="pc-move-btns">
-      <button class="pc-move-btn" ${!canBack?'disabled':''} onclick="moveLeadStage('${esc(l._key)}','${PIPE_STAGES[stageIdx-1]}')">← ${canBack?PIPE_STAGES[stageIdx-1]:''}</button>
-      <button class="pc-move-btn" ${!canFwd?'disabled':''} onclick="moveLeadStage('${esc(l._key)}','${PIPE_STAGES[stageIdx+1]}')"> ${canFwd?PIPE_STAGES[stageIdx+1]:''} →</button>
+      <button class="pc-move-btn" ${!canBack?'disabled':''} onclick="moveLeadStage('${esc(l._key)}','${PIPE_STAGES[stageIdx-1]||''}')">← ${canBack?PIPE_STAGES[stageIdx-1]:''}</button>
+      <button class="pc-move-btn" ${!canFwd?'disabled':''} onclick="moveLeadStage('${esc(l._key)}','${PIPE_STAGES[stageIdx+1]||''}')"> ${canFwd?PIPE_STAGES[stageIdx+1]:''} →</button>
     </div>
   </div>`
 }
@@ -1794,36 +2386,71 @@ function moveLeadStage(key,newStage){
   l.status=newStage; DB.set(DB_LEADS,leads)
   renderPipeline(); updateBadges()
   toast(`Moved to ${PIPE_LABELS[newStage]}`,'info')
+  // Auto-set 3-day follow-up reminder when moved to Contacted
+  if(newStage==='Contacted'&&!l.followup_due){
+    const due=new Date(Date.now()+3*24*60*60*1000).toISOString()
+    l.followup_due=due; DB.set(DB_LEADS,leads)
+    toast(`⏰ 3-day follow-up reminder set for ${new Date(due).toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})}`,'success',4000)
+  }
 }
 
 // ── HISTORY ──────────────────────────────────────────────────
+function getScanLeads(s){
+  // Returns the lead objects for a scan history entry.
+  // Server scans (new): use leadKeys — no duplicate storage.
+  // Manual scans: use events array.
+  // Broken old server entries: match by scan_run_at timestamp bucket or scan_run_id.
+  const allLeads=DB.get(DB_LEADS)
+  if(s.leadKeys?.length){
+    const m={}; allLeads.forEach(l=>{m[l._key]=l})
+    return s.leadKeys.map(k=>m[k]).filter(Boolean)
+  }
+  if(s.events?.length) return s.events
+  // Fallback for broken server entries: match by scan_run_id OR by scan_run_at hour bucket
+  const scanHour=(s.ts||'').slice(0,13) // "2026-05-29T19"
+  return allLeads.filter(l=>{
+    if(l.scan_run_id===s.id) return true
+    if(scanHour&&l.scan_run_at&&l.scan_run_at.slice(0,13)===scanHour) return true
+    if(scanHour&&l.firstSeen&&l.firstSeen.slice(0,13)===scanHour) return true
+    return false
+  })
+}
+
 function renderHistory(){
   const scans=DB.get(DB_SCANS); const wrap=document.getElementById('history-list-wrap')
   if(!scans.length){ wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">—</div><div class="empty-title">No scans yet</div><div class="empty-sub">Run a search from the Agent page</div></div>`; return }
   wrap.innerHTML='<div class="history-list">'+scans.map(s=>{
     const d=new Date(s.ts)
-    const hotEvents=(s.events||[]).filter(e=>e.lead_score>=80).slice(0,3)
+    const leads=getScanLeads(s)
+    const hotLeads=leads.filter(e=>(e.lead_score||0)>=80).slice(0,3)
+    // Live-compute stats from actual lead data (fixes broken old entries)
+    const total=leads.length||s.total||0
+    const hot=leads.filter(e=>(e.lead_score||0)>=80).length||s.hot||0
+    const avg=leads.length?Math.round(leads.reduce((a,e)=>a+(e.lead_score||0),0)/leads.length):s.avgScore||0
+    const modeLabel=s.mode==='search'?'Custom Search':s.mode==='auto-scan'?'Auto-Scan':'Monitor Scan'
     return `<div class="history-item" onclick="loadScanInAgent('${s.id}')">
       <div class="hi-top">
         <div>
-          <div class="hi-mode">${s.mode==='search'?'Custom Search':'Monitor Scan'}</div>
+          <div class="hi-mode">${modeLabel}</div>
           <div class="hi-query">${esc(s.query||'Monitor run')}</div>
         </div>
         <div class="hi-ts">${d.toLocaleDateString('en-IE')} ${d.toLocaleTimeString('en-IE',{hour12:false})}</div>
       </div>
       <div class="hi-stats">
-        <div class="hi-stat">Events: <span class="hs-v gold">${s.total||0}</span></div>
-        <div class="hi-stat">Hot: <span class="hs-v green">${s.hot||0}</span></div>
-        <div class="hi-stat">Avg: <span class="hs-v gold">${s.avgScore||0}</span></div>
+        <div class="hi-stat">Events: <span class="hs-v gold">${total}</span></div>
+        <div class="hi-stat">Hot: <span class="hs-v green">${hot}</span></div>
+        <div class="hi-stat">Avg: <span class="hs-v gold">${avg}</span></div>
       </div>
-      ${hotEvents.length?`<div class="hi-preview">${hotEvents.map(e=>`<div class="hi-tag">${esc((e.title||'').slice(0,34))}</div>`).join('')}</div>`:''}
+      ${hotLeads.length?`<div class="hi-preview">${hotLeads.map(e=>`<div class="hi-tag">${esc((e.title||e.event_name||'').slice(0,34))}</div>`).join('')}</div>`:''}
     </div>`
   }).join('')+'</div>'
 }
 
 function loadScanInAgent(scanId){
   const scan=DB.get(DB_SCANS).find(s=>s.id===scanId); if(!scan)return
-  goPage('agent'); renderResults(scan.events,scan.mode,scan.query); agentShow('results')
+  const events=getScanLeads(scan)
+  if(!events.length){ toast('No leads recorded for this scan','info'); return }
+  goPage('agent'); renderResults(events,scan.mode,scan.query); agentShow('results')
   document.getElementById('res-eyebrow').textContent='Loaded from History'
 }
 
@@ -1833,13 +2460,36 @@ function clearHistory(){
 }
 
 // ── LEADS TABLE ──────────────────────────────────────────────
-let leadsFilter={urgency:'',status:'',contact:''}
+// Multi-select filter state: '' = All, otherwise a Set of selected values
+let leadsFilter={urgency:new Set(),status:new Set(),contact:new Set()}
+let leadsCurrentPage=0
+const LEADS_PER_PAGE=20
 
 function setPillFilter(type,val,btn){
-  leadsFilter[type]=val
+  leadsCurrentPage=0
   const group=document.getElementById('pill-'+type)
-  if(group)group.querySelectorAll('.pill').forEach(b=>b.classList.remove('active','active-green','active-red','active-warn'))
-  if(btn)btn.classList.add('active')
+  if(val===''){
+    // "All" clears the set
+    leadsFilter[type]=new Set()
+    if(group){
+      group.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'))
+      group.querySelector('[data-val=""]')?.classList.add('active')
+    }
+  } else {
+    // Toggle this value in the set
+    if(leadsFilter[type].has(val)) leadsFilter[type].delete(val)
+    else leadsFilter[type].add(val)
+    if(group){
+      group.querySelectorAll('.pill[data-val]').forEach(b=>{
+        const v=b.getAttribute('data-val')
+        if(v==='') b.classList.toggle('active',leadsFilter[type].size===0)
+        else b.classList.toggle('active',leadsFilter[type].has(v))
+      })
+    }
+    // If set is now empty, activate "All"
+    if(leadsFilter[type].size===0&&group)
+      group.querySelector('[data-val=""]')?.classList.add('active')
+  }
   renderLeadsTable()
 }
 
@@ -1849,19 +2499,33 @@ function renderLeadsTable(){
   const emp=document.getElementById('leads-empty'); const tbody=document.getElementById('leads-tbody')
   let filtered=leads.filter(l=>{
     if(q&&!((l.title||'')+(l.organizer||'')+(l.email||l.email_inferred||'')+(l.domain||'')).toLowerCase().includes(q))return false
-    if(leadsFilter.urgency&&l.urgency!==leadsFilter.urgency)return false
-    if(leadsFilter.status&&(l.status||'New')!==leadsFilter.status)return false
-    if(leadsFilter.contact==='email'&&!l.email&&!l.email_inferred)return false
-    if(leadsFilter.contact==='phone'&&!l.phone)return false
+    if(leadsFilter.urgency.size&&!leadsFilter.urgency.has(l.urgency))return false
+    if(leadsFilter.status.size&&!leadsFilter.status.has(l.status||'New'))return false
+    if(leadsFilter.contact.size){
+      if(leadsFilter.contact.has('email')&&!l.email&&!l.email_inferred)return false
+      if(leadsFilter.contact.has('phone')&&!l.phone)return false
+    }
     return true
   }).sort((a,b)=>b.lead_score-a.lead_score)
   if(emp)emp.style.display=filtered.length?'none':'block'
   if(!tbody)return
+  // ── Pagination ──
+  const totalPages=Math.max(1,Math.ceil(filtered.length/LEADS_PER_PAGE))
+  if(leadsCurrentPage>=totalPages)leadsCurrentPage=totalPages-1
+  const pageLeads=filtered.slice(leadsCurrentPage*LEADS_PER_PAGE,(leadsCurrentPage+1)*LEADS_PER_PAGE)
+  renderLeadsPagination(filtered.length,totalPages)
   const sc=s=>s>=80?'var(--green)':s>=55?'var(--warn)':'var(--blue)'
-  tbody.innerHTML=filtered.map(l=>{
+  tbody.innerHTML=pageLeads.map(l=>{
     const status=l.status||'New'; const email=l.email||l.email_inferred||''
-    return `<tr>
-      <td><div class="ltd-title" title="${esc(l.title)}">${esc((l.title||'').slice(0,40))}</div><div class="ltd-org">${esc(l.domain||'')}</div></td>
+    const hasNote=!!(l.notes_user||'').trim()
+    const hasReminder=l.followup_due&&new Date(l.followup_due).getTime()>Date.now()
+    return `<tr style="cursor:pointer" ondblclick="openLeadDossier('${esc(l._key)}')">
+      <td><div class="ltd-title" title="${esc(l.title)}" style="display:flex;align-items:center;gap:5px">
+        ${esc((l.title||'').slice(0,38))}
+        ${l.booth_history?`<span class="competitor-badge" style="font-size:8px;padding:1px 5px">◈ Prev</span>`:''}
+        ${hasNote?`<span class="notes-indicator" title="Has notes"></span>`:''}
+        ${hasReminder?`<span class="reminder-badge" style="font-size:8px;padding:1px 5px">⏰</span>`:''}
+      </div><div class="ltd-org">${esc(l.domain||'')}</div></td>
       <td><div style="font:400 12px var(--font);color:var(--t2)">${esc(l.organizer||'—')}</div></td>
       <td>
         ${email?`<div class="ltd-email ${l.email?'':'est'}"><a href="mailto:${esc(email)}">${esc(email.slice(0,28))}</a><button class="copy-btn" onclick="cp(this,'${esc(email)}')" style="padding:1px 5px;margin-left:4px">Copy</button></div>`:'<div style="font:400 10px var(--font);color:var(--t4)">No email</div>'}
@@ -1873,23 +2537,40 @@ function renderLeadsTable(){
         ${['New','Contacted','Meeting','Won','Lost'].map(s=>`<option value="${s}"${status===s?' selected':''}>${s}</option>`).join('')}
       </select></td>
       <td><span style="font:400 10px var(--mono);color:var(--t4)">${new Date(l.firstSeen||0).toLocaleDateString('en-IE')}</span></td>
-      <td>${l.url?`<a class="src-link" href="${esc(l.url)}" target="_blank" rel="noopener">View</a>`:''}</td>
+      <td><button class="btn btn-ghost btn-xs" onclick="openLeadDossier('${esc(l._key)}')" title="Full dossier + email draft">☰</button></td>
       <td><button class="wa-btn" onclick="sendLeadToWhatsApp('${esc(l._key)}')">WA</button></td>
       <td><button class="del-btn" onclick="deleteLead('${esc(l._key)}')" title="Delete lead">✕</button></td>
     </tr>`
   }).join('')
 }
 
+function renderLeadsPagination(total,totalPages){
+  const wrap=document.getElementById('leads-pagination'); if(!wrap)return
+  if(totalPages<=1){wrap.innerHTML='';return}
+  wrap.innerHTML=`<div class="lpag">
+    <button class="lpag-btn" onclick="leadsGoPage(${leadsCurrentPage-1})" ${leadsCurrentPage===0?'disabled':''}>← Prev</button>
+    <span class="lpag-info">Page ${leadsCurrentPage+1} of ${totalPages} &nbsp;·&nbsp; ${total} leads</span>
+    <button class="lpag-btn" onclick="leadsGoPage(${leadsCurrentPage+1})" ${leadsCurrentPage>=totalPages-1?'disabled':''}>Next →</button>
+  </div>`
+}
+function leadsGoPage(n){leadsCurrentPage=n;renderLeadsTable()}
+
 function updateLeadStatus(key,status){
   const leads=DB.get(DB_LEADS); const l=leads.find(x=>x._key===key); if(l)l.status=status
-  DB.set(DB_LEADS,leads); toast('Status → '+status,'info')
+  DB.set(DB_LEADS,leads)
+  if(document.getElementById('page-pipeline')?.classList.contains('on')) renderPipeline()
+  toast('Status → '+status,'info')
 }
 
 function deleteLead(key){
   const leads=DB.get(DB_LEADS)
   const idx=leads.findIndex(l=>l._key===key); if(idx===-1)return
   leads.splice(idx,1); DB.set(DB_LEADS,leads)
-  updateBadges(); renderLeadsTable(); toast('Lead deleted','info')
+  updateBadges()
+  if(document.getElementById('page-leads')?.classList.contains('on'))     renderLeadsTable()
+  if(document.getElementById('page-pipeline')?.classList.contains('on'))  renderPipeline()
+  if(document.getElementById('page-overview')?.classList.contains('on'))  renderOverview()
+  toast('Lead deleted','info')
 }
 
 function clearVisibleLeads(){
@@ -1930,7 +2611,7 @@ function exportLeads(){
 
 // ── SETTINGS ─────────────────────────────────────────────────
 const SCHEDULE_HINTS={
-  weekly:'Monday at 8am GMT (Dublin) — Jarvis will email + WhatsApp your hot leads',
+  weekly:'Monday at 8am GMT (Dublin) — 360 will email + WhatsApp your hot leads',
   '2x':  'Mon + Thu at 8am GMT — twice-weekly intel report',
   '3x':  'Mon, Wed, Fri at 8am GMT — three times per week',
   '4x':  'Mon, Tue, Thu, Fri at 8am GMT — four times per week',
@@ -2019,7 +2700,7 @@ async function sendReportNow(){
       statusBox.className='ss-status-box ok show'
       statusBox.textContent=`Report sent. Found ${data.hot||0} hot and ${data.warm||0} warm leads across ${data.eventsScored||0} events.`
       toast('Intel report sent to both emails','success')
-      logMessage(`*Jarvis Intel Report Sent*\n\nEvents scored: ${data.eventsScored||0}\nHot leads: ${data.hot||0}\nWarm leads: ${data.warm||0}\nReport emailed to both addresses.`,'auto','Intel Report')
+      logMessage(`*360 Intel Report Sent*\n\nEvents scored: ${data.eventsScored||0}\nHot leads: ${data.hot||0}\nWarm leads: ${data.warm||0}\nReport emailed to both addresses.`,'auto','Intel Report')
     } else if(data.message){
       statusBox.className='ss-status-box warn show'
       statusBox.textContent=data.message
@@ -2070,15 +2751,18 @@ async function runAutoScanNow(){
       if(scans.length>50)scans.length=50
       DB.set(DB_SCANS,scans)
 
-      // Log to WhatsApp thread so it appears in Comms
-      const waMsg=`*⚡ Auto-Scan Complete*\n\n🔴 ${hot} hot  🟡 ${warm} warm  📊 ${total} total\n\nLeads saved to database. Email + WhatsApp report sent.\n\n🔗 https://360-booth-ireland.vercel.app`
+      // Build detailed WhatsApp alert for this scan
+      const waMsg=`*⚡ Auto-Scan Complete*\n\n🔴 ${hot} hot  🟡 ${warm} warm  📊 ${total} total\n\nLeads saved to database. Check your Lead Database + Scan History.\n\n🔗 https://360-booth-ireland.vercel.app`
+      // Log to WhatsApp UI thread
       logMessage(waMsg,'auto','Auto-Scan')
+      // Actually send via Twilio so it arrives on your phone
+      _sendWA(waMsg,'Auto-Scan').catch(()=>{})
 
       // Pull new server leads into local DB then re-render everything
       await syncServerLeads()
       renderOverview()
       renderHistory()
-      if(document.getElementById('page-leads')?.classList.contains('active'))renderLeadsTable()
+      renderLeadsTable() // always update — not just when leads page is active
       updateBadges()
     } else {
       statusBox.className='ss-status-box err show'
@@ -2091,9 +2775,174 @@ async function runAutoScanNow(){
   txt.textContent='⚡ Run Auto-Scan Now'; btn.disabled=false
 }
 
+// ── DEEP SCAN AGENT (Render — Scout → Analyst → Closer) ─────────────────
+const RENDER_AGENT_URL = 'https://three60-lead-hunter.onrender.com'
+let _deepScanPoller = null
+
+async function runDeepScan(){
+  const btn=document.getElementById('deep-scan-btn')
+  const txt=document.getElementById('deep-scan-btn-text')
+  const statusBox=document.getElementById('deep-scan-status')
+  const lastRun=document.getElementById('deep-scan-last-run')
+  btn.disabled=true; txt.textContent='Waking up agent...'
+  statusBox.style.cssText='display:block;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:10px;background:rgba(88,166,255,.08);color:var(--blue)'
+  statusBox.textContent='Waking up Render agent — free tier may take up to 60s...'
+  try{
+    const r=await fetch(`${RENDER_AGENT_URL}/scan`,{method:'POST'})
+    if(!r.ok && r.status!==409) throw new Error(`HTTP ${r.status}`)
+    txt.textContent='🔬 Scanning... (~3–5 min)'
+    statusBox.textContent='Scout searching events → Analyst scoring leads → Closer writing cold emails...'
+    let attempts=0
+    clearInterval(_deepScanPoller)
+    _deepScanPoller=setInterval(async()=>{
+      attempts++
+      try{
+        const pr=await fetch(`${RENDER_AGENT_URL}/results`)
+        const pd=await pr.json()
+        if(pd.status==='done'){
+          clearInterval(_deepScanPoller); _deepScanPoller=null
+          const leads=pd.leads||[]
+          const hot=leads.filter(l=>l.lead_score>=80).length
+          const warm=leads.filter(l=>l.lead_score>=55&&l.lead_score<80).length
+          const added=_importDeepLeads(leads)
+          statusBox.style.background='rgba(63,185,80,.1)'; statusBox.style.color='var(--green)'
+          statusBox.textContent=`Done — ${leads.length} leads (${hot} hot, ${warm} warm). ${added} new added to your database.`
+          txt.textContent='🔬 Run Deep Scan'; btn.disabled=false
+          lastRun.textContent=`Last run: ${new Date().toLocaleString('en-IE')}`
+          toast(`Deep scan done: ${hot} hot · ${warm} warm · ${added} new leads`,'success',5000)
+          await syncServerLeads(); renderLeadsTable(); renderOverview(); updateBadges()
+        } else if(pd.status==='error'){
+          clearInterval(_deepScanPoller); _deepScanPoller=null
+          statusBox.style.background='rgba(248,81,73,.08)'; statusBox.style.color='var(--red,#f85149)'
+          statusBox.textContent=`Error: ${pd.error||'Scan failed — check Render logs'}`
+          txt.textContent='🔬 Run Deep Scan'; btn.disabled=false
+        } else if(attempts>=25){
+          clearInterval(_deepScanPoller); _deepScanPoller=null
+          statusBox.textContent='Taking longer than expected — check Render dashboard for status.'
+          txt.textContent='🔬 Run Deep Scan'; btn.disabled=false
+        } else {
+          statusBox.textContent=`Running... ${attempts*20}s — Scout→Analyst→Closer pipeline active`
+        }
+      }catch(e){ if(attempts>=25){clearInterval(_deepScanPoller);txt.textContent='🔬 Run Deep Scan';btn.disabled=false} }
+    },20000)
+  }catch(e){
+    statusBox.style.background='rgba(248,81,73,.08)'; statusBox.style.color='var(--red,#f85149)'
+    statusBox.textContent=`Could not reach Render agent: ${e.message}`
+    txt.textContent='🔬 Run Deep Scan'; btn.disabled=false
+  }
+}
+
+function _importDeepLeads(leads){
+  if(!leads||!leads.length) return 0
+  const existing=DB.get(DB_LEADS)
+  const seenUrls=new Set(existing.map(l=>l.source_url||l.url||'').filter(Boolean))
+  let added=0
+  for(const l of leads){
+    if(l.url&&seenUrls.has(l.url)) continue
+    existing.unshift({
+      id:'deep_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      name:l.organizer||l.title||'Unknown Organiser',
+      company:l.organizer||'',
+      email:l.email||'',
+      phone:l.phone||'',
+      stage:'New',
+      score:l.lead_score||0,
+      urgency:l.urgency||'Warm',
+      source:'Deep Scan Agent',
+      source_url:l.url||'',
+      event_name:l.title||'',
+      event_type:l.event_type||'',
+      attendees:l.attendees_tier||'Unknown',
+      relevance:l.relevance||'',
+      action:l.action||'',
+      booth_history:l.booth_history||false,
+      booth_competitor:l.booth_competitor||null,
+      email_subject:l.email_subject||'',
+      email_body:l.email_body||'',
+      addedAt:new Date().toISOString(),
+    })
+    seenUrls.add(l.url||'')
+    added++
+  }
+  DB.set(DB_LEADS,existing)
+  return added
+}
+
 // ── MESSAGES (WhatsApp thread — Phase 2 with Supabase) ───────
-let msgPollTimer = null
-let msgLastId    = 0
+let msgPollTimer       = null
+let msgLastId          = 0
+let waUnreadCount      = 0
+let globalMsgPollTimer = null
+let lastKnownMsgId     = 0   // highest id seen across all polls
+
+function setWaUnread(count){
+  waUnreadCount=count
+  const badge=document.getElementById('wa-unread-badge')
+  const sbItem=document.getElementById('sb-item-messages')
+  const mobBadge=document.getElementById('mob-badge-messages')
+  if(badge){
+    badge.textContent=count>0?count:''
+    badge.classList.toggle('visible',count>0)
+  }
+  if(sbItem) sbItem.classList.toggle('wa-unread',count>0)
+  if(mobBadge){ mobBadge.textContent=count>0?count:''; mobBadge.classList.toggle('visible',count>0) }
+}
+
+function clearWaUnread(){
+  lastKnownMsgId=msgLastId
+  setWaUnread(0)
+}
+
+async function globalMsgCheck(){
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal) return
+  // Only run when NOT on messages page (messages page has its own 7s poll)
+  if(document.getElementById('page-messages')?.classList.contains('on')) return
+  try{
+    const r=await fetch(`/api/agent/messages?limit=30${lastKnownMsgId?'&after='+lastKnownMsgId:''}`)
+    if(!r.ok) return
+    const d=await r.json()
+    const msgs=d.messages||[]
+    if(!msgs.length) return
+    const newInbound=msgs.filter(m=>m.direction==='inbound')
+    if(newInbound.length){
+      // Update cache
+      const cache=DB.get(DB_MSGS,[])
+      const existIds=new Set(cache.map(m=>m.remote_id||m.id))
+      newInbound.forEach(m=>{
+        if(!existIds.has('r_'+m.id)){
+          cache.push({
+            id:'r_'+m.id,remote_id:'r_'+m.id,ts:m.created_at,
+            body:m.body,type:'inbound',
+            label:m.label||'Reply',local:false
+          })
+        }
+      })
+      cache.sort((a,b)=>new Date(a.ts)-new Date(b.ts))
+      if(cache.length>400)cache.splice(0,cache.length-400)
+      DB.set(DB_MSGS,cache)
+      // Show unread highlight + toast
+      const newCount=msgs[msgs.length-1].id
+      if(newCount>lastKnownMsgId){
+        lastKnownMsgId=newCount
+        setWaUnread(waUnreadCount+newInbound.length)
+        const preview=newInbound[newInbound.length-1].body.slice(0,60)
+        toast(`WhatsApp reply: "${preview}${preview.length>=60?'…':''}"`, 'info', 6000)
+      }
+    } else {
+      // Still advance pointer for non-inbound new messages
+      const topId=msgs[msgs.length-1].id
+      if(topId>lastKnownMsgId) lastKnownMsgId=topId
+    }
+  }catch{}
+}
+
+function startGlobalMsgPoll(){
+  if(globalMsgPollTimer) return
+  // First check after 5s so page has loaded, then every 30s
+  setTimeout(()=>{ globalMsgCheck(); globalMsgPollTimer=setInterval(globalMsgCheck,30000) },5000)
+}
+function stopGlobalMsgPoll(){ if(globalMsgPollTimer){clearInterval(globalMsgPollTimer);globalMsgPollTimer=null} }
 
 // Local-only log (system events like "report sent" — not real WA messages)
 function logMessage(body, type='auto', label='System'){
@@ -2220,7 +3069,7 @@ function msgQuick(type){
     if(!last){ toast('No scans yet — run a scan first','info'); return }
     const hot=leads.filter(l=>l.lead_score>=80).length
     const warm=leads.filter(l=>l.lead_score>=55&&l.lead_score<80).length
-    body=`*Jarvis Intel Summary — 360 Booth Ireland*\n\nLast scan: ${new Date(last.ts).toLocaleDateString('en-IE')}\nEvents scored: ${last.total||0}\nHot leads: ${hot}\nWarm leads: ${warm}\nAvg score: ${last.avgScore||0}/100\n\nOpen your dashboard to review and follow up.`
+    body=`*360 Intel Summary — 360 Booth Ireland*\n\nLast scan: ${new Date(last.ts).toLocaleDateString('en-IE')}\nEvents scored: ${last.total||0}\nHot leads: ${hot}\nWarm leads: ${warm}\nAvg score: ${last.avgScore||0}/100\n\nOpen your dashboard to review and follow up.`
   } else if(type==='hot'){
     const hot=leads.filter(l=>l.lead_score>=80).sort((a,b)=>b.lead_score-a.lead_score).slice(0,4)
     if(!hot.length){ toast('No hot leads in database yet','info'); return }
@@ -2282,7 +3131,7 @@ async function autoSendHotLeads(scored){
   if(isLocal) return
   const body=[
     `*Hot Leads Detected — 360 Booth Ireland*`,``,
-    `Jarvis found ${hot.length} high-value lead${hot.length!==1?'s':''} in this scan.`,``
+    `360 found ${hot.length} high-value lead${hot.length!==1?'s':''} in this scan.`,``
   ].concat(hot.map((e,i)=>[
     `${i+1}. ${e.title||e.domain} — ${e.lead_score}/100`,
     e.organizer?`   Organiser: ${e.organizer}`:'',
@@ -2388,11 +3237,11 @@ function closeLb(){ document.getElementById('lightbox').classList.remove('on') }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeLb() })
 
 // ── TOAST ─────────────────────────────────────────────────────
-function toast(msg,type='info'){
+function toast(msg,type='info',ms=3500){
   const t=document.getElementById('toasts'); const d=document.createElement('div')
   d.className=`toast ${type}`
   d.innerHTML=`<div class="toast-dot"></div><div>${esc(msg)}</div>`
-  t.appendChild(d); setTimeout(()=>d.remove(),3500)
+  t.appendChild(d); setTimeout(()=>d.remove(),ms)
 }
 
 // ── UTILS ────────────────────────────────────────────────────
@@ -2511,27 +3360,138 @@ function applyVoicePicker(){
 function previewVoice(){
   const prev=jarvisVoiceEnabled
   jarvisVoiceEnabled=true
-  jarvisSpeak(`I'm Jarvis, your intelligence officer for 360 Booth Ireland. All systems online.`,{rate:0.88,pitch:0.72})
+  jarvisSpeak(`I'm 360, your intelligence officer for 360 Booth Ireland. All systems online.`,{rate:0.88,pitch:0.72})
   jarvisVoiceEnabled=prev
 }
 
-function jarvisSpeak(text, opts={}){
-  if(!jarvisVoiceEnabled || !('speechSynthesis' in window)) return
-  speechSynthesis.cancel()
-  const clean=text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/[#>\[\]]/g,'')
-    .replace(/https?:\/\/\S+/g,'').replace(/\n+/g,'. ').trim().slice(0,500)
-  if(!clean) return
-  const u=new SpeechSynthesisUtterance(clean)
-  if(preferredVoice) u.voice=preferredVoice
-  u.rate=opts.rate??0.88; u.pitch=opts.pitch??0.72; u.volume=opts.volume??0.95
-  // Animate GIF while speaking
-  document.getElementById('jarvis-holo')?.classList.add('active')
-  document.getElementById('overview-holo')?.classList.add('active')
-  u.onend=()=>{
-    document.getElementById('jarvis-holo')?.classList.remove('active')
-    document.getElementById('overview-holo')?.classList.remove('active')
+// ── JARVIS VOICE ENGINE ───────────────────────────────────────
+let _currentAudio = null
+
+function _jarvisAnimateOn(){ document.getElementById('jarvis-holo')?.classList.add('active'); document.getElementById('overview-holo')?.classList.add('active') }
+function _jarvisAnimateOff(){ document.getElementById('jarvis-holo')?.classList.remove('active'); document.getElementById('overview-holo')?.classList.remove('active') }
+
+// ── Listening overlay (glow + waveform + pill) ───────────────
+let _waveAF=null
+
+function _showListeningUI(){
+  const o=document.getElementById('jarvis-glow-overlay')
+  if(o){ o.className='listening' }
+  document.getElementById('jarvis-status-pill')?.classList.add('active')
+  document.getElementById('voice-cancel-btn')?.classList.add('active')
+  _startWave()
+}
+function _showSpeakingUI(){
+  const o=document.getElementById('jarvis-glow-overlay')
+  if(o){ o.className='speaking' }
+  _stopWave()
+  document.getElementById('jarvis-status-pill')?.classList.remove('active')
+  document.getElementById('voice-cancel-btn')?.classList.remove('active')
+}
+function _showIdleUI(){
+  const o=document.getElementById('jarvis-glow-overlay')
+  if(o){ o.className='idle' }
+  _stopWave()
+  document.getElementById('jarvis-status-pill')?.classList.remove('active')
+  document.getElementById('voice-cancel-btn')?.classList.remove('active')
+}
+function _hideAllUI(){
+  const o=document.getElementById('jarvis-glow-overlay')
+  if(o){ o.className='' }
+  _stopWave()
+  document.getElementById('jarvis-status-pill')?.classList.remove('active')
+  document.getElementById('voice-cancel-btn')?.classList.remove('active')
+}
+function cancelVoice(){
+  stopWakeWord()
+  _hideAllUI()
+  // Re-arm the wake word listener so it's ready for the next "360"
+  setTimeout(startWakeWord, 400)
+}
+
+function _startWave(){
+  const canvas=document.getElementById('jarvis-wave-canvas')
+  const bar=document.getElementById('jarvis-wave-bar')
+  if(!canvas||!bar) return
+  bar.classList.add('active')
+  canvas.width=window.innerWidth; canvas.height=40
+  const ctx=canvas.getContext('2d')
+  const N=80
+  const h=new Array(N).fill(0).map(()=>Math.random()*18+4)
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,40)
+    const w=canvas.width/N
+    h.forEach((v,i)=>{
+      h[i]=Math.max(3,Math.min(32,v+(Math.random()-.5)*8))
+      const x=i*w
+      const g=ctx.createLinearGradient(x,40-h[i],x,40)
+      g.addColorStop(0,'rgba(88,166,255,.92)')
+      g.addColorStop(1,'rgba(88,166,255,.05)')
+      ctx.fillStyle=g
+      ctx.fillRect(x+.5,40-h[i],w-1,h[i])
+    })
+    _waveAF=requestAnimationFrame(draw)
   }
-  speechSynthesis.speak(u)
+  if(_waveAF) cancelAnimationFrame(_waveAF)
+  draw()
+}
+function _stopWave(){
+  if(_waveAF){ cancelAnimationFrame(_waveAF); _waveAF=null }
+  const bar=document.getElementById('jarvis-wave-bar')
+  if(bar) bar.classList.remove('active')
+  const canvas=document.getElementById('jarvis-wave-canvas')
+  if(canvas){ const ctx=canvas.getContext('2d'); ctx?.clearRect(0,0,canvas.width,40) }
+}
+
+// ── Activation beep (Web Audio — no file needed) ─────────────
+function playActivationBeep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)()
+    // Two-tone rising beep — clean and techy
+    ;[[660,.0],[880,.12]].forEach(([freq,delay])=>{
+      const osc=ctx.createOscillator()
+      const gain=ctx.createGain()
+      osc.connect(gain); gain.connect(ctx.destination)
+      osc.frequency.value=freq; osc.type='sine'
+      const t=ctx.currentTime+delay
+      gain.gain.setValueAtTime(0,t)
+      gain.gain.linearRampToValueAtTime(0.28,t+0.015)
+      gain.gain.exponentialRampToValueAtTime(0.001,t+0.18)
+      osc.start(t); osc.stop(t+0.2)
+    })
+  }catch(e){}
+}
+
+// ── jarvisSpeak — returns Promise, resolves when audio ends ──
+function jarvisSpeak(text, opts={}){
+  return new Promise(resolve=>{
+    if(!jarvisVoiceEnabled){ resolve(); return }
+    if(_currentAudio){ _currentAudio.pause(); _currentAudio=null }
+    if('speechSynthesis' in window) speechSynthesis.cancel()
+    const clean=text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/[#>\[\]]/g,'')
+      .replace(/https?:\/\/\S+/g,'').replace(/\n+/g,'. ').trim().slice(0,500)
+    if(!clean){ resolve(); return }
+    _jarvisAnimateOn()
+    _showSpeakingUI()
+    fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:clean})})
+      .then(r=>{ if(!r.ok) throw new Error('tts-'+r.status); return r.blob() })
+      .then(blob=>{
+        const url=URL.createObjectURL(blob)
+        const audio=new Audio(url)
+        audio.volume=opts.volume??0.95
+        _currentAudio=audio
+        const done=()=>{ _jarvisAnimateOff(); _showIdleUI(); URL.revokeObjectURL(url); _currentAudio=null; resolve() }
+        audio.onended=done; audio.onerror=done
+        audio.play().catch(done)
+      }).catch(()=>{
+        if(!('speechSynthesis' in window)){ _jarvisAnimateOff(); _showIdleUI(); resolve(); return }
+        const u=new SpeechSynthesisUtterance(clean)
+        if(preferredVoice) u.voice=preferredVoice
+        u.rate=opts.rate??0.88; u.pitch=opts.pitch??0.72; u.volume=opts.volume??0.95
+        u.onend=()=>{ _jarvisAnimateOff(); _showIdleUI(); resolve() }
+        u.onerror=()=>{ _jarvisAnimateOff(); _showIdleUI(); resolve() }
+        speechSynthesis.speak(u)
+      })
+  })
 }
 
 function toggleVoice(){
@@ -2548,17 +3508,30 @@ function toggleVoice(){
   if(statusLbl){ statusLbl.textContent=jarvisVoiceEnabled?'On — say "Hey Jarvis" to activate':'Off'; statusLbl.style.color=jarvisVoiceEnabled?'var(--green)':'var(--t3)' }
   sessionStorage.setItem('jarvisVoice',jarvisVoiceEnabled?'1':'0')
   if(jarvisVoiceEnabled){
-    jarvisSpeak(`Online. I'm Jarvis, your intelligence officer for 360 Booth Ireland. All systems ready.`,{pitch:0.7,rate:0.88})
-    toast('Jarvis voice ON — say "Hey Jarvis" to activate','success')
+    _showIdleUI()
+    playActivationBeep()
+    toast('360 voice ON — say "Hey 360" to activate','success')
     startWakeWord()
   } else {
-    speechSynthesis.cancel()
+    if(_currentAudio){ _currentAudio.pause(); _currentAudio=null }
+    if('speechSynthesis' in window) speechSynthesis.cancel()
+    _jarvisAnimateOff()
+    _hideAllUI()
     stopWakeWord()
-    toast('Jarvis voice OFF','info')
+    toast('360 voice OFF','info')
   }
 }
 
-// ── WAKE WORD ENGINE — "Hey Jarvis" ──────────────────────────
+// ── WAKE WORD ENGINE — "Hey 360" ─────────────────────────────
+// Design:
+//  • Only check the CURRENT new result — never the accumulated history.
+//    This prevents re-triggering after _wakeActive resets.
+//  • Stop wake recognition the moment "360" is heard — no two recog
+//    sessions competing on the mic.
+//  • jarvisSpeak() returns a Promise. We await it before opening the
+//    command mic so 360 never transcribes its own voice as a command.
+//  • If the command is in the same utterance ("360 show me the leads")
+//    we execute immediately without a second listen cycle.
 let _wakeRecog    = null
 let _commandRecog = null
 let _wakeActive   = false
@@ -2566,88 +3539,288 @@ let _wakeActive   = false
 function startWakeWord(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition
   if(!SR){ toast('Wake word requires Chrome','warn'); return }
-  _wakeRecog=new SR()
-  _wakeRecog.continuous=true; _wakeRecog.interimResults=true; _wakeRecog.lang='en-IE'
-  _wakeRecog.onresult=e=>{
-    const t=Array.from(e.results).map(r=>r[0].transcript).join(' ').toLowerCase()
-    if(!_wakeActive && /\bjarvis\b/.test(t)){
-      _wakeActive=true
-      jarvisSpeak('Yes, Benji. How can I help?',{rate:0.9})
-      toast('🎙 Jarvis listening…','info')
-      // Activate the GIF
-      document.getElementById('jarvis-holo')?.classList.add('active')
-      document.getElementById('overview-holo')?.classList.add('active')
-      setTimeout(listenForCommand, 1200)
+
+  function spin(){
+    if(!jarvisVoiceEnabled) return
+    let triggered=false
+    const r=new SR()
+    r.continuous=true; r.interimResults=true; r.lang='en-IE'
+    _wakeRecog=r
+
+    r.onresult=e=>{
+      if(triggered) return
+      // Only inspect the LATEST result — not accumulated history
+      const cur=e.results[e.resultIndex]
+      if(!cur) return
+      const t=cur[0].transcript.toLowerCase().trim()
+
+      const WAKE_RX=/\b((?:hey|hello)\s+(?:360|three.?sixty)|360|three sixty|three-sixty)\b/
+      if(WAKE_RX.test(t)){
+        triggered=true
+        _wakeActive=true
+        r.stop() // free the mic immediately
+
+        // Any words spoken after the wake phrase = the command
+        const parts=t.split(WAKE_RX)
+        const inline=(parts[parts.length-1]||'').replace(/^[\s,!?]+/,'').trim()
+
+        if(inline.length>3){
+          // Command already spoken — beep, show glow, execute
+          playActivationBeep()
+          _showListeningUI()
+          setTimeout(()=>{
+            _hideAllUI()
+            handleVoiceCommand(inline).then(()=>{ _showIdleUI(); setTimeout(spin,1000) })
+          },200)
+        } else {
+          // Need to hear command — beep + show glow, then open mic
+          playActivationBeep()
+          _showListeningUI()
+          listenForCommand(spin)
+        }
+      }
     }
+    r.onerror=()=>{}
+    r.onend=()=>{ if(jarvisVoiceEnabled && !triggered) setTimeout(spin, 300) }
+    try{ r.start() }catch(e){}
   }
-  _wakeRecog.onerror=()=>{}
-  _wakeRecog.onend=()=>{ if(jarvisVoiceEnabled) setTimeout(()=>_wakeRecog?.start(),500) }
-  try{ _wakeRecog.start() }catch(e){}
+  spin()
 }
 
 function stopWakeWord(){
-  try{ _wakeRecog?.stop(); _commandRecog?.stop() }catch(e){}
+  try{ _wakeRecog?.stop() }catch(e){}
+  try{ _commandRecog?.stop() }catch(e){}
   _wakeRecog=null; _commandRecog=null; _wakeActive=false
 }
 
-function listenForCommand(){
+function listenForCommand(restart){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition
-  if(!SR) return
-  _commandRecog=new SR()
-  _commandRecog.lang='en-IE'; _commandRecog.interimResults=false
-  _commandRecog.onresult=async e=>{
-    const cmd=e.results[0][0].transcript.trim()
-    document.getElementById('jarvis-holo')?.classList.remove('active')
-    document.getElementById('overview-holo')?.classList.remove('active')
+  if(!SR){ restart?.(); return }
+  const r=new SR()
+  r.lang='en-IE'; r.interimResults=false; r.maxAlternatives=1
+  _commandRecog=r
+
+  let done=false
+  const finish=async cmd=>{
+    if(done) return
+    done=true
     _wakeActive=false
-    await handleVoiceCommand(cmd)
+    _hideAllUI()
+    if(cmd){ toast(`🎙 "${cmd}"`, 'info'); await handleVoiceCommand(cmd) }
+    _showIdleUI()
+    setTimeout(()=>restart?.(), 800)
   }
-  _commandRecog.onerror=()=>{ _wakeActive=false }
-  _commandRecog.onend=()=>{ _wakeActive=false }
-  try{ _commandRecog.start() }catch(e){ _wakeActive=false }
+  r.onresult=e=>finish(e.results[0][0].transcript.trim())
+  r.onerror=()=>finish(null)
+  r.onend=()=>{ if(!done) finish(null) }
+  try{ r.start() }catch(e){ finish(null) }
 }
 
 async function handleVoiceCommand(cmd){
-  if(!cmd) return
-  const lower=cmd.toLowerCase()
-  toast(`Jarvis heard: "${cmd}"`, 'info')
+  if(!cmd||cmd.length<2) return
+  const lower=cmd.toLowerCase().trim()
 
-  // Local commands (instant, no API)
-  if(/hot leads?|best leads?/i.test(lower)){
-    const hot=DB.get(DB_LEADS).filter(l=>l.lead_score>=80)
-    if(!hot.length){ jarvisSpeak('No hot leads right now. I suggest running a scan.'); return }
-    jarvisSpeak(`You have ${hot.length} hot lead${hot.length>1?'s':''}. Top one is ${hot[0].title||hot[0].organizer||'an event organiser'} with a score of ${hot[0].lead_score} out of 100.`)
-    goPage('leads'); return
+  // ── FAST PATH — instant, zero-latency for unambiguous 1-2 word nav ──
+  // Everything else goes to Groq for true NLP understanding.
+  const FAST_NAV={
+    overview:  /^(overview|home|main)$/,
+    agent:     /^(agent|intelligence|intel|monitor|scan)$/,
+    pipeline:  /^(pipeline|funnel|crm)$/,
+    history:   /^(history|scans|audit|log)$/,
+    leads:     /^(leads|database|contacts)$/,
+    messages:  /^(whatsapp|messages|wa)$/,
+    chat:      /^(chat|assistant|ai)$/,
+    settings:  /^settings?$/,
   }
-  if(/run.*(scan|search)|scan now|find leads/i.test(lower)){
-    jarvisSpeak('Running a scan now. I will notify you when it is complete.')
+  for(const [page,rx] of Object.entries(FAST_NAV)){
+    if(rx.test(lower)){ _navToAndDescribe(page); return }
+  }
+
+  // ── VOICE: "start scan" / "run scan" ────────────────────────
+  if(/\b(start|run|do|begin|trigger)\s+(a\s+)?(scan|search)\b/i.test(lower)){
+    goPage('agent')
+    await jarvisSpeak('Starting scan now.')
     runAutoScanNow(); return
   }
-  if(/pipeline|status|summary/i.test(lower)){
-    const leads=DB.get(DB_LEADS)
-    const hot=leads.filter(l=>l.lead_score>=80).length
-    const warm=leads.filter(l=>l.lead_score>=55&&l.lead_score<80).length
-    jarvisSpeak(`Pipeline status: ${hot} hot leads, ${warm} warm leads, ${leads.length} total. Estimated pipeline value is €${(hot*1200).toLocaleString()}.`)
-    goPage('overview'); return
-  }
-  if(/send.*whatsapp|whatsapp.*message/i.test(lower)){
-    jarvisSpeak('Opening WhatsApp. You can send your message from there.')
-    goPage('messages'); return
-  }
-  if(/open.*settings|settings/i.test(lower)){
-    jarvisSpeak('Opening settings.'); goPage('settings'); return
-  }
-  if(/go to|open|show/i.test(lower)){
-    const pages=['overview','agent','leads','pipeline','history','messages','chat','settings']
-    const found=pages.find(p=>lower.includes(p))
-    if(found){ jarvisSpeak(`Opening ${found}.`); goPage(found); return }
+
+  // ── VOICE: "add note to [lead name]: [note text]" ────────────
+  const addNoteRx=/\badd\s+(?:a\s+)?note\s+(?:to|for)\s+([^:,]+)[,:\s]\s*(.+)/i
+  const addNoteM=lower.match(addNoteRx)
+  if(addNoteM){
+    const leadQuery=(addNoteM[1]||'').trim()
+    const noteText=(addNoteM[2]||'').trim()
+    if(leadQuery&&noteText){
+      const leads=DB.get(DB_LEADS)
+      const match=leads.find(l=>
+        (l.title||'').toLowerCase().includes(leadQuery)||
+        (l.organizer||'').toLowerCase().includes(leadQuery)
+      )
+      if(match){
+        const existing=match.notes_user||''
+        match.notes_user=(existing?existing+'\n':'')+new Date().toLocaleDateString('en-IE')+': '+noteText
+        DB.set(DB_LEADS,leads)
+        await jarvisSpeak(`Note added to ${match.organizer||match.title||'lead'}.`)
+        toast('Note saved','success')
+      } else {
+        await jarvisSpeak(`Couldn't find a lead named ${leadQuery}. Try opening the lead database.`)
+      }
+      return
+    }
   }
 
-  // AI command — send to Groq chat with context
-  const input=document.getElementById('chat-input')
-  if(input){ input.value=cmd; goPage('chat') }
-  jarvisSpeak('Let me think about that.')
-  sendChat()
+  // ── VOICE: "read everything about [lead]" / "tell me about [lead]" ─
+  const readLeadRx=/\b(?:read|tell\s+me|show\s+me|what\s+do\s+(?:you\s+)?know)\s+(?:about|everything\s+about)\s+(.+)/i
+  const readLeadM=lower.match(readLeadRx)
+  if(readLeadM){
+    const leadQuery=(readLeadM[1]||'').trim()
+    const leads=DB.get(DB_LEADS)
+    const match=leads.find(l=>
+      (l.title||'').toLowerCase().includes(leadQuery)||
+      (l.organizer||'').toLowerCase().includes(leadQuery)
+    )
+    if(match){
+      goPage('leads')
+      openLeadDossier(match._key)
+      const summary=`${match.title||'Lead'} — score ${match.lead_score} out of 100. ${match.organizer?'Organiser: '+match.organizer+'.':''} ${match.event_type||''}. ${match.attendees_tier&&match.attendees_tier!=='Unknown'?match.attendees_tier+' attendees.':''} ${match.email?'Email on file.':match.phone?'Phone on file.':'No contact yet.'} ${match.booth_history?match.booth_competitor||'Previously hired a photo booth.':''} ${match.notes_user?'Notes: '+match.notes_user.slice(0,80):''}`
+      await jarvisSpeak(summary)
+    } else {
+      await jarvisSpeak(`I couldn't find a lead matching ${leadQuery}.`)
+    }
+    return
+  }
+
+  // ── VOICE: "who should I call today" / "hot leads" fast path ─
+  if(/\b(hot leads?|who\s+(?:to|should)\s+(?:i\s+)?(?:call|email|contact)|top\s+lead)\b/i.test(lower)){
+    const leads=DB.get(DB_LEADS)
+    const hot=leads.filter(l=>(l.lead_score||0)>=80).sort((a,b)=>b.lead_score-a.lead_score)
+    if(!hot.length){ await jarvisSpeak('No hot leads yet. Run a scan to find some.'); return }
+    goPage('pipeline')
+    const names=hot.slice(0,3).map(l=>l.organizer||l.title||'Lead').join(', ')
+    await jarvisSpeak(`You have ${hot.length} hot lead${hot.length!==1?'s':''}. Top contacts: ${names}.`); return
+  }
+
+  // ── VOICE: "follow up on [lead]" ────────────────────────────
+  const followUpRx=/\b(?:follow\s+up|remind\s+me|set\s+(?:a\s+)?reminder)\s+(?:on|for|about)\s+(.+)/i
+  const followUpM=lower.match(followUpRx)
+  if(followUpM){
+    const leadQuery=(followUpM[1]||'').trim()
+    const leads=DB.get(DB_LEADS)
+    const match=leads.find(l=>
+      (l.title||'').toLowerCase().includes(leadQuery)||
+      (l.organizer||'').toLowerCase().includes(leadQuery)
+    )
+    if(match){ setFollowUpReminder(match._key); await jarvisSpeak(`Follow-up reminder set for ${match.organizer||match.title||'the lead'}.`); return }
+  }
+
+  // ── GROQ NLP — handles all natural language ──────────────────
+  // "run that scanner", "show me who to call today", "can you send
+  // me the hot leads on WhatsApp", "what's the pipeline looking like" — all work.
+  try{
+    const leads=DB.get(DB_LEADS,[])
+    const scans=DB.get(DB_SCANS,[])
+    const hot=leads.filter(l=>(l.lead_score||0)>=80)
+    const warm=leads.filter(l=>(l.lead_score||0)>=55&&(l.lead_score||0)<80)
+    const r=await fetch('/api/agent/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        message:cmd,
+        intent:true,
+        context:{
+          totalLeads:leads.length,
+          hotLeads:hot.length,
+          warmLeads:warm.length,
+          topHot:hot.slice(0,3).map(l=>({title:l.title||l.organizer||'Lead',score:l.lead_score,email:l.email||''})),
+          lastScan:scans[0]?{date:scans[0].scannedAt,found:scans[0].leadsFound}:null,
+        }
+      })
+    })
+    if(!r.ok) throw new Error('chat-'+r.status)
+    const d=await r.json()
+    switch(d.action){
+      case 'navigate':
+        _navToAndDescribe(d.page||'overview', d.reply)
+        break
+      case 'scan':
+        goPage('agent')
+        await jarvisSpeak(d.reply||'Scanning now.')
+        runAutoScanNow()
+        break
+      case 'whatsapp':
+        if(d.content){
+          await jarvisSpeak(d.reply||'Sending.')
+          goPage('messages')
+          await _sendWA(d.content,'Voice')
+        } else {
+          // Groq wants to send but didn't produce content — build it from context
+          await _jarvisWhatsApp(lower)
+        }
+        break
+      case 'email':
+        await jarvisSpeak(d.reply||'Sending email.')
+        try{
+          const er=await fetch('/api/deliver-leads',{method:'GET'})
+          await jarvisSpeak(er.ok?'Email sent.':'Email failed.')
+        }catch(e){ await jarvisSpeak('Email unavailable.') }
+        break
+      case 'speak':
+      default:
+        await jarvisSpeak(d.reply||"Say: show me the leads, hot leads, run scan, or send a WhatsApp report.")
+    }
+  }catch(e){
+    await jarvisSpeak("I didn't catch that. Try: show me the leads, run a scan, or send me a report.")
+  }
+}
+
+function _navToAndDescribe(page, customReply){
+  const leads=DB.get(DB_LEADS,[])
+  const scans=DB.get(DB_SCANS,[])
+  const hot=leads.filter(l=>(l.lead_score||0)>=80)
+  const warm=leads.filter(l=>(l.lead_score||0)>=55&&(l.lead_score||0)<80)
+  goPage(page)
+  if(customReply){ jarvisSpeak(customReply); return }
+  const desc={
+    overview:`Overview. ${leads.length} leads, ${hot.length} hot, pipeline €${(hot.length*750).toLocaleString()}.`,
+    agent:`Agent module. ${scans[0]?`Last scan ${new Date(scans[0].scannedAt).toLocaleDateString('en-IE',{day:'numeric',month:'short'})} — ${scans[0].leadsFound||0} leads.`:'No scans yet.'}`,
+    pipeline:`Pipeline. ${hot.length} hot leads worth €${(hot.length*750).toLocaleString()}.`,
+    history:`Scan history. ${scans.length} scan${scans.length!==1?'s':''} total.`,
+    leads:`Lead database. ${leads.length} leads — ${hot.length} hot, ${warm.length} warm.`,
+    messages:`WhatsApp. Two-way 360 channel.`,
+    chat:`AI chat. Ask me anything.`,
+    settings:`Settings.`,
+  }
+  jarvisSpeak(desc[page]||`${page} opened.`)
+}
+
+async function _jarvisWhatsApp(lower){
+  const leads=DB.get(DB_LEADS,[])
+  const scans=DB.get(DB_SCANS,[])
+  let waMsg, label='Voice'
+  if(/\b(log|logs?|scan.*log)\b/i.test(lower)){
+    const last=scans[0]; label='Scan Log'
+    waMsg=last?`📋 *Scan Log*\n\n${new Date(last.scannedAt).toLocaleString('en-IE',{dateStyle:'medium',timeStyle:'short'})}\nLeads: ${last.leadsFound||0} | Hot: ${last.hotCount||0} | Warm: ${last.warnCount||0}\n\n🔗 https://360-booth-ireland.vercel.app\n_Jarvis 🤖_`:'No scan logs yet.'
+  } else if(/\b(hot leads?)\b/i.test(lower)){
+    const hot=leads.filter(l=>(l.lead_score||0)>=80); label='Hot Leads'
+    if(!hot.length){ jarvisSpeak('No hot leads to send.'); return }
+    waMsg=`🔴 *Hot Leads*\n\n${hot.slice(0,5).map((l,i)=>`${i+1}. *${l.title||'Lead'}* — ${l.lead_score}/100${l.email?'\n✉ '+l.email:''}${l.phone?'\n📞 '+l.phone:''}`).join('\n\n')}\n\n🔗 https://360-booth-ireland.vercel.app\n_Jarvis 🤖_`
+  } else {
+    const hot=leads.filter(l=>(l.lead_score||0)>=80)
+    const warm=leads.filter(l=>(l.lead_score||0)>=55&&(l.lead_score||0)<80); label='Report'
+    const m=lower.match(/(?:saying|that says|with message)\s+(.+)/i)
+    waMsg=m?`${m[1].trim()}\n_Jarvis 🤖_`:`📊 *Pipeline*\n🔴 ${hot.length} hot · 🟡 ${warm.length} warm · 📋 ${leads.length} total\n💰 €${(hot.length*750).toLocaleString()}\n\n${hot.length?`Top: *${hot[0].title||'Lead'}* (${hot[0].lead_score}/100)`:''}\n🔗 https://360-booth-ireland.vercel.app\n_Jarvis 🤖_`
+  }
+  jarvisSpeak(`Sending ${label.toLowerCase()}.`)
+  goPage('messages')
+  await _sendWA(waMsg, label)
+}
+
+async function _sendWA(message, label){
+  try{
+    const r=await fetch('/api/agent/whatsapp-send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,label})})
+    const d=await r.json()
+    if(d.ok){ jarvisSpeak('Sent.'); toast('WhatsApp sent ✓','success') }
+    else{ jarvisSpeak('Failed. Check Twilio settings.'); toast('WhatsApp failed','error') }
+  }catch(e){ jarvisSpeak('WhatsApp service unavailable.') }
 }
 
 // ── CHAT FILE UPLOAD ─────────────────────────────────────────
@@ -2728,7 +3901,7 @@ function renderChatBubble(m){
   const bodyHtml=esc(m.content).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<strong>$1</strong>')
   const srcs=m.sources&&m.sources.length?`<div class="chat-sources">${m.sources.map(s=>`<a class="chat-src" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title.slice(0,30))}</a>`).join('')}</div>`:''
   return `<div class="chat-bubble ${m.role==='user'?'user':'jarvis'}">
-    <span class="chat-role-tag">${m.role==='user'?OWNER_NAME:'Jarvis'}</span>
+    <span class="chat-role-tag">${m.role==='user'?OWNER_NAME:'360'}</span>
     <div class="chat-body">${bodyHtml}</div>
     ${srcs}
     <span class="chat-ts">${time}</span>
@@ -2774,11 +3947,23 @@ async function sendChat(){
     const leads=DB.get(DB_LEADS,[])
     const scans=DB.get(DB_SCANS,[])
     const pipeline={}; leads.forEach(l=>{ const s=l.status||'New'; pipeline[s]=(pipeline[s]||0)+1 })
-    const context={leads:leads.slice(0,40), scans:scans.slice(0,5), pipeline}
+    const leadsWithNotes=leads.slice(0,40).map(l=>({...l,notes_user:l.notes_user||''}))
+    const context={
+      leads:leadsWithNotes, scans:scans.slice(0,5), pipeline,
+      services:SERVICES_CATALOG,
+      competitorLeads:leads.filter(l=>l.booth_history).map(l=>({title:l.title,competitor:l.booth_competitor})).slice(0,5),
+    }
+
+    // Build conversation history for context-aware replies
+    const history=(sess.messages||[]).slice(-12).map(m=>({
+      role: m.role==='user'?'user':'assistant',
+      content: m.content
+    }))
+    const isFirstMessage = sess.messages.filter(m=>m.role==='user').length===1
 
     const res=await fetch('/api/agent/chat',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({message:fullMsg, context}),
+      body:JSON.stringify({message:fullMsg, context, history, isFirstMessage}),
     })
     const data=await res.json().catch(()=>({}))
     if(!res.ok) throw new Error(data.error||`Chat error ${res.status}`)
@@ -2816,7 +4001,7 @@ function chatQuick(type){
 const MOB_TABS=[
   {id:'overview', ico:'◈', lbl:'Overview'},
   {id:'agent',    ico:'⚡', lbl:'Agent'},
-  {id:'leads',    ico:'◎', lbl:'Leads'},
+  {id:'leads',    ico:'◎', lbl:'Leads',    badge:'sb-leads-count'},
   {id:'messages', ico:'✓', lbl:'WhatsApp', badge:'sb-msgs-count'},
   {id:'more',     ico:'…', lbl:'More'},
 ]
@@ -2838,6 +4023,10 @@ function buildMobNav(){
   // Drawer
   const drawer=document.getElementById('mob-drawer'); if(!drawer) return
   drawer.innerHTML=`<div class="mob-drawer-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px">
+      <span style="font:600 10px var(--font);letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.3)">More</span>
+      <button onclick="closeMobDrawer()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:18px;cursor:pointer;padding:0;line-height:1">×</button>
+    </div>
     <div class="mob-drawer-grid">
       ${MOB_MORE.map(i=>`<div class="mob-drawer-item" onclick="mobTabTap('${i.id}');closeMobDrawer()">
         <span class="mob-drawer-item-ico">${i.ico}</span>
@@ -2871,8 +4060,182 @@ function updateMobBadge(id, count){
 
 // ── INIT ─────────────────────────────────────────────────────
 checkAuth()
-buildMobNav()
-document.getElementById('mob-drawer-overlay')?.addEventListener('click',closeMobDrawer)
+// buildMobNav must run AFTER the DOM is fully parsed (mob-tabs div is after this script)
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>{
+    buildMobNav()
+    document.getElementById('mob-drawer-overlay')?.addEventListener('click',closeMobDrawer)
+  })
+} else {
+  buildMobNav()
+  document.getElementById('mob-drawer-overlay')?.addEventListener('click',closeMobDrawer)
+}
+
+// ── MICHAEL'S SERVICE CATALOGUE ──────────────────────────────
+const SERVICES_CATALOG = `
+360 Photo Booth (from €379) — immersive 360° slow-motion video, huge social media appeal.
+Selfie Magic Mirror (from €399) — full-length interactive mirror, custom animations and prints.
+Magazine Vogue Booth (from €499) — custom magazine cover photo experience, premium corporate choice.
+Vintage Photo Booth (from €399) — retro-style prints with custom branding.
+LED Dancefloor (from €599) — transforms any venue floor into a nightclub.
+Balloon Arch & Backdrops (from €80) — custom branded backdrop for photos.
+LED Heart Stand (from €149) — elegant statement piece for launches and galas.
+LED Letters & Numbers (from €79) — illuminated personalised letters.
+Marquee Letters (from €599) — large format lit letters for receptions.
+`.trim();
+
+// ── LEAD NOTES ────────────────────────────────────────────────
+function saveLeadNote(key, text){
+  const leads=DB.get(DB_LEADS)
+  const l=leads.find(x=>x._key===key); if(!l)return
+  l.notes_user=text; DB.set(DB_LEADS,leads)
+}
+
+function getLeadNote(key){
+  const l=DB.get(DB_LEADS).find(x=>x._key===key)
+  return l?.notes_user||''
+}
+
+// ── FOLLOW-UP REMINDERS ───────────────────────────────────────
+function setFollowUpReminder(key){
+  const leads=DB.get(DB_LEADS)
+  const l=leads.find(x=>x._key===key); if(!l)return
+  const due=new Date(Date.now()+3*24*60*60*1000).toISOString()
+  l.followup_due=due; DB.set(DB_LEADS,leads)
+  toast(`Follow-up reminder set for ${new Date(due).toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})}`,'success')
+}
+
+function clearFollowUpReminder(key){
+  const leads=DB.get(DB_LEADS)
+  const l=leads.find(x=>x._key===key); if(!l)return
+  delete l.followup_due; DB.set(DB_LEADS,leads)
+}
+
+function checkFollowUpReminders(){
+  const leads=DB.get(DB_LEADS)
+  const now=Date.now()
+  const due=leads.filter(l=>l.followup_due&&new Date(l.followup_due).getTime()<=now)
+  if(!due.length)return
+  due.slice(0,3).forEach(l=>{
+    toast(`⏰ Follow up: ${(l.title||'Lead').slice(0,40)}`,'warn',6000)
+  })
+  if(due.length>3) toast(`+ ${due.length-3} more follow-ups due`,'warn',5000)
+}
+
+// ── LEAD DOSSIER ──────────────────────────────────────────────
+let _dossierKey=null
+
+function openLeadDossier(key){
+  const leads=DB.get(DB_LEADS)
+  const l=leads.find(x=>x._key===key); if(!l)return
+  _dossierKey=key
+  const sc=l.lead_score||0
+  const fc=sc>=80?'var(--green)':sc>=55?'var(--warn)':'var(--blue)'
+  const email=l.email||l.email_inferred||''
+  const hasReminder=l.followup_due&&new Date(l.followup_due).getTime()>Date.now()
+  const reminderLabel=hasReminder?new Date(l.followup_due).toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'}):null
+
+  document.getElementById('dossier-title').textContent=(l.title||'Lead Dossier').slice(0,60)
+  document.getElementById('dossier-body').innerHTML=`
+    <div class="dossier-section">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <span class="badge badge-${(l.urgency||'cool').toLowerCase()}">${l.urgency||''}</span>
+        <span style="font:700 22px var(--mono);color:${fc}">${sc}/100</span>
+        <span class="type-chip">${esc(l.event_type||'')}</span>
+        ${l.booth_history?`<span class="competitor-badge">◈ ${esc(l.booth_competitor||'Used booth before')}</span>`:''}
+        ${hasReminder?`<span class="reminder-badge">⏰ Follow-up ${esc(reminderLabel)}</span>`:''}
+      </div>
+    </div>
+
+    <div class="dossier-section">
+      <div class="dossier-section-title"><span>Intelligence</span></div>
+      <div class="dossier-row"><div class="dossier-key">Organiser</div><div class="dossier-val">${esc(l.organizer||'—')}</div></div>
+      <div class="dossier-row"><div class="dossier-key">Attendees</div><div class="dossier-val">${esc(l.attendees_tier||'Unknown')}</div></div>
+      <div class="dossier-row"><div class="dossier-key">Domain</div><div class="dossier-val">${esc(l.domain||'—')}</div></div>
+      ${l.url?`<div class="dossier-row"><div class="dossier-key">Source</div><div class="dossier-val"><a href="${esc(l.url)}" target="_blank" rel="noopener">View event page</a></div></div>`:''}
+      ${l.relevance?`<div class="dossier-row"><div class="dossier-key">Why fits</div><div class="dossier-val" style="font-style:italic;color:var(--t3)">${esc(l.relevance)}</div></div>`:''}
+      ${l.action?`<div class="dossier-row"><div class="dossier-key">Action</div><div class="dossier-val" style="color:var(--brand)">→ ${esc(l.action)}</div></div>`:''}
+    </div>
+
+    <div class="dossier-section">
+      <div class="dossier-section-title"><span>Contact</span></div>
+      ${email?`<div class="dossier-row"><div class="dossier-key">Email</div><div class="dossier-val"><a href="mailto:${esc(email)}">${esc(email)}</a> ${l.email?'<span class="ctag ctag-found" style="font-size:9px">Found</span>':'<span class="ctag ctag-est" style="font-size:9px">Est.</span>'} <button class="copy-btn" onclick="cp(this,'${esc(email)}')">Copy</button></div></div>`:'<div class="dossier-row"><div class="dossier-key">Email</div><div class="dossier-val" style="color:var(--t4)">Not found</div></div>'}
+      ${l.phone?`<div class="dossier-row"><div class="dossier-key">Phone</div><div class="dossier-val"><a href="tel:${esc(l.phone.replace(/\s/g,''))}">${esc(l.phone)}</a> <button class="copy-btn" onclick="cp(this,'${esc(l.phone)}')">Copy</button></div></div>`:''}
+      ${l.contact_hint&&!email&&!l.phone?`<div class="dossier-row"><div class="dossier-key">Hint</div><div class="dossier-val" style="font-size:11px;color:var(--t3)">${esc(l.contact_hint)}</div></div>`:''}
+    </div>
+
+    <div class="dossier-section">
+      <div class="dossier-section-title"><span class="notes-indicator"></span> Notes</div>
+      <textarea class="dossier-notes" id="dossier-notes-ta" placeholder="Add your private notes about this lead..."
+        onchange="saveLeadNote('${esc(key)}',this.value)"
+        oninput="saveLeadNote('${esc(key)}',this.value)">${esc(l.notes_user||'')}</textarea>
+    </div>
+
+    <div class="dossier-section">
+      <div class="dossier-section-title"><span>Cold Email Draft</span></div>
+      <p style="font:400 11px var(--font);color:var(--t4);margin-bottom:8px">OBSERVE → INSIGHT → OPPORTUNITY → CTA framework</p>
+      <button class="btn btn-secondary" style="width:100%" id="dossier-email-btn" onclick="generateColdEmail('${esc(key)}')">✉ Generate Cold Email</button>
+      <div id="dossier-email-box" class="email-draft-box" style="margin-top:10px"></div>
+    </div>
+  `
+  document.getElementById('dossier-footer').innerHTML=`
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="setFollowUpReminder('${esc(key)}');openLeadDossier('${esc(key)}')">${hasReminder?'Update Reminder':'⏰ Set 3-Day Reminder'}</button>
+      ${hasReminder?`<button class="btn btn-ghost btn-sm" onclick="clearFollowUpReminder('${esc(key)}');openLeadDossier('${esc(key)}')">Clear</button>`:''}
+    </div>
+    <div style="display:flex;gap:8px">
+      ${email?`<button class="btn btn-primary" style="flex:1" onclick="sendLeadToWhatsApp('${esc(key)}')">WA Lead Brief</button>`:''}
+      <button class="btn btn-ghost" style="flex:1" onclick="closeLeadDossier()">Close</button>
+    </div>
+  `
+  document.getElementById('lead-dossier').classList.add('on')
+  document.addEventListener('keydown', _dossierEsc)
+}
+
+function _dossierEsc(e){ if(e.key==='Escape') closeLeadDossier() }
+
+function closeLeadDossier(){
+  document.getElementById('lead-dossier').classList.remove('on')
+  document.removeEventListener('keydown', _dossierEsc)
+  _dossierKey=null
+}
+
+async function generateColdEmail(key){
+  const leads=DB.get(DB_LEADS)
+  const l=leads.find(x=>x._key===key); if(!l)return
+  const btn=document.getElementById('dossier-email-btn')
+  const box=document.getElementById('dossier-email-box')
+  if(btn){ btn.disabled=true; btn.textContent='Generating...' }
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1'
+  if(isLocal){
+    if(btn){ btn.disabled=false; btn.textContent='✉ Generate Cold Email' }
+    toast('Email draft requires live Vercel deployment','warn'); return
+  }
+  try{
+    const r=await fetch('/api/agent/chat',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ mode:'email-draft', lead:{
+        title:l.title, organizer:l.organizer, event_type:l.event_type,
+        attendees_tier:l.attendees_tier, url:l.url, relevance:l.relevance,
+        action:l.action, booth_history:l.booth_history||false,
+        booth_competitor:l.booth_competitor||'', notes_user:l.notes_user||'',
+      }})
+    })
+    const d=await r.json()
+    if(!r.ok) throw new Error(d.error||'Draft failed')
+    if(box){
+      box.innerHTML=`<div class="email-subj">Subject: ${esc(d.subject||'')}</div>${esc(d.body||'').replace(/\n/g,'<br>')}`
+      box.classList.add('on')
+      box.innerHTML+=`<button class="copy-btn" style="margin-top:8px;width:100%" onclick="cp(this,${JSON.stringify(d.subject+'\n\n'+d.body)})">Copy Full Email</button>`
+    }
+    if(btn){ btn.textContent='✉ Regenerate' }
+    toast('Cold email drafted','success')
+  }catch(e){
+    toast('Email draft failed: '+e.message,'error')
+    if(btn){ btn.textContent='✉ Generate Cold Email' }
+  }
+  if(btn) btn.disabled=false
+}
 
 // ── IRON MAN PARTICLE CANVAS ──────────────────────────────────
 function initParticles(canvasId){
@@ -2926,6 +4289,19 @@ setInterval(async()=>{
 <div id="mob-tabs"></div>
 <div id="mob-drawer-overlay"></div>
 <div id="mob-drawer"></div>
+
+<!-- LEAD DOSSIER PANEL -->
+<div id="lead-dossier" role="dialog" aria-modal="true">
+  <div id="dossier-backdrop" onclick="closeLeadDossier()"></div>
+  <div id="dossier-panel">
+    <div class="dossier-header">
+      <div class="dossier-title" id="dossier-title">Lead Dossier</div>
+      <button class="dossier-close" onclick="closeLeadDossier()" aria-label="Close">×</button>
+    </div>
+    <div class="dossier-body" id="dossier-body"></div>
+    <div class="dossier-footer" id="dossier-footer"></div>
+  </div>
+</div>
 
 </body>
 </html>
